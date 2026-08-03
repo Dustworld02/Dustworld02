@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning Employés</title>
+<style>
+  :root {
+    --bleu: #1d4ed8;
+    --bleu-clair: #eff6ff;
+    --gris-bord: #d1d5db;
+    --gris-texte: #374151;
+    --fond: #f3f4f6;
+    --repos: #fef3c7;
+    --conge: #fee2e2;
+    --ferie: #e0e7ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--fond);
+    color: var(--gris-texte);
+    padding: 16px;
+  }
+
+  /* ---------- Barre d'outils (non imprimée) ---------- */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--gris-bord);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .toolbar h1 { font-size: 1.1rem; margin-right: auto; color: var(--bleu); }
+  button {
+    font: inherit;
+    padding: 8px 14px;
+    border: 1px solid var(--gris-bord);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+  }
+  button:hover { background: var(--bleu-clair); }
+  button.primaire {
+    background: var(--bleu);
+    color: #fff;
+    border-color: var(--bleu);
+    font-weight: 600;
+  }
+  button.primaire:hover { background: #1e40af; }
+  input[type="date"], input[type="time"], input[type="text"], select {
+    font: inherit;
+    padding: 7px 10px;
+    border: 1px solid var(--gris-bord);
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  /* ---------- Feuille de planning ---------- */
+  .feuille {
+    background: #fff;
+    border: 1px solid var(--gris-bord);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .entete-feuille {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .entete-feuille .societe {
+    font-size: 1.35rem;
+    font-weight: 700;
+    border: none;
+    outline: none;
+    min-width: 200px;
+    color: #111827;
+  }
+  .entete-feuille .societe:focus { border-bottom: 2px solid var(--bleu); }
+  .periode { font-size: 1.05rem; font-weight: 600; color: var(--bleu); }
+
+  table.planning {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.planning th, table.planning td {
+    border: 1px solid var(--gris-bord);
+    padding: 6px;
+    text-align: center;
+    vertical-align: top;
+  }
+  table.planning thead th {
+    background: var(--bleu);
+    color: #fff;
+    font-size: 0.85rem;
+    padding: 9px 6px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  table.planning thead th .num-jour { font-weight: 400; opacity: 0.85; font-size: 0.78rem; }
+  th.col-employe { width: 150px; }
+  th.col-total { width: 70px; }
+
+  td.nom-employe {
+    text-align: left;
+    font-weight: 600;
+    background: #f9fafb;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    border-left: 5px solid var(--coul, var(--bleu));
+    word-wrap: break-word;
+  }
+  td.nom-employe .role { display: block; font-weight: 400; font-size: 0.75rem; color: #6b7280; }
+
+  td.cellule { cursor: pointer; min-height: 46px; font-size: 0.85rem; }
+  td.cellule:hover { background: var(--bleu-clair); }
+  td.cellule .creneau {
+    display: block;
+    background: var(--bleu-clair);
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 3px 2px;
+    margin-bottom: 3px;
+    font-weight: 600;
+    color: #1e3a8a;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  td.cellule.repos { background: var(--repos); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  td.cellule.conge { background: var(--conge); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  td.cellule.ferie { background: var(--ferie); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  td.cellule .etiquette { font-weight: 700; font-size: 0.8rem; letter-spacing: 0.03em; }
+  td.cellule .note { display: block; font-size: 0.72rem; color: #6b7280; margin-top: 2px; }
+  td.total { font-weight: 700; background: #f9fafb; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+  tfoot td {
+    font-weight: 700;
+    background: #eef2ff;
+    font-size: 0.82rem;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .legende {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-size: 0.8rem;
+  }
+  .legende span { display: inline-flex; align-items: center; gap: 6px; }
+  .pastille {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    border: 1px solid var(--gris-bord);
+    display: inline-block;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .pied-impression {
+    display: none;
+    margin-top: 10px;
+    font-size: 0.72rem;
+    color: #6b7280;
+    text-align: right;
+  }
+
+  .vide {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+  }
+
+  /* ---------- Fenêtres modales ---------- */
+  dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 22px;
+    width: min(430px, 92vw);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.4); }
+  dialog h2 { font-size: 1.05rem; margin-bottom: 14px; color: var(--bleu); }
+  .champ { margin-bottom: 12px; }
+  .champ label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; }
+  .champ input[type="text"], .champ select { width: 100%; }
+  .ligne-creneau {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .ligne-creneau input[type="time"] { flex: 1; }
+  .ligne-creneau button { padding: 6px 10px; }
+  .actions-modale {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .liste-employes { list-style: none; }
+  .liste-employes li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .liste-employes li .nom { flex: 1; font-weight: 600; }
+  .raccourcis { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .raccourcis button { font-size: 0.8rem; padding: 5px 9px; }
+
+  /* ---------- Impression ---------- */
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar, dialog { display: none !important; }
+    .feuille { border: none; border-radius: 0; padding: 0; }
+    .pied-impression { display: block; }
+    td.cellule { cursor: default; }
+    td.cellule:hover { background: inherit; }
+    table.planning { font-size: 9pt; }
+    table.planning th, table.planning td { padding: 4px; }
+    .entete-feuille .societe { border: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>📅 Planning Employés</h1>
+  <button id="btn-sem-prec" title="Semaine précédente">◀</button>
+  <input type="date" id="date-semaine">
+  <button id="btn-sem-suiv" title="Semaine suivante">▶</button>
+  <button id="btn-employes">👥 Employés</button>
+  <button id="btn-copier">📋 Copier la semaine préc.</button>
+  <button id="btn-effacer">🗑️ Vider la semaine</button>
+  <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
+</div>
+
+<div class="feuille">
+  <div class="entete-feuille">
+    <input type="text" class="societe" id="nom-societe" placeholder="Nom de l'entreprise" title="Cliquez pour modifier">
+    <div class="periode" id="libelle-periode"></div>
+  </div>
+
+  <div id="zone-planning"></div>
+
+  <div class="legende">
+    <span><span class="pastille" style="background:var(--bleu-clair)"></span> Travail (horaires)</span>
+    <span><span class="pastille" style="background:var(--repos)"></span> Repos</span>
+    <span><span class="pastille" style="background:var(--conge)"></span> Congé</span>
+    <span><span class="pastille" style="background:var(--ferie)"></span> Férié</span>
+  </div>
+  <div class="pied-impression" id="pied-impression"></div>
+</div>
+
+<!-- Modale gestion des employés -->
+<dialog id="modale-employes">
+  <h2>👥 Gestion des employés</h2>
+  <ul class="liste-employes" id="liste-employes"></ul>
+  <div class="champ" style="margin-top:14px">
+    <label for="nouvel-employe">Ajouter un employé</label>
+    <div style="display:flex; gap:8px">
+      <input type="text" id="nouvel-employe" placeholder="Nom" style="flex:2">
+      <input type="text" id="nouveau-role" placeholder="Poste (optionnel)" style="flex:2">
+      <input type="color" id="nouvelle-couleur" value="#1d4ed8" title="Couleur" style="width:44px; height:38px; border:1px solid var(--gris-bord); border-radius:8px; padding:2px; cursor:pointer">
+      <button class="primaire" id="btn-ajouter-employe">Ajouter</button>
+    </div>
+  </div>
+  <div class="actions-modale">
+    <button id="btn-fermer-employes">Fermer</button>
+  </div>
+</dialog>
+
+<!-- Modale édition d'une cellule -->
+<dialog id="modale-cellule">
+  <h2 id="titre-cellule"></h2>
+  <div class="champ">
+    <label for="type-cellule">Type de journée</label>
+    <select id="type-cellule">
+      <option value="travail">Travail</option>
+      <option value="repos">Repos</option>
+      <option value="conge">Congé</option>
+      <option value="ferie">Férié</option>
+    </select>
+  </div>
+  <div id="zone-creneaux">
+    <label style="font-size:0.82rem; font-weight:600; display:block; margin-bottom:6px">Créneaux horaires</label>
+    <div class="raccourcis" id="raccourcis-horaires"></div>
+    <div id="liste-creneaux"></div>
+    <button id="btn-ajouter-creneau" style="font-size:0.85rem">+ Ajouter un créneau</button>
+  </div>
+  <div class="champ" style="margin-top:12px">
+    <label for="note-cellule">Note (optionnel)</label>
+    <input type="text" id="note-cellule" placeholder="ex. : remplacement, formation…">
+  </div>
+  <div class="actions-modale">
+    <button id="btn-vider-cellule">Vider</button>
+    <button id="btn-annuler-cellule">Annuler</button>
+    <button class="primaire" id="btn-valider-cellule">Valider</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ================= Données et persistance ================= */
+
+const CLE_STOCKAGE = "planning-employes-v1";
+
+const HORAIRES_RAPIDES = [
+  { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
+  { libelle: "Journée 9h–17h", debut: "09:00", fin: "17:00" },
+  { libelle: "Après-midi 14h–18h", debut: "14:00", fin: "18:00" },
+  { libelle: "Soir 18h–23h",   debut: "18:00", fin: "23:00" },
+];
+
+const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const ETIQUETTES = { repos: "REPOS", conge: "CONGÉ", ferie: "FÉRIÉ" };
+
+let donnees = chargerDonnees();
+let lundiCourant = lundiDeLaSemaine(new Date());
+let celluleEnCours = null; // { employeId, indexJour }
+
+function chargerDonnees() {
+  try {
+    const brut = localStorage.getItem(CLE_STOCKAGE);
+    if (brut) return JSON.parse(brut);
+  } catch (e) { /* stockage indisponible ou corrompu : on repart à neuf */ }
+  return { societe: "", employes: [], semaines: {} };
+}
+
+function sauvegarder() {
+  try {
+    localStorage.setItem(CLE_STOCKAGE, JSON.stringify(donnees));
+  } catch (e) { /* stockage indisponible : l'appli reste utilisable sans sauvegarde */ }
+}
+
+/* ================= Dates ================= */
+
+function lundiDeLaSemaine(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const decalage = (d.getDay() + 6) % 7; // 0 = lundi
+  d.setDate(d.getDate() - decalage);
+  return d;
+}
+
+function cleSemaine(lundi) {
+  return versInputDate(lundi); // date locale, pour éviter tout décalage de fuseau horaire
+}
+
+function ajouterJours(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function formatDateCourte(date) {
+  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+}
+
+function formatDateLongue(date) {
+  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function versInputDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const j = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${j}`;
+}
+
+function numeroSemaineISO(lundi) {
+  const d = new Date(Date.UTC(lundi.getFullYear(), lundi.getMonth(), lundi.getDate()));
+  d.setUTCDate(d.getUTCDate() + 3); // jeudi de la semaine
+  const debutAnnee = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - debutAnnee) / 86400000 + 1) / 7);
+}
+
+/* ================= Accès au planning ================= */
+
+function semaineCourante() {
+  const cle = cleSemaine(lundiCourant);
+  if (!donnees.semaines[cle]) donnees.semaines[cle] = {};
+  return donnees.semaines[cle];
+}
+
+function celluleDe(employeId, indexJour) {
+  const sem = semaineCourante();
+  if (!sem[employeId]) sem[employeId] = {};
+  return sem[employeId][indexJour] || null;
+}
+
+/* ================= Calcul des heures ================= */
+
+function minutesDepuisMinuit(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function dureeCellule(cellule) {
+  if (!cellule || cellule.type !== "travail" || !cellule.creneaux) return 0;
+  let total = 0;
+  for (const c of cellule.creneaux) {
+    if (!c.debut || !c.fin) continue;
+    let diff = minutesDepuisMinuit(c.fin) - minutesDepuisMinuit(c.debut);
+    if (diff < 0) diff += 24 * 60; // créneau passant minuit
+    total += diff;
+  }
+  return total;
+}
+
+function formatHeures(minutes) {
+  if (minutes === 0) return "—";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+}
+
+/* ================= Rendu ================= */
+
+function rendre() {
+  document.getElementById("date-semaine").value = versInputDate(lundiCourant);
+  document.getElementById("nom-societe").value = donnees.societe || "";
+
+  const dimanche = ajouterJours(lundiCourant, 6);
+  document.getElementById("libelle-periode").textContent =
+    `Semaine ${numeroSemaineISO(lundiCourant)} — du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
+  document.getElementById("pied-impression").textContent =
+    `Planning édité le ${formatDateLongue(new Date())}`;
+
+  const zone = document.getElementById("zone-planning");
+
+  if (donnees.employes.length === 0) {
+    zone.innerHTML = `<div class="vide">Aucun employé pour le moment.<br>
+      Cliquez sur <strong>👥 Employés</strong> pour commencer.</div>`;
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "planning";
+
+  // En-tête : jours
+  const thead = document.createElement("thead");
+  const ligneEntete = document.createElement("tr");
+  ligneEntete.innerHTML = `<th class="col-employe">Employé</th>`;
+  for (let j = 0; j < 7; j++) {
+    const date = ajouterJours(lundiCourant, j);
+    ligneEntete.innerHTML += `<th>${JOURS[j]}<br><span class="num-jour">${formatDateCourte(date)}</span></th>`;
+  }
+  ligneEntete.innerHTML += `<th class="col-total">Total</th>`;
+  thead.appendChild(ligneEntete);
+  table.appendChild(thead);
+
+  // Corps : une ligne par employé
+  const tbody = document.createElement("tbody");
+  const totauxParJour = new Array(7).fill(0);
+
+  for (const emp of donnees.employes) {
+    const tr = document.createElement("tr");
+
+    const tdNom = document.createElement("td");
+    tdNom.className = "nom-employe";
+    tdNom.style.setProperty("--coul", emp.couleur || "#1d4ed8");
+    tdNom.innerHTML = `${echapper(emp.nom)}${emp.role ? `<span class="role">${echapper(emp.role)}</span>` : ""}`;
+    tr.appendChild(tdNom);
+
+    let totalEmploye = 0;
+    for (let j = 0; j < 7; j++) {
+      const cellule = celluleDe(emp.id, j);
+      const td = document.createElement("td");
+      td.className = "cellule";
+      td.dataset.employeId = emp.id;
+      td.dataset.indexJour = j;
+
+      if (cellule) {
+        if (cellule.type === "travail") {
+          const creneaux = (cellule.creneaux || []).filter(c => c.debut && c.fin);
+          td.innerHTML = creneaux
+            .map(c => `<span class="creneau">${c.debut} – ${c.fin}</span>`)
+            .join("");
+          const duree = dureeCellule(cellule);
+          totalEmploye += duree;
+          totauxParJour[j] += duree;
+        } else {
+          td.classList.add(cellule.type);
+          td.innerHTML = `<span class="etiquette">${ETIQUETTES[cellule.type] || ""}</span>`;
+        }
+        if (cellule.note) td.innerHTML += `<span class="note">${echapper(cellule.note)}</span>`;
+      }
+      tr.appendChild(td);
+    }
+
+    const tdTotal = document.createElement("td");
+    tdTotal.className = "total";
+    tdTotal.textContent = formatHeures(totalEmploye);
+    tr.appendChild(tdTotal);
+
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+
+  // Pied : total d'heures par jour
+  const tfoot = document.createElement("tfoot");
+  const ligneTotaux = document.createElement("tr");
+  ligneTotaux.innerHTML = `<td style="text-align:left">Heures / jour</td>`;
+  let totalGeneral = 0;
+  for (let j = 0; j < 7; j++) {
+    ligneTotaux.innerHTML += `<td>${formatHeures(totauxParJour[j])}</td>`;
+    totalGeneral += totauxParJour[j];
+  }
+  ligneTotaux.innerHTML += `<td>${formatHeures(totalGeneral)}</td>`;
+  tfoot.appendChild(ligneTotaux);
+  table.appendChild(tfoot);
+
+  zone.innerHTML = "";
+  zone.appendChild(table);
+}
+
+function echapper(texte) {
+  const div = document.createElement("div");
+  div.textContent = texte;
+  return div.innerHTML;
+}
+
+/* ================= Modale employés ================= */
+
+function rendreListeEmployes() {
+  const ul = document.getElementById("liste-employes");
+  ul.innerHTML = "";
+  if (donnees.employes.length === 0) {
+    ul.innerHTML = `<li style="color:#6b7280">Aucun employé.</li>`;
+    return;
+  }
+  for (const emp of donnees.employes) {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <span class="pastille" style="background:${emp.couleur || "#1d4ed8"}"></span>
+      <span class="nom">${echapper(emp.nom)}${emp.role ? ` <small style="font-weight:400;color:#6b7280">(${echapper(emp.role)})</small>` : ""}</span>
+      <button data-action="monter" data-id="${emp.id}" title="Monter">↑</button>
+      <button data-action="descendre" data-id="${emp.id}" title="Descendre">↓</button>
+      <button data-action="supprimer" data-id="${emp.id}" title="Supprimer">✕</button>`;
+    ul.appendChild(li);
+  }
+}
+
+document.getElementById("liste-employes").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const idx = donnees.employes.findIndex(emp => emp.id === id);
+  if (idx === -1) return;
+
+  if (btn.dataset.action === "supprimer") {
+    const emp = donnees.employes[idx];
+    if (!confirm(`Supprimer ${emp.nom} ? Ses horaires seront aussi supprimés.`)) return;
+    donnees.employes.splice(idx, 1);
+    for (const cle in donnees.semaines) delete donnees.semaines[cle][id];
+  } else if (btn.dataset.action === "monter" && idx > 0) {
+    [donnees.employes[idx - 1], donnees.employes[idx]] = [donnees.employes[idx], donnees.employes[idx - 1]];
+  } else if (btn.dataset.action === "descendre" && idx < donnees.employes.length - 1) {
+    [donnees.employes[idx + 1], donnees.employes[idx]] = [donnees.employes[idx], donnees.employes[idx + 1]];
+  }
+  sauvegarder();
+  rendreListeEmployes();
+  rendre();
+});
+
+document.getElementById("btn-ajouter-employe").addEventListener("click", () => {
+  const champNom = document.getElementById("nouvel-employe");
+  const champRole = document.getElementById("nouveau-role");
+  const champCouleur = document.getElementById("nouvelle-couleur");
+  const nom = champNom.value.trim();
+  if (!nom) { champNom.focus(); return; }
+  donnees.employes.push({
+    id: "emp-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    nom,
+    role: champRole.value.trim(),
+    couleur: champCouleur.value,
+  });
+  champNom.value = "";
+  champRole.value = "";
+  champNom.focus();
+  sauvegarder();
+  rendreListeEmployes();
+  rendre();
+});
+
+document.getElementById("nouvel-employe").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("btn-ajouter-employe").click();
+});
+
+document.getElementById("btn-employes").addEventListener("click", () => {
+  rendreListeEmployes();
+  document.getElementById("modale-employes").showModal();
+});
+document.getElementById("btn-fermer-employes").addEventListener("click", () => {
+  document.getElementById("modale-employes").close();
+});
+
+/* ================= Modale cellule ================= */
+
+function ouvrirModaleCellule(employeId, indexJour) {
+  celluleEnCours = { employeId, indexJour };
+  const emp = donnees.employes.find(e => e.id === employeId);
+  const date = ajouterJours(lundiCourant, indexJour);
+  document.getElementById("titre-cellule").textContent =
+    `${emp ? emp.nom : ""} — ${JOURS[indexJour]} ${formatDateCourte(date)}`;
+
+  const cellule = celluleDe(employeId, indexJour);
+  document.getElementById("type-cellule").value = cellule ? cellule.type : "travail";
+  document.getElementById("note-cellule").value = cellule && cellule.note ? cellule.note : "";
+
+  const liste = document.getElementById("liste-creneaux");
+  liste.innerHTML = "";
+  const creneaux = cellule && cellule.creneaux && cellule.creneaux.length
+    ? cellule.creneaux
+    : [{ debut: "", fin: "" }];
+  for (const c of creneaux) ajouterLigneCreneau(c.debut, c.fin);
+
+  majVisibiliteCreneaux();
+  document.getElementById("modale-cellule").showModal();
+}
+
+function ajouterLigneCreneau(debut = "", fin = "") {
+  const liste = document.getElementById("liste-creneaux");
+  const ligne = document.createElement("div");
+  ligne.className = "ligne-creneau";
+  ligne.innerHTML = `
+    <input type="time" class="debut" value="${debut}">
+    <span>→</span>
+    <input type="time" class="fin" value="${fin}">
+    <button type="button" class="retirer" title="Retirer ce créneau">✕</button>`;
+  ligne.querySelector(".retirer").addEventListener("click", () => ligne.remove());
+  liste.appendChild(ligne);
+}
+
+function majVisibiliteCreneaux() {
+  const type = document.getElementById("type-cellule").value;
+  document.getElementById("zone-creneaux").style.display = type === "travail" ? "" : "none";
+}
+
+document.getElementById("type-cellule").addEventListener("change", majVisibiliteCreneaux);
+document.getElementById("btn-ajouter-creneau").addEventListener("click", () => ajouterLigneCreneau());
+
+// Boutons d'horaires rapides
+(function initRaccourcis() {
+  const zone = document.getElementById("raccourcis-horaires");
+  for (const h of HORAIRES_RAPIDES) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = h.libelle;
+    btn.addEventListener("click", () => {
+      const lignes = document.querySelectorAll("#liste-creneaux .ligne-creneau");
+      const derniere = lignes[lignes.length - 1];
+      if (derniere && !derniere.querySelector(".debut").value && !derniere.querySelector(".fin").value) {
+        derniere.querySelector(".debut").value = h.debut;
+        derniere.querySelector(".fin").value = h.fin;
+      } else {
+        ajouterLigneCreneau(h.debut, h.fin);
+      }
+    });
+    zone.appendChild(btn);
+  }
+})();
+
+document.getElementById("btn-valider-cellule").addEventListener("click", () => {
+  if (!celluleEnCours) return;
+  const { employeId, indexJour } = celluleEnCours;
+  const type = document.getElementById("type-cellule").value;
+  const note = document.getElementById("note-cellule").value.trim();
+
+  const cellule = { type };
+  if (type === "travail") {
+    const creneaux = [];
+    for (const ligne of document.querySelectorAll("#liste-creneaux .ligne-creneau")) {
+      const debut = ligne.querySelector(".debut").value;
+      const fin = ligne.querySelector(".fin").value;
+      if (debut && fin) creneaux.push({ debut, fin });
+    }
+    cellule.creneaux = creneaux;
+  }
+  if (note) cellule.note = note;
+
+  const sem = semaineCourante();
+  if (!sem[employeId]) sem[employeId] = {};
+  const estVide = type === "travail" && (!cellule.creneaux || cellule.creneaux.length === 0) && !note;
+  if (estVide) {
+    delete sem[employeId][indexJour];
+  } else {
+    sem[employeId][indexJour] = cellule;
+  }
+  sauvegarder();
+  rendre();
+  document.getElementById("modale-cellule").close();
+});
+
+document.getElementById("btn-vider-cellule").addEventListener("click", () => {
+  if (!celluleEnCours) return;
+  const { employeId, indexJour } = celluleEnCours;
+  const sem = semaineCourante();
+  if (sem[employeId]) delete sem[employeId][indexJour];
+  sauvegarder();
+  rendre();
+  document.getElementById("modale-cellule").close();
+});
+
+document.getElementById("btn-annuler-cellule").addEventListener("click", () => {
+  document.getElementById("modale-cellule").close();
+});
+
+// Clic sur une cellule du planning
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const td = e.target.closest("td.cellule");
+  if (!td) return;
+  ouvrirModaleCellule(td.dataset.employeId, Number(td.dataset.indexJour));
+});
+
+/* ================= Barre d'outils ================= */
+
+document.getElementById("btn-sem-prec").addEventListener("click", () => {
+  lundiCourant = ajouterJours(lundiCourant, -7);
+  rendre();
+});
+document.getElementById("btn-sem-suiv").addEventListener("click", () => {
+  lundiCourant = ajouterJours(lundiCourant, 7);
+  rendre();
+});
+document.getElementById("date-semaine").addEventListener("change", (e) => {
+  if (!e.target.value) return;
+  lundiCourant = lundiDeLaSemaine(new Date(e.target.value + "T00:00:00"));
+  rendre();
+});
+
+document.getElementById("nom-societe").addEventListener("input", (e) => {
+  donnees.societe = e.target.value;
+  sauvegarder();
+});
+
+document.getElementById("btn-copier").addEventListener("click", () => {
+  const clePrec = cleSemaine(ajouterJours(lundiCourant, -7));
+  const semainePrec = donnees.semaines[clePrec];
+  if (!semainePrec || Object.keys(semainePrec).length === 0) {
+    alert("La semaine précédente est vide : rien à copier.");
+    return;
+  }
+  const cle = cleSemaine(lundiCourant);
+  const semaineActuelle = donnees.semaines[cle];
+  if (semaineActuelle && Object.keys(semaineActuelle).some(id => Object.keys(semaineActuelle[id]).length > 0)) {
+    if (!confirm("Cette semaine contient déjà des horaires. Les remplacer par ceux de la semaine précédente ?")) return;
+  }
+  donnees.semaines[cle] = JSON.parse(JSON.stringify(semainePrec));
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("btn-effacer").addEventListener("click", () => {
+  if (!confirm("Vider tous les horaires de cette semaine ?")) return;
+  donnees.semaines[cleSemaine(lundiCourant)] = {};
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("btn-imprimer").addEventListener("click", () => window.print());
+
+/* ================= Démarrage ================= */
+rendre();
+</script>
+</body>
+</html>
