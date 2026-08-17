@@ -13,9 +13,11 @@ Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), c
 - Choisissez la semaine avec les flèches **◀ ▶** ou le sélecteur de date.
 - Cliquez sur une case du tableau pour définir la journée d'un employé :
   - **Travail** : un ou plusieurs créneaux horaires (boutons d'horaires rapides disponibles, créneaux de coupure possibles) ;
+  - pour chaque créneau : le **client** (avec suggestions des clients déjà saisis) et la **description du travail à effectuer** ;
+  - des créneaux **🚗 Trajet** (temps de route), affichés en gris et comptés à part dans les totaux ;
   - **Repos**, **Congé** ou **Férié** ;
   - une **note** libre (remplacement, formation…).
-- Les **totaux d'heures** par employé et par jour sont calculés automatiquement.
+- Les **totaux d'heures** par employé et par jour sont calculés automatiquement, avec le détail « dont X h trajet ».
 - **📋 Copier la semaine préc.** duplique la semaine précédente pour aller plus vite.
 
 ### 3. Imprimer en PDF
