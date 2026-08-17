@@ -52,7 +52,7 @@
     font-weight: 600;
   }
   button.primaire:hover { background: #1e40af; }
-  input[type="date"], input[type="time"], input[type="text"], select {
+  input[type="date"], input[type="time"], input[type="text"], input[type="number"], select {
     font: inherit;
     padding: 7px 10px;
     border: 1px solid var(--gris-bord);
@@ -230,6 +230,8 @@
   }
   .ligne-creneau select { padding: 7px 4px; }
   .ligne-creneau input[type="time"] { flex: 1; min-width: 0; }
+  .ligne-creneau input[type="number"] { flex: 1; min-width: 0; padding: 7px 6px; }
+  .ligne-creneau small { color: #6b7280; }
   .ligne-creneau button { padding: 6px 10px; }
   .ligne-details { display: flex; gap: 6px; }
   .ligne-details input { flex: 1; min-width: 0; }
@@ -335,6 +337,7 @@
     <button id="btn-ajouter-trajet" style="font-size:0.85rem">+ Ajouter un trajet 🚗</button>
   </div>
   <datalist id="liste-clients"></datalist>
+  <datalist id="liste-lieux"></datalist>
   <div class="champ" style="margin-top:12px">
     <label for="note-cellule">Note (optionnel)</label>
     <input type="text" id="note-cellule" placeholder="ex. : remplacement, formation…">
@@ -444,15 +447,24 @@ function minutesDepuisMinuit(hhmm) {
   return h * 60 + m;
 }
 
+function dureeEntre(debut, fin) {
+  let diff = minutesDepuisMinuit(fin) - minutesDepuisMinuit(debut);
+  if (diff < 0) diff += 24 * 60; // créneau passant minuit
+  return diff;
+}
+
 function dureesCellule(cellule) {
-  const durees = { travail: 0, trajet: 0 };
+  const durees = { travail: 0, trajet: 0, km: 0 };
   if (!cellule || cellule.type !== "travail" || !cellule.creneaux) return durees;
   for (const c of cellule.creneaux) {
-    if (!c.debut || !c.fin) continue;
-    let diff = minutesDepuisMinuit(c.fin) - minutesDepuisMinuit(c.debut);
-    if (diff < 0) diff += 24 * 60; // créneau passant minuit
-    if (c.type === "trajet") durees.trajet += diff;
-    else durees.travail += diff;
+    if (c.type === "trajet") {
+      if (c.duree > 0) durees.trajet += c.duree;
+      else if (c.debut && c.fin) durees.trajet += dureeEntre(c.debut, c.fin); // ancien format avec horaires
+      if (c.km > 0) durees.km += c.km;
+    } else {
+      if (!c.debut || !c.fin) continue;
+      durees.travail += dureeEntre(c.debut, c.fin);
+    }
   }
   return durees;
 }
@@ -462,6 +474,24 @@ function formatHeures(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+}
+
+function formatDuree(minutes) {
+  if (minutes < 60) return `${minutes} min`;
+  return formatHeures(minutes);
+}
+
+function formatKm(km) {
+  return (Math.round(km * 10) / 10).toString().replace(".", ",");
+}
+
+// Détail « dont X h trajet · Y km » pour les cases de totaux
+function sousTotalTrajet(t) {
+  if (!(t.trajet > 0) && !(t.km > 0)) return "";
+  const parts = [];
+  if (t.trajet > 0) parts.push(`${formatHeures(t.trajet)} trajet`);
+  if (t.km > 0) parts.push(`${formatKm(t.km)} km`);
+  return `<span class="sous-total">dont ${parts.join(" · ")}</span>`;
 }
 
 /* ================= Rendu ================= */
@@ -501,7 +531,7 @@ function rendre() {
 
   // Corps : une ligne par employé
   const tbody = document.createElement("tbody");
-  const totauxParJour = Array.from({ length: 7 }, () => ({ travail: 0, trajet: 0 }));
+  const totauxParJour = Array.from({ length: 7 }, () => ({ travail: 0, trajet: 0, km: 0 }));
 
   for (const emp of donnees.employes) {
     const tr = document.createElement("tr");
@@ -512,7 +542,7 @@ function rendre() {
     tdNom.innerHTML = `${echapper(emp.nom)}${emp.role ? `<span class="role">${echapper(emp.role)}</span>` : ""}`;
     tr.appendChild(tdNom);
 
-    const totalEmploye = { travail: 0, trajet: 0 };
+    const totalEmploye = { travail: 0, trajet: 0, km: 0 };
     for (let j = 0; j < 7; j++) {
       const cellule = celluleDe(emp.id, j);
       const td = document.createElement("td");
@@ -522,11 +552,20 @@ function rendre() {
 
       if (cellule) {
         if (cellule.type === "travail") {
-          const creneaux = (cellule.creneaux || []).filter(c => c.debut && c.fin);
+          const creneaux = (cellule.creneaux || []).filter(c => (c.debut && c.fin) || c.type === "trajet");
           td.innerHTML = creneaux.map(c => {
-            const estTrajet = c.type === "trajet";
-            let html = `<span class="creneau${estTrajet ? " trajet" : ""}">`;
-            html += `${estTrajet ? "🚗 " : ""}${c.debut} – ${c.fin}`;
+            if (c.type === "trajet") {
+              const infos = [];
+              if (c.duree > 0) infos.push(formatDuree(c.duree));
+              else if (c.debut && c.fin) infos.push(`${c.debut} – ${c.fin}`); // ancien format
+              if (c.km > 0) infos.push(`${formatKm(c.km)} km`);
+              let html = `<span class="creneau trajet">🚗 ${infos.join(" · ") || "Trajet"}`;
+              const lieux = [c.depart, c.arrivee || c.client].filter(Boolean).map(echapper).join(" → ");
+              if (lieux) html += `<span class="client">${lieux}</span>`;
+              if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
+              return html + `</span>`;
+            }
+            let html = `<span class="creneau">${c.debut} – ${c.fin}`;
             if (c.client) html += `<span class="client">${echapper(c.client)}</span>`;
             if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
             return html + `</span>`;
@@ -534,8 +573,10 @@ function rendre() {
           const durees = dureesCellule(cellule);
           totalEmploye.travail += durees.travail;
           totalEmploye.trajet += durees.trajet;
+          totalEmploye.km += durees.km;
           totauxParJour[j].travail += durees.travail;
           totauxParJour[j].trajet += durees.trajet;
+          totauxParJour[j].km += durees.km;
         } else {
           td.classList.add(cellule.type);
           td.innerHTML = `<span class="etiquette">${ETIQUETTES[cellule.type] || ""}</span>`;
@@ -547,8 +588,7 @@ function rendre() {
 
     const tdTotal = document.createElement("td");
     tdTotal.className = "total";
-    tdTotal.innerHTML = formatHeures(totalEmploye.travail + totalEmploye.trajet) +
-      (totalEmploye.trajet > 0 ? `<span class="sous-total">dont ${formatHeures(totalEmploye.trajet)} trajet</span>` : "");
+    tdTotal.innerHTML = formatHeures(totalEmploye.travail + totalEmploye.trajet) + sousTotalTrajet(totalEmploye);
     tr.appendChild(tdTotal);
 
     tbody.appendChild(tr);
@@ -559,14 +599,15 @@ function rendre() {
   const tfoot = document.createElement("tfoot");
   const ligneTotaux = document.createElement("tr");
   ligneTotaux.innerHTML = `<td style="text-align:left">Heures / jour</td>`;
-  const totalGeneral = { travail: 0, trajet: 0 };
+  const totalGeneral = { travail: 0, trajet: 0, km: 0 };
   for (let j = 0; j < 7; j++) {
     const t = totauxParJour[j];
-    ligneTotaux.innerHTML += `<td>${formatHeures(t.travail + t.trajet)}${t.trajet > 0 ? `<span class="sous-total">dont ${formatHeures(t.trajet)} trajet</span>` : ""}</td>`;
+    ligneTotaux.innerHTML += `<td>${formatHeures(t.travail + t.trajet)}${sousTotalTrajet(t)}</td>`;
     totalGeneral.travail += t.travail;
     totalGeneral.trajet += t.trajet;
+    totalGeneral.km += t.km;
   }
-  ligneTotaux.innerHTML += `<td>${formatHeures(totalGeneral.travail + totalGeneral.trajet)}${totalGeneral.trajet > 0 ? `<span class="sous-total">dont ${formatHeures(totalGeneral.trajet)} trajet</span>` : ""}</td>`;
+  ligneTotaux.innerHTML += `<td>${formatHeures(totalGeneral.travail + totalGeneral.trajet)}${sousTotalTrajet(totalGeneral)}</td>`;
   tfoot.appendChild(ligneTotaux);
   table.appendChild(tfoot);
 
@@ -690,44 +731,81 @@ function ajouterLigneCreneau(c = {}) {
         <option value="travail">🛠️ Travail</option>
         <option value="trajet">🚗 Trajet</option>
       </select>
-      <input type="time" class="debut">
-      <span>→</span>
-      <input type="time" class="fin">
+      <span class="saisie-travail" style="display:flex; flex:1; gap:6px; align-items:center; min-width:0">
+        <input type="time" class="debut">
+        <span>→</span>
+        <input type="time" class="fin">
+      </span>
+      <span class="saisie-trajet" style="display:flex; flex:1; gap:6px; align-items:center; min-width:0">
+        <input type="number" class="duree" min="0" step="5" placeholder="Temps"><small>min</small>
+        <input type="number" class="km" min="0" step="0.1" placeholder="Dist."><small>km</small>
+      </span>
       <button type="button" class="retirer" title="Retirer ce créneau">✕</button>
     </div>
-    <div class="ligne-details">
+    <div class="ligne-details details-travail">
       <input type="text" class="client" list="liste-clients" placeholder="Client">
       <input type="text" class="desc" placeholder="Travail à effectuer">
+    </div>
+    <div class="ligne-details details-trajet">
+      <input type="text" class="depart" list="liste-lieux" placeholder="Lieu de départ">
+      <span style="align-self:center">→</span>
+      <input type="text" class="arrivee" list="liste-lieux" placeholder="Lieu d'arrivée">
     </div>`;
-  bloc.querySelector(".type").value = c.type === "trajet" ? "trajet" : "travail";
+  const selType = bloc.querySelector(".type");
+  selType.value = c.type === "trajet" ? "trajet" : "travail";
   bloc.querySelector(".debut").value = c.debut || "";
   bloc.querySelector(".fin").value = c.fin || "";
   bloc.querySelector(".client").value = c.client || "";
   bloc.querySelector(".desc").value = c.desc || "";
+  // Durée du trajet : champ direct, sinon calculée depuis les horaires de l'ancien format
+  let duree = c.duree;
+  if (duree == null && c.type === "trajet" && c.debut && c.fin) duree = dureeEntre(c.debut, c.fin);
+  bloc.querySelector(".duree").value = duree != null ? duree : "";
+  bloc.querySelector(".km").value = c.km != null ? c.km : "";
+  bloc.querySelector(".depart").value = c.depart || "";
+  bloc.querySelector(".arrivee").value = c.arrivee || (c.type === "trajet" && c.client) || "";
+
+  const majChamps = () => {
+    const estTrajet = selType.value === "trajet";
+    bloc.querySelector(".saisie-travail").style.display = estTrajet ? "none" : "flex";
+    bloc.querySelector(".details-travail").style.display = estTrajet ? "none" : "flex";
+    bloc.querySelector(".saisie-trajet").style.display = estTrajet ? "flex" : "none";
+    bloc.querySelector(".details-trajet").style.display = estTrajet ? "flex" : "none";
+  };
+  selType.addEventListener("change", majChamps);
+  majChamps();
+
   bloc.querySelector(".retirer").addEventListener("click", () => bloc.remove());
   liste.appendChild(bloc);
 }
 
-// Suggestions de clients déjà saisis (toutes semaines confondues)
+// Suggestions de clients et de lieux déjà saisis (toutes semaines confondues)
 function majListeClients() {
   const clients = new Set();
+  const lieux = new Set();
   for (const cle in donnees.semaines) {
     const sem = donnees.semaines[cle];
     for (const empId in sem) {
       for (const j in sem[empId]) {
         for (const c of (sem[empId][j].creneaux || [])) {
-          if (c.client) clients.add(c.client);
+          if (c.client) { clients.add(c.client); lieux.add(c.client); }
+          if (c.depart) lieux.add(c.depart);
+          if (c.arrivee) lieux.add(c.arrivee);
         }
       }
     }
   }
-  const dl = document.getElementById("liste-clients");
-  dl.innerHTML = "";
-  for (const nom of [...clients].sort((a, b) => a.localeCompare(b, "fr"))) {
-    const opt = document.createElement("option");
-    opt.value = nom;
-    dl.appendChild(opt);
-  }
+  const remplir = (id, valeurs) => {
+    const dl = document.getElementById(id);
+    dl.innerHTML = "";
+    for (const nom of [...valeurs].sort((a, b) => a.localeCompare(b, "fr"))) {
+      const opt = document.createElement("option");
+      opt.value = nom;
+      dl.appendChild(opt);
+    }
+  };
+  remplir("liste-clients", clients);
+  remplir("liste-lieux", lieux);
 }
 
 function majVisibiliteCreneaux() {
@@ -749,7 +827,8 @@ document.getElementById("btn-ajouter-trajet").addEventListener("click", () => aj
     btn.addEventListener("click", () => {
       const blocs = document.querySelectorAll("#liste-creneaux .bloc-creneau");
       const dernier = blocs[blocs.length - 1];
-      if (dernier && !dernier.querySelector(".debut").value && !dernier.querySelector(".fin").value) {
+      if (dernier && dernier.querySelector(".type").value === "travail" &&
+          !dernier.querySelector(".debut").value && !dernier.querySelector(".fin").value) {
         dernier.querySelector(".debut").value = h.debut;
         dernier.querySelector(".fin").value = h.fin;
       } else {
@@ -770,16 +849,29 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
   if (type === "travail") {
     const creneaux = [];
     for (const bloc of document.querySelectorAll("#liste-creneaux .bloc-creneau")) {
-      const debut = bloc.querySelector(".debut").value;
-      const fin = bloc.querySelector(".fin").value;
-      if (!debut || !fin) continue;
-      const c = { debut, fin };
-      if (bloc.querySelector(".type").value === "trajet") c.type = "trajet";
-      const client = bloc.querySelector(".client").value.trim();
-      const desc = bloc.querySelector(".desc").value.trim();
-      if (client) c.client = client;
-      if (desc) c.desc = desc;
-      creneaux.push(c);
+      if (bloc.querySelector(".type").value === "trajet") {
+        const duree = parseInt(bloc.querySelector(".duree").value, 10);
+        const km = parseFloat((bloc.querySelector(".km").value || "").replace(",", "."));
+        const depart = bloc.querySelector(".depart").value.trim();
+        const arrivee = bloc.querySelector(".arrivee").value.trim();
+        if (!(duree > 0) && !(km > 0) && !depart && !arrivee) continue;
+        const c = { type: "trajet" };
+        if (duree > 0) c.duree = duree;
+        if (km > 0) c.km = km;
+        if (depart) c.depart = depart;
+        if (arrivee) c.arrivee = arrivee;
+        creneaux.push(c);
+      } else {
+        const debut = bloc.querySelector(".debut").value;
+        const fin = bloc.querySelector(".fin").value;
+        if (!debut || !fin) continue;
+        const c = { debut, fin };
+        const client = bloc.querySelector(".client").value.trim();
+        const desc = bloc.querySelector(".desc").value.trim();
+        if (client) c.client = client;
+        if (desc) c.desc = desc;
+        creneaux.push(c);
+      }
     }
     cellule.creneaux = creneaux;
   }
