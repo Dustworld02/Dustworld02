@@ -16,7 +16,8 @@ Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), c
   - pour chaque créneau : le **client** (avec suggestions des clients déjà saisis) et la **description du travail à effectuer** ;
   - des créneaux **🚗 Trajet** : lieu de départ → lieu d'arrivée, temps (en minutes) et nombre de km ; affichés en gris et comptés à part dans les totaux (heures et kilomètres) ;
   - **Repos**, **Congé** ou **Férié** ;
-  - une **note** libre (remplacement, formation…).
+  - une **note** libre (remplacement, formation…) ;
+  - les créneaux se **réorganisent en les faisant glisser** par la poignée ⠿ (souris ou tactile).
 - Les **totaux d'heures** par employé et par jour sont calculés automatiquement, avec le détail « dont X h trajet ».
 - **📋 Copier la semaine préc.** duplique la semaine précédente pour aller plus vite.
 
