@@ -294,7 +294,8 @@
     font-weight: 600;
   }
   .bascule-vue button:first-child { border-radius: 8px 0 0 8px; }
-  .bascule-vue button:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+  .bascule-vue button:not(:first-child) { border-left: none; }
+  .bascule-vue button:last-child { border-radius: 0 8px 8px 0; }
   .bascule-vue button.actif {
     background: var(--bleu);
     color: #fff;
@@ -323,6 +324,65 @@
     -webkit-print-color-adjust: exact;
   }
 
+  /* ---------- Onglet véhicules ---------- */
+  .ajout-vehicule {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .cartes-vehicules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+  }
+  .carte-vehicule {
+    border: 1px solid var(--gris-bord);
+    border-radius: 10px;
+    background: #fff;
+    padding: 14px;
+    break-inside: avoid;
+  }
+  .carte-vehicule h3 { font-size: 1rem; color: #111827; }
+  .carte-vehicule .attribution { font-size: 0.8rem; color: #6b7280; margin: 2px 0 8px; }
+  .section-vehicule { border-top: 1px solid #f3f4f6; padding: 8px 0 6px; }
+  .section-vehicule h4 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bleu);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ligne-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.86rem;
+    padding: 2px 0;
+  }
+  .ligne-item .texte { flex: 1; }
+  .ligne-item.fait .texte { text-decoration: line-through; color: #9ca3af; }
+  .ligne-item input { padding: 5px 7px; font-size: 0.84rem; }
+  .ligne-item button { padding: 2px 8px; font-size: 0.8rem; }
+  .badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 2px 8px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .badge.ok { background: #dcfce7; color: #166534; }
+  .badge.attention { background: #fef3c7; color: #92400e; }
+  .badge.alerte { background: #fee2e2; color: #991b1b; }
+  .mini-form { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .mini-form input { font-size: 0.82rem; padding: 5px 7px; flex: 1; min-width: 0; }
+  .mini-form button { font-size: 0.82rem; padding: 5px 9px; white-space: nowrap; }
+  .stat-vehicule { font-size: 0.85rem; margin: 2px 0; }
+
   /* ---------- Impression ---------- */
   @media print {
     body { background: #fff; padding: 0; }
@@ -337,6 +397,8 @@
     table.planning.mois th, table.planning.mois td { padding: 2px 4px; }
     table.planning tr { break-inside: avoid; }
     .entete-feuille .societe { border: none; }
+    .no-print, .ligne-item button, .carte-vehicule > div > button { display: none !important; }
+    .cartes-vehicules { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -345,13 +407,12 @@
 <div class="toolbar">
   <h1>📅 Planning Employés</h1>
   <span class="bascule-vue">
-    <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button>
+    <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button><button id="btn-vue-vehicules">🚙 Véhicules</button>
   </span>
-  <button id="btn-sem-prec" title="Période précédente">◀</button>
-  <input type="date" id="date-semaine">
-  <button id="btn-sem-suiv" title="Période suivante">▶</button>
+  <button id="btn-sem-prec" class="action-planning" title="Période précédente">◀</button>
+  <input type="date" id="date-semaine" class="action-planning">
+  <button id="btn-sem-suiv" class="action-planning" title="Période suivante">▶</button>
   <button id="btn-employes">👥 Employés</button>
-  <button id="btn-vehicules">🚙 Véhicules</button>
   <button id="btn-copier" class="action-semaine">📋 Copier une semaine…</button>
   <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
   <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
@@ -366,7 +427,7 @@
 
   <div id="zone-planning"></div>
 
-  <div class="legende">
+  <div class="legende" id="legende">
     <span><span class="pastille" style="background:var(--bleu-clair)"></span> Travail (horaires)</span>
     <span><span class="pastille" style="background:#f3f4f6"></span> 🚗 Trajet</span>
     <span><span class="pastille" style="background:var(--repos)"></span> Repos</span>
@@ -391,28 +452,6 @@
   </div>
   <div class="actions-modale">
     <button id="btn-fermer-employes">Fermer</button>
-  </div>
-</dialog>
-
-<!-- Modale gestion des véhicules -->
-<dialog id="modale-vehicules">
-  <h2>🚙 Gestion des véhicules</h2>
-  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:12px">
-    Créez vos véhicules ici, puis attribuez-les aux salariés dans <strong>👥 Employés</strong>.
-    Les salariés qui partagent un même véhicule voient leurs kilomètres comptés
-    <strong>une seule fois</strong> dans les totaux du planning.
-  </p>
-  <ul class="liste-employes" id="liste-vehicules"></ul>
-  <div class="champ" style="margin-top:14px">
-    <label for="nouveau-vehicule">Ajouter un véhicule</label>
-    <div style="display:flex; gap:8px">
-      <input type="text" id="nouveau-vehicule" placeholder="Nom (ex. : Kangoo blanc)" style="flex:2">
-      <input type="text" id="nouvelle-immat" placeholder="Immatriculation" style="flex:1; min-width:0">
-      <button class="primaire" id="btn-ajouter-vehicule">Ajouter</button>
-    </div>
-  </div>
-  <div class="actions-modale">
-    <button id="btn-fermer-vehicules">Fermer</button>
   </div>
 </dialog>
 
@@ -506,7 +545,7 @@ const ETIQUETTES = { repos: "REPOS", conge: "CONGÉ", ferie: "FÉRIÉ" };
 
 let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
-let vue = donnees.vue === "mois" ? "mois" : "semaine"; // "semaine" ou "mois"
+let vue = ["mois", "vehicules"].includes(donnees.vue) ? donnees.vue : "semaine"; // "semaine", "mois" ou "vehicules"
 let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
 let celluleEnCours = null; // { employeId, indexJour, cle }
 
@@ -728,7 +767,7 @@ function remplirCelluleTd(td, cellule) {
 // Format d'impression : la vue semaine s'imprime en paysage, la vue mois
 // en portrait (paysage au-delà de 4 employés pour garder des colonnes lisibles)
 function majStylePage() {
-  const paysage = vue === "semaine" || donnees.employes.length > 4;
+  const paysage = vue === "semaine" || (vue === "mois" && donnees.employes.length > 4);
   document.getElementById("style-page").textContent =
     `@page { size: A4 ${paysage ? "landscape" : "portrait"}; margin: 10mm; }`;
 }
@@ -741,11 +780,21 @@ function rendre() {
 
   document.getElementById("btn-vue-semaine").classList.toggle("actif", vue === "semaine");
   document.getElementById("btn-vue-mois").classList.toggle("actif", vue === "mois");
+  document.getElementById("btn-vue-vehicules").classList.toggle("actif", vue === "vehicules");
   for (const b of document.querySelectorAll(".action-semaine")) {
     b.style.display = vue === "semaine" ? "" : "none";
   }
+  for (const b of document.querySelectorAll(".action-planning")) {
+    b.style.display = vue === "vehicules" ? "none" : "";
+  }
+  document.getElementById("legende").style.display = vue === "vehicules" ? "none" : "";
 
   const zone = document.getElementById("zone-planning");
+
+  if (vue === "vehicules") {
+    rendreVehicules(zone);
+    return;
+  }
 
   if (donnees.employes.length === 0) {
     document.getElementById("date-semaine").value = versInputDate(vue === "mois" ? moisCourant : lundiCourant);
@@ -976,73 +1025,278 @@ document.getElementById("liste-employes").addEventListener("change", (e) => {
   rendre();
 });
 
-/* ================= Modale véhicules ================= */
+/* ================= Onglet véhicules ================= */
 
-function rendreListeVehicules() {
-  const ul = document.getElementById("liste-vehicules");
-  ul.innerHTML = "";
-  if (donnees.vehicules.length === 0) {
-    ul.innerHTML = `<li style="color:#6b7280">Aucun véhicule.</li>`;
-    return;
+// Km saisis au planning pour un mois donné, cumulés par véhicule
+// (même règle que les totaux : une fois par véhicule partagé)
+function kmPlanningParVehicule(annee, mois) {
+  const nbJours = new Date(annee, mois + 1, 0).getDate();
+  const totalParVehicule = {};
+  for (let j = 1; j <= nbJours; j++) {
+    const date = new Date(annee, mois, j);
+    const kmParEmploye = {};
+    for (const emp of donnees.employes) {
+      const durees = dureesCellule(celluleDeDate(emp.id, date));
+      if (durees.km > 0) kmParEmploye[emp.id] = durees.km;
+    }
+    const r = kmVehiculesJour(kmParEmploye);
+    for (const vid in r.parVehicule) totalParVehicule[vid] = (totalParVehicule[vid] || 0) + r.parVehicule[vid];
   }
-  for (const v of donnees.vehicules) {
-    const noms = donnees.employes.filter(e => e.vehiculeId === v.id).map(e => e.nom).join(", ");
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span>🚙</span>
-      <span class="nom">${echapper(v.nom)}${v.immat ? ` <small style="font-weight:400;color:#6b7280">(${echapper(v.immat)})</small>` : ""}
-        ${noms ? `<small style="display:block;font-weight:400;color:#6b7280">Attribué à : ${echapper(noms)}</small>` : ""}</span>
-      <button data-action="supprimer-vehicule" data-id="${v.id}" title="Supprimer">✕</button>`;
-    ul.appendChild(li);
-  }
+  return totalParVehicule;
 }
 
-document.getElementById("liste-vehicules").addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
-  if (!btn || btn.dataset.action !== "supprimer-vehicule") return;
-  const idx = donnees.vehicules.findIndex(v => v.id === btn.dataset.id);
-  if (idx === -1) return;
-  const v = donnees.vehicules[idx];
-  const attribues = donnees.employes.filter(e => e.vehiculeId === v.id);
-  const detail = attribues.length ? ` Il est attribué à ${attribues.map(e => e.nom).join(", ")}.` : "";
-  if (!confirm(`Supprimer le véhicule ${v.nom} ?${detail}`)) return;
-  donnees.vehicules.splice(idx, 1);
-  for (const e2 of attribues) delete e2.vehiculeId;
+function rendreVehicules(zone) {
+  document.getElementById("libelle-periode").textContent = "Parc véhicules";
+  const auj = new Date();
+  auj.setHours(0, 0, 0, 0);
+  const kmMois = kmPlanningParVehicule(auj.getFullYear(), auj.getMonth());
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="veh-nouveau-nom" placeholder="Nom du véhicule (ex. : Kangoo blanc)" style="flex:2; min-width:180px">
+      <input type="text" id="veh-nouvelle-immat" placeholder="Immatriculation" style="flex:1; min-width:120px">
+      <button class="primaire" data-vaction="ajouter-vehicule">+ Ajouter le véhicule</button>
+    </div>`;
+
+  if (donnees.vehicules.length === 0) {
+    html += `<div class="vide">Aucun véhicule pour le moment.<br>Ajoutez votre premier véhicule ci-dessus,
+      puis attribuez-le à vos salariés dans <strong>👥 Employés</strong>.</div>`;
+  } else {
+    html += `<div class="cartes-vehicules">` +
+      donnees.vehicules.map(v => carteVehicule(v, kmMois[v.id] || 0, auj)).join("") + `</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+function carteVehicule(v, kmPlan, auj) {
+  const attribues = donnees.employes.filter(e => e.vehiculeId === v.id).map(e => e.nom);
+
+  // Contrôle technique : badge selon l'échéance
+  let ctBadge = "";
+  if (v.ctDate) {
+    const jours = Math.round((new Date(v.ctDate + "T00:00:00") - auj) / 86400000);
+    if (jours < 0) ctBadge = `<span class="badge alerte">dépassé de ${-jours} j ⚠️</span>`;
+    else if (jours <= 45) ctBadge = `<span class="badge attention">dans ${jours} j</span>`;
+    else ctBadge = `<span class="badge ok">dans ${jours} j</span>`;
+  }
+
+  // Pleins : réalisés ce mois-ci vs prévus
+  const pleins = v.pleins || [];
+  const moisCle = versInputDate(auj).slice(0, 7);
+  const pleinsMois = pleins.filter(p => (p.date || "").startsWith(moisCle)).length;
+  const prevus = v.pleinsPrevusParMois || 0;
+  const pleinsBadge = prevus > 0
+    ? `<span class="badge ${pleinsMois >= prevus ? "ok" : "attention"}">${pleinsMois} / ${prevus} ce mois-ci</span>`
+    : (pleinsMois > 0 ? `<span class="badge ok">${pleinsMois} ce mois-ci</span>` : "");
+
+  const lignesPleins = pleins.slice(0, 6).map((p, i) => `
+    <div class="ligne-item">
+      <span class="texte">⛽ ${p.date ? formatDateCourte(new Date(p.date + "T00:00:00")) : "?"}${p.km > 0 ? ` — ${formatKm(p.km)} km au compteur` : ""}</span>
+      <button class="no-print" data-vaction="supprimer-plein" data-vid="${v.id}" data-idx="${i}" title="Supprimer">✕</button>
+    </div>`).join("") +
+    (pleins.length > 6 ? `<div class="stat-vehicule" style="color:#6b7280">… et ${pleins.length - 6} plus ancien(s)</div>` : "");
+
+  // Révisions / entretien
+  const lignesRevisions = (v.revisions || []).map((r, i) => {
+    const enRetard = !r.fait && ((r.echeanceDate && r.echeanceDate < versInputDate(auj)) ||
+      (r.echeanceKm > 0 && v.compteurKm > 0 && v.compteurKm >= r.echeanceKm));
+    const echeances = [
+      r.echeanceDate ? `avant le ${formatDateCourte(new Date(r.echeanceDate + "T00:00:00"))}` : "",
+      r.echeanceKm > 0 ? `à ${formatKm(r.echeanceKm)} km` : "",
+    ].filter(Boolean).join(" ou ");
+    return `<div class="ligne-item${r.fait ? " fait" : ""}">
+      <input type="checkbox" data-vchange="revision-fait" data-vid="${v.id}" data-idx="${i}"${r.fait ? " checked" : ""} title="Fait / à faire">
+      <span class="texte">${echapper(r.texte)}${echeances ? ` <small style="color:${enRetard ? "#b91c1c" : "#6b7280"}">(${echeances})${enRetard ? " ⚠️" : ""}</small>` : ""}</span>
+      <button class="no-print" data-vaction="supprimer-revision" data-vid="${v.id}" data-idx="${i}" title="Supprimer">✕</button>
+    </div>`;
+  }).join("");
+
+  // Matériel embarqué
+  const lignesMateriel = (v.materiel || []).map((m, i) => `
+    <div class="ligne-item">
+      <span class="texte">${m.qte > 1 ? `${m.qte} × ` : ""}${echapper(m.nom)}</span>
+      <button class="no-print" data-vaction="supprimer-materiel" data-vid="${v.id}" data-idx="${i}" title="Retirer">✕</button>
+    </div>`).join("");
+
+  return `
+  <div class="carte-vehicule">
+    <div style="display:flex; align-items:flex-start; gap:8px">
+      <div style="flex:1">
+        <h3>🚙 ${echapper(v.nom)}${v.immat ? ` <small style="font-weight:400;color:#6b7280">(${echapper(v.immat)})</small>` : ""}</h3>
+        <div class="attribution">${attribues.length ? `Attribué à : ${echapper(attribues.join(", "))}` : "Non attribué — voir 👥 Employés"}</div>
+      </div>
+      <button class="no-print" data-vaction="supprimer-vehicule" data-vid="${v.id}" title="Supprimer le véhicule">✕</button>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>Kilométrage</h4>
+      <div class="ligne-item">
+        <span class="texte">Compteur :</span>
+        <input type="number" min="0" data-vchange="compteur" data-vid="${v.id}" value="${v.compteurKm > 0 ? v.compteurKm : ""}" placeholder="km" style="width:110px"> km
+      </div>
+      ${v.compteurDate ? `<div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">relevé le ${formatDateCourte(new Date(v.compteurDate + "T00:00:00"))}</div>` : ""}
+      <div class="stat-vehicule">Saisi au planning ce mois-ci : <strong>${kmPlan > 0 ? `${formatKm(kmPlan)} km` : "—"}</strong></div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>Contrôle technique ${ctBadge}</h4>
+      <div class="ligne-item">
+        <span class="texte">Prochain CT :</span>
+        <input type="date" data-vchange="ct" data-vid="${v.id}" value="${v.ctDate || ""}">
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>⛽ Pleins de carburant ${pleinsBadge}</h4>
+      <div class="ligne-item">
+        <span class="texte">Pleins prévus par mois :</span>
+        <input type="number" min="0" data-vchange="pleins-prevus" data-vid="${v.id}" value="${v.pleinsPrevusParMois > 0 ? v.pleinsPrevusParMois : ""}" placeholder="ex. : 4" style="width:80px">
+      </div>
+      ${lignesPleins}
+      <div class="mini-form no-print">
+        <input type="date" class="plein-date" value="${versInputDate(auj)}" title="Date du plein">
+        <input type="number" min="0" class="plein-km" placeholder="km compteur (optionnel)">
+        <button data-vaction="ajouter-plein" data-vid="${v.id}">+ Plein</button>
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🔧 Révisions / entretien</h4>
+      ${lignesRevisions || `<div class="stat-vehicule" style="color:#6b7280">Rien à faire pour le moment.</div>`}
+      <div class="mini-form no-print">
+        <input type="text" class="rev-texte" placeholder="ex. : vidange, pneus…" style="flex:2; min-width:120px">
+        <input type="date" class="rev-date" title="Échéance (date, optionnel)">
+        <input type="number" min="0" class="rev-km" placeholder="km" title="Échéance (km, optionnel)" style="max-width:90px">
+        <button data-vaction="ajouter-revision" data-vid="${v.id}">+ Ajouter</button>
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🧰 Matériel dans le véhicule</h4>
+      ${lignesMateriel || `<div class="stat-vehicule" style="color:#6b7280">Aucun matériel listé.</div>`}
+      <div class="mini-form no-print">
+        <input type="text" class="mat-nom" placeholder="ex. : perceuse, échelle…" style="flex:2; min-width:120px">
+        <input type="number" min="1" class="mat-qte" value="1" title="Quantité" style="max-width:70px">
+        <button data-vaction="ajouter-materiel" data-vid="${v.id}">+ Ajouter</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Actions (clics) de l'onglet véhicules
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-vaction]");
+  if (!btn) return;
+  const v = donnees.vehicules.find(x => x.id === btn.dataset.vid);
+  const idx = btn.dataset.idx !== undefined ? Number(btn.dataset.idx) : -1;
+  const carte = btn.closest(".carte-vehicule");
+
+  switch (btn.dataset.vaction) {
+    case "ajouter-vehicule": {
+      const champNom = document.getElementById("veh-nouveau-nom");
+      const nom = champNom.value.trim();
+      if (!nom) { champNom.focus(); return; }
+      const nv = { id: "veh-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom };
+      const immat = document.getElementById("veh-nouvelle-immat").value.trim();
+      if (immat) nv.immat = immat;
+      donnees.vehicules.push(nv);
+      break;
+    }
+    case "supprimer-vehicule": {
+      if (!v) return;
+      const attribues = donnees.employes.filter(emp => emp.vehiculeId === v.id);
+      const detail = attribues.length ? ` Il est attribué à ${attribues.map(x => x.nom).join(", ")}.` : "";
+      if (!confirm(`Supprimer le véhicule ${v.nom} et toutes ses informations ?${detail}`)) return;
+      donnees.vehicules = donnees.vehicules.filter(x => x !== v);
+      for (const emp of attribues) delete emp.vehiculeId;
+      break;
+    }
+    case "ajouter-plein": {
+      if (!v || !carte) return;
+      const date = carte.querySelector(".plein-date").value || versInputDate(new Date());
+      const km = parseFloat((carte.querySelector(".plein-km").value || "").replace(",", "."));
+      const plein = { date };
+      if (km > 0) plein.km = km;
+      v.pleins = v.pleins || [];
+      v.pleins.unshift(plein);
+      v.pleins.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      if (km > 0 && (!(v.compteurKm > 0) || km > v.compteurKm)) { v.compteurKm = km; v.compteurDate = date; }
+      break;
+    }
+    case "supprimer-plein":
+      if (!v || !v.pleins) return;
+      v.pleins.splice(idx, 1);
+      break;
+    case "ajouter-revision": {
+      if (!v || !carte) return;
+      const champTexte = carte.querySelector(".rev-texte");
+      const texte = champTexte.value.trim();
+      if (!texte) { champTexte.focus(); return; }
+      const r = { texte, fait: false };
+      const dte = carte.querySelector(".rev-date").value;
+      const rkm = parseFloat(carte.querySelector(".rev-km").value);
+      if (dte) r.echeanceDate = dte;
+      if (rkm > 0) r.echeanceKm = rkm;
+      v.revisions = v.revisions || [];
+      v.revisions.push(r);
+      break;
+    }
+    case "supprimer-revision":
+      if (!v || !v.revisions) return;
+      v.revisions.splice(idx, 1);
+      break;
+    case "ajouter-materiel": {
+      if (!v || !carte) return;
+      const champNom = carte.querySelector(".mat-nom");
+      const nom = champNom.value.trim();
+      if (!nom) { champNom.focus(); return; }
+      const qte = parseInt(carte.querySelector(".mat-qte").value, 10);
+      v.materiel = v.materiel || [];
+      v.materiel.push({ nom, qte: qte > 1 ? qte : 1 });
+      break;
+    }
+    case "supprimer-materiel":
+      if (!v || !v.materiel) return;
+      v.materiel.splice(idx, 1);
+      break;
+    default:
+      return;
+  }
   sauvegarder();
-  rendreListeVehicules();
   rendre();
 });
 
-document.getElementById("btn-ajouter-vehicule").addEventListener("click", () => {
-  const champNom = document.getElementById("nouveau-vehicule");
-  const champImmat = document.getElementById("nouvelle-immat");
-  const nom = champNom.value.trim();
-  if (!nom) { champNom.focus(); return; }
-  const vehicule = {
-    id: "veh-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    nom,
-  };
-  const immat = champImmat.value.trim();
-  if (immat) vehicule.immat = immat;
-  donnees.vehicules.push(vehicule);
-  champNom.value = "";
-  champImmat.value = "";
-  champNom.focus();
+// Saisies (champs) de l'onglet véhicules
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-vchange]");
+  if (!el) return;
+  const v = donnees.vehicules.find(x => x.id === el.dataset.vid);
+  if (!v) return;
+  switch (el.dataset.vchange) {
+    case "compteur": {
+      const km = parseFloat((el.value || "").replace(",", "."));
+      if (km > 0) { v.compteurKm = km; v.compteurDate = versInputDate(new Date()); }
+      else { delete v.compteurKm; delete v.compteurDate; }
+      break;
+    }
+    case "ct":
+      if (el.value) v.ctDate = el.value;
+      else delete v.ctDate;
+      break;
+    case "pleins-prevus": {
+      const n = parseInt(el.value, 10);
+      if (n > 0) v.pleinsPrevusParMois = n;
+      else delete v.pleinsPrevusParMois;
+      break;
+    }
+    case "revision-fait": {
+      const r = (v.revisions || [])[Number(el.dataset.idx)];
+      if (r) r.fait = el.checked;
+      break;
+    }
+  }
   sauvegarder();
-  rendreListeVehicules();
   rendre();
-});
-
-document.getElementById("nouveau-vehicule").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") document.getElementById("btn-ajouter-vehicule").click();
-});
-
-document.getElementById("btn-vehicules").addEventListener("click", () => {
-  rendreListeVehicules();
-  document.getElementById("modale-vehicules").showModal();
-});
-document.getElementById("btn-fermer-vehicules").addEventListener("click", () => {
-  document.getElementById("modale-vehicules").close();
 });
 
 document.getElementById("liste-employes").addEventListener("click", (e) => {
@@ -1391,6 +1645,7 @@ function changerVue(nouvelleVue) {
 }
 document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
 document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
+document.getElementById("btn-vue-vehicules").addEventListener("click", () => changerVue("vehicules"));
 
 document.getElementById("nom-societe").addEventListener("input", (e) => {
   donnees.societe = e.target.value;

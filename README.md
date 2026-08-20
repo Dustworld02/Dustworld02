@@ -10,7 +10,14 @@ Aucune installation nécessaire : ouvrez simplement le fichier **`index.html`** 
 Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), choisissez une couleur, puis **Ajouter**. Vous pouvez réordonner (↑ ↓) ou supprimer (✕) chaque employé.
 
 ### 1 bis. Véhicules et équipes
-Cliquez sur **🚙 Véhicules** pour créer vos véhicules (nom + immatriculation), puis attribuez un véhicule à chaque salarié dans **👥 Employés**. Les salariés qui travaillent en équipe dans le **même véhicule** voient leurs kilomètres comptés **une seule fois** dans les totaux par jour et dans le récapitulatif « Kilométrage par véhicule » affiché sous le planning (pour un jour donné, on retient le plus grand kilométrage saisi parmi les membres de l'équipe).
+L'onglet **🚙 Véhicules** regroupe tout le parc : pour chaque véhicule, une fiche permet de suivre :
+- le **kilométrage compteur** (avec date du relevé) et les km saisis au planning ce mois-ci ;
+- le **contrôle technique** : date du prochain CT avec alerte (vert / orange à moins de 45 jours / rouge si dépassé) ;
+- les **pleins de carburant** : objectif de pleins par mois, pleins réalisés (date + km au compteur), badge « 3 / 4 ce mois-ci » ;
+- les **révisions / entretien** : liste des choses à faire avec échéance par date ou par km (alerte ⚠️ si dépassée), case à cocher quand c'est fait ;
+- le **matériel embarqué** : liste du matériel présent dans le véhicule (avec quantité).
+
+Attribuez ensuite un véhicule à chaque salarié dans **👥 Employés**. Les salariés qui travaillent en équipe dans le **même véhicule** voient leurs kilomètres comptés **une seule fois** dans les totaux par jour et dans le récapitulatif « Kilométrage par véhicule » affiché sous le planning (pour un jour donné, on retient le plus grand kilométrage saisi parmi les membres de l'équipe).
 
 ### 2. Remplir le planning
 - Basculez entre la **vue Semaine** et la **vue Mois** avec les boutons en haut ; les deux vues s'impriment et permettent de modifier les journées d'un clic.
