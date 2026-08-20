@@ -10,7 +10,8 @@ Aucune installation nécessaire : ouvrez simplement le fichier **`index.html`** 
 Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), choisissez une couleur, puis **Ajouter**. Vous pouvez réordonner (↑ ↓) ou supprimer (✕) chaque employé.
 
 ### 2. Remplir le planning
-- Choisissez la semaine avec les flèches **◀ ▶** ou le sélecteur de date.
+- Basculez entre la **vue Semaine** et la **vue Mois** avec les boutons en haut ; les deux vues s'impriment et permettent de modifier les journées d'un clic.
+- Choisissez la période avec les flèches **◀ ▶** ou le sélecteur de date.
 - Cliquez sur une case du tableau pour définir la journée d'un employé :
   - **Travail** : un ou plusieurs créneaux horaires (boutons d'horaires rapides disponibles, créneaux de coupure possibles) ;
   - pour chaque créneau : le **client** (avec suggestions des clients déjà saisis) et la **description du travail à effectuer** ;
@@ -19,11 +20,11 @@ Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), c
   - une **note** libre (remplacement, formation…) ;
   - les créneaux se **réorganisent en les faisant glisser** par la poignée ⠿ (souris ou tactile).
 - Les **totaux d'heures** par employé et par jour sont calculés automatiquement, avec le détail « dont X h trajet ».
-- **📋 Copier la semaine préc.** duplique la semaine précédente pour aller plus vite.
+- **📋 Copier une semaine…** copie une semaine passée (jusqu'à 8 en arrière) vers la semaine affichée — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ».
 - **👤➜👤 Dupliquer salarié** copie tous les créneaux de la semaine affichée d'un salarié vers un autre.
 
 ### 3. Imprimer en PDF
-Cliquez sur **🖨️ Imprimer / PDF**, puis dans la fenêtre d'impression du navigateur choisissez **« Enregistrer au format PDF »** comme destination. La mise en page est optimisée pour du **A4 paysage** : couleurs conservées, boutons masqués, tableau lisible.
+Cliquez sur **🖨️ Imprimer / PDF**, puis dans la fenêtre d'impression du navigateur choisissez **« Enregistrer au format PDF »** comme destination. La mise en page est optimisée automatiquement : **A4 paysage** pour la vue semaine, **A4 portrait** pour la vue mois (paysage au-delà de 4 employés). Couleurs conservées, boutons masqués, tableau lisible.
 
 > 💡 Astuce : dans les options d'impression, activez « Graphiques d'arrière-plan » si les couleurs n'apparaissent pas.
 

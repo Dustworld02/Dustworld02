@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Planning Employés</title>
+<style id="style-page">@page { size: A4 landscape; margin: 10mm; }</style>
 <style>
   :root {
     --bleu: #1d4ed8;
@@ -269,8 +270,43 @@
   .raccourcis { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .raccourcis button { font-size: 0.8rem; padding: 5px 9px; }
 
+  /* ---------- Bascule Semaine / Mois ---------- */
+  .bascule-vue { display: inline-flex; }
+  .bascule-vue button {
+    border-radius: 0;
+    font-weight: 600;
+  }
+  .bascule-vue button:first-child { border-radius: 8px 0 0 8px; }
+  .bascule-vue button:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+  .bascule-vue button.actif {
+    background: var(--bleu);
+    color: #fff;
+    border-color: var(--bleu);
+  }
+
+  /* ---------- Vue mois ---------- */
+  table.planning.mois th.col-date { width: 92px; }
+  table.planning.mois td.jour-date {
+    text-align: left;
+    font-weight: 600;
+    background: #f9fafb;
+    white-space: nowrap;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  table.planning.mois td.jour-date small { color: #6b7280; font-weight: 400; }
+  table.planning.mois td.jour-date.weekend { background: #e5e7eb; }
+  table.planning.mois tr.debut-semaine > td { border-top: 2px solid #6b7280; }
+  table.planning.mois td.cellule { font-size: 0.8rem; }
+  table.planning.mois tr.total-mois td {
+    font-weight: 700;
+    background: #eef2ff;
+    font-size: 0.82rem;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
   /* ---------- Impression ---------- */
-  @page { size: A4 landscape; margin: 10mm; }
   @media print {
     body { background: #fff; padding: 0; }
     .toolbar, dialog { display: none !important; }
@@ -280,6 +316,9 @@
     td.cellule:hover { background: inherit; }
     table.planning { font-size: 9pt; }
     table.planning th, table.planning td { padding: 4px; }
+    table.planning.mois { font-size: 8pt; }
+    table.planning.mois th, table.planning.mois td { padding: 2px 4px; }
+    table.planning tr { break-inside: avoid; }
     .entete-feuille .societe { border: none; }
   }
 </style>
@@ -288,13 +327,16 @@
 
 <div class="toolbar">
   <h1>📅 Planning Employés</h1>
-  <button id="btn-sem-prec" title="Semaine précédente">◀</button>
+  <span class="bascule-vue">
+    <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button>
+  </span>
+  <button id="btn-sem-prec" title="Période précédente">◀</button>
   <input type="date" id="date-semaine">
-  <button id="btn-sem-suiv" title="Semaine suivante">▶</button>
+  <button id="btn-sem-suiv" title="Période suivante">▶</button>
   <button id="btn-employes">👥 Employés</button>
-  <button id="btn-copier">📋 Copier la semaine préc.</button>
-  <button id="btn-dupliquer">👤➜👤 Dupliquer salarié</button>
-  <button id="btn-effacer">🗑️ Vider la semaine</button>
+  <button id="btn-copier" class="action-semaine">📋 Copier une semaine…</button>
+  <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
+  <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
   <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
 </div>
 
@@ -331,6 +373,24 @@
   </div>
   <div class="actions-modale">
     <button id="btn-fermer-employes">Fermer</button>
+  </div>
+</dialog>
+
+<!-- Modale copie d'une semaine passée vers la semaine affichée -->
+<dialog id="modale-copier">
+  <h2>📋 Copier une semaine</h2>
+  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:14px">
+    Copie tous les horaires d'une semaine passée vers la semaine affichée :
+    <strong id="copier-destination"></strong>.<br>
+    Pour un roulement une semaine sur deux, choisissez « il y a 2 semaines ».
+  </p>
+  <div class="champ">
+    <label for="copier-source">Semaine à copier</label>
+    <select id="copier-source" style="width:100%"></select>
+  </div>
+  <div class="actions-modale">
+    <button id="btn-annuler-copier">Annuler</button>
+    <button class="primaire" id="btn-valider-copier">Copier</button>
   </div>
 </dialog>
 
@@ -401,11 +461,14 @@ const HORAIRES_RAPIDES = [
 ];
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const JOURS_COURTS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const ETIQUETTES = { repos: "REPOS", conge: "CONGÉ", ferie: "FÉRIÉ" };
 
 let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
-let celluleEnCours = null; // { employeId, indexJour }
+let vue = donnees.vue === "mois" ? "mois" : "semaine"; // "semaine" ou "mois"
+let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
+let celluleEnCours = null; // { employeId, indexJour, cle }
 
 function chargerDonnees() {
   try {
@@ -465,16 +528,26 @@ function numeroSemaineISO(lundi) {
 
 /* ================= Accès au planning ================= */
 
-function semaineCourante() {
-  const cle = cleSemaine(lundiCourant);
+function semainePourCle(cle) {
   if (!donnees.semaines[cle]) donnees.semaines[cle] = {};
   return donnees.semaines[cle];
+}
+
+function semaineCourante() {
+  return semainePourCle(cleSemaine(lundiCourant));
 }
 
 function celluleDe(employeId, indexJour) {
   const sem = semaineCourante();
   if (!sem[employeId]) sem[employeId] = {};
   return sem[employeId][indexJour] || null;
+}
+
+// Cellule d'un employé pour une date quelconque (utilisé par la vue mois)
+function celluleDeDate(employeId, date) {
+  const sem = donnees.semaines[cleSemaine(lundiDeLaSemaine(date))];
+  if (!sem || !sem[employeId]) return null;
+  return sem[employeId][(date.getDay() + 6) % 7] || null;
 }
 
 /* ================= Calcul des heures ================= */
@@ -533,23 +606,79 @@ function sousTotalTrajet(t) {
 
 /* ================= Rendu ================= */
 
-function rendre() {
-  document.getElementById("date-semaine").value = versInputDate(lundiCourant);
-  document.getElementById("nom-societe").value = donnees.societe || "";
+// Contenu HTML d'un créneau (puce bleue travail / grise trajet)
+function htmlCreneau(c) {
+  if (c.type === "trajet") {
+    const infos = [];
+    if (c.duree > 0) infos.push(formatDuree(c.duree));
+    else if (c.debut && c.fin) infos.push(`${c.debut} – ${c.fin}`); // ancien format
+    if (c.km > 0) infos.push(`${formatKm(c.km)} km`);
+    let html = `<span class="creneau trajet">🚗 ${infos.join(" · ") || "Trajet"}`;
+    const lieux = [c.depart, c.arrivee || c.client].filter(Boolean).map(echapper).join(" → ");
+    if (lieux) html += `<span class="client">${lieux}</span>`;
+    if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
+    return html + `</span>`;
+  }
+  let html = `<span class="creneau">${c.debut} – ${c.fin}`;
+  if (c.client) html += `<span class="client">${echapper(c.client)}</span>`;
+  if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
+  return html + `</span>`;
+}
 
-  const dimanche = ajouterJours(lundiCourant, 6);
-  document.getElementById("libelle-periode").textContent =
-    `Semaine ${numeroSemaineISO(lundiCourant)} — du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
+// Remplit un <td> avec le contenu d'une cellule (créneaux ou repos/congé/férié + note)
+function remplirCelluleTd(td, cellule) {
+  if (!cellule) return;
+  if (cellule.type === "travail") {
+    const creneaux = (cellule.creneaux || []).filter(c => (c.debut && c.fin) || c.type === "trajet");
+    td.innerHTML = creneaux.map(htmlCreneau).join("");
+  } else {
+    td.classList.add(cellule.type);
+    td.innerHTML = `<span class="etiquette">${ETIQUETTES[cellule.type] || ""}</span>`;
+  }
+  if (cellule.note) td.innerHTML += `<span class="note">${echapper(cellule.note)}</span>`;
+}
+
+// Format d'impression : la vue semaine s'imprime en paysage, la vue mois
+// en portrait (paysage au-delà de 4 employés pour garder des colonnes lisibles)
+function majStylePage() {
+  const paysage = vue === "semaine" || donnees.employes.length > 4;
+  document.getElementById("style-page").textContent =
+    `@page { size: A4 ${paysage ? "landscape" : "portrait"}; margin: 10mm; }`;
+}
+
+function rendre() {
+  document.getElementById("nom-societe").value = donnees.societe || "";
   document.getElementById("pied-impression").textContent =
     `Planning édité le ${formatDateLongue(new Date())}`;
+  majStylePage();
+
+  document.getElementById("btn-vue-semaine").classList.toggle("actif", vue === "semaine");
+  document.getElementById("btn-vue-mois").classList.toggle("actif", vue === "mois");
+  for (const b of document.querySelectorAll(".action-semaine")) {
+    b.style.display = vue === "semaine" ? "" : "none";
+  }
 
   const zone = document.getElementById("zone-planning");
 
   if (donnees.employes.length === 0) {
+    document.getElementById("date-semaine").value = versInputDate(vue === "mois" ? moisCourant : lundiCourant);
+    document.getElementById("libelle-periode").textContent = "";
     zone.innerHTML = `<div class="vide">Aucun employé pour le moment.<br>
       Cliquez sur <strong>👥 Employés</strong> pour commencer.</div>`;
     return;
   }
+
+  if (vue === "mois") rendreMois(zone);
+  else rendreSemaine(zone);
+}
+
+/* ---------- Vue semaine ---------- */
+
+function rendreSemaine(zone) {
+  document.getElementById("date-semaine").value = versInputDate(lundiCourant);
+  const dimanche = ajouterJours(lundiCourant, 6);
+  document.getElementById("libelle-periode").textContent =
+    `Semaine ${numeroSemaineISO(lundiCourant)} — du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
 
   const table = document.createElement("table");
   table.className = "planning";
@@ -588,37 +717,14 @@ function rendre() {
       td.dataset.indexJour = j;
 
       if (cellule) {
-        if (cellule.type === "travail") {
-          const creneaux = (cellule.creneaux || []).filter(c => (c.debut && c.fin) || c.type === "trajet");
-          td.innerHTML = creneaux.map(c => {
-            if (c.type === "trajet") {
-              const infos = [];
-              if (c.duree > 0) infos.push(formatDuree(c.duree));
-              else if (c.debut && c.fin) infos.push(`${c.debut} – ${c.fin}`); // ancien format
-              if (c.km > 0) infos.push(`${formatKm(c.km)} km`);
-              let html = `<span class="creneau trajet">🚗 ${infos.join(" · ") || "Trajet"}`;
-              const lieux = [c.depart, c.arrivee || c.client].filter(Boolean).map(echapper).join(" → ");
-              if (lieux) html += `<span class="client">${lieux}</span>`;
-              if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
-              return html + `</span>`;
-            }
-            let html = `<span class="creneau">${c.debut} – ${c.fin}`;
-            if (c.client) html += `<span class="client">${echapper(c.client)}</span>`;
-            if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
-            return html + `</span>`;
-          }).join("");
-          const durees = dureesCellule(cellule);
-          totalEmploye.travail += durees.travail;
-          totalEmploye.trajet += durees.trajet;
-          totalEmploye.km += durees.km;
-          totauxParJour[j].travail += durees.travail;
-          totauxParJour[j].trajet += durees.trajet;
-          totauxParJour[j].km += durees.km;
-        } else {
-          td.classList.add(cellule.type);
-          td.innerHTML = `<span class="etiquette">${ETIQUETTES[cellule.type] || ""}</span>`;
-        }
-        if (cellule.note) td.innerHTML += `<span class="note">${echapper(cellule.note)}</span>`;
+        remplirCelluleTd(td, cellule);
+        const durees = dureesCellule(cellule);
+        totalEmploye.travail += durees.travail;
+        totalEmploye.trajet += durees.trajet;
+        totalEmploye.km += durees.km;
+        totauxParJour[j].travail += durees.travail;
+        totauxParJour[j].trajet += durees.trajet;
+        totauxParJour[j].km += durees.km;
       }
       tr.appendChild(td);
     }
@@ -647,6 +753,81 @@ function rendre() {
   ligneTotaux.innerHTML += `<td>${formatHeures(totalGeneral.travail + totalGeneral.trajet)}${sousTotalTrajet(totalGeneral)}</td>`;
   tfoot.appendChild(ligneTotaux);
   table.appendChild(tfoot);
+
+  zone.innerHTML = "";
+  zone.appendChild(table);
+}
+
+/* ---------- Vue mois ---------- */
+
+function rendreMois(zone) {
+  document.getElementById("date-semaine").value = versInputDate(moisCourant);
+  const libelleMois = moisCourant.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  document.getElementById("libelle-periode").textContent =
+    libelleMois.charAt(0).toUpperCase() + libelleMois.slice(1);
+
+  const annee = moisCourant.getFullYear();
+  const mois = moisCourant.getMonth();
+  const nbJours = new Date(annee, mois + 1, 0).getDate();
+
+  const table = document.createElement("table");
+  table.className = "planning mois";
+
+  // En-tête : une colonne par employé
+  const thead = document.createElement("thead");
+  const ligneEntete = document.createElement("tr");
+  ligneEntete.innerHTML = `<th class="col-date">Date</th>`;
+  for (const emp of donnees.employes) {
+    ligneEntete.innerHTML += `<th>${echapper(emp.nom)}${emp.role ? `<br><span class="num-jour">${echapper(emp.role)}</span>` : ""}</th>`;
+  }
+  thead.appendChild(ligneEntete);
+  table.appendChild(thead);
+
+  // Corps : une ligne par jour du mois
+  const tbody = document.createElement("tbody");
+  const totaux = {};
+  for (const emp of donnees.employes) totaux[emp.id] = { travail: 0, trajet: 0, km: 0 };
+
+  for (let j = 1; j <= nbJours; j++) {
+    const date = new Date(annee, mois, j);
+    const indexJour = (date.getDay() + 6) % 7;
+    const tr = document.createElement("tr");
+    if (indexJour === 0) tr.classList.add("debut-semaine");
+
+    const tdDate = document.createElement("td");
+    tdDate.className = "jour-date" + (indexJour >= 5 ? " weekend" : "");
+    tdDate.innerHTML = `${JOURS_COURTS[indexJour]} ${j}` +
+      (indexJour === 0 ? ` <small>· S${numeroSemaineISO(lundiDeLaSemaine(date))}</small>` : "");
+    tr.appendChild(tdDate);
+
+    for (const emp of donnees.employes) {
+      const td = document.createElement("td");
+      td.className = "cellule";
+      td.dataset.employeId = emp.id;
+      td.dataset.date = versInputDate(date);
+      const cellule = celluleDeDate(emp.id, date);
+      if (cellule) {
+        remplirCelluleTd(td, cellule);
+        const durees = dureesCellule(cellule);
+        totaux[emp.id].travail += durees.travail;
+        totaux[emp.id].trajet += durees.trajet;
+        totaux[emp.id].km += durees.km;
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  // Dernière ligne : total du mois par employé
+  const trTotal = document.createElement("tr");
+  trTotal.className = "total-mois";
+  trTotal.innerHTML = `<td style="text-align:left">Total du mois</td>`;
+  for (const emp of donnees.employes) {
+    const t = totaux[emp.id];
+    trTotal.innerHTML += `<td>${formatHeures(t.travail + t.trajet)}${sousTotalTrajet(t)}</td>`;
+  }
+  tbody.appendChild(trTotal);
+  table.appendChild(tbody);
 
   zone.innerHTML = "";
   zone.appendChild(table);
@@ -735,14 +916,16 @@ document.getElementById("btn-fermer-employes").addEventListener("click", () => {
 
 /* ================= Modale cellule ================= */
 
-function ouvrirModaleCellule(employeId, indexJour) {
-  celluleEnCours = { employeId, indexJour };
+function ouvrirModaleCellule(employeId, indexJour, lundi = lundiCourant) {
+  const cle = cleSemaine(lundi);
+  celluleEnCours = { employeId, indexJour, cle };
   const emp = donnees.employes.find(e => e.id === employeId);
-  const date = ajouterJours(lundiCourant, indexJour);
+  const date = ajouterJours(lundi, indexJour);
   document.getElementById("titre-cellule").textContent =
     `${emp ? emp.nom : ""} — ${JOURS[indexJour]} ${formatDateCourte(date)}`;
 
-  const cellule = celluleDe(employeId, indexJour);
+  const sem = donnees.semaines[cle];
+  const cellule = (sem && sem[employeId] && sem[employeId][indexJour]) || null;
   document.getElementById("type-cellule").value = cellule ? cellule.type : "travail";
   document.getElementById("note-cellule").value = cellule && cellule.note ? cellule.note : "";
 
@@ -917,7 +1100,7 @@ document.getElementById("btn-ajouter-trajet").addEventListener("click", () => aj
 
 document.getElementById("btn-valider-cellule").addEventListener("click", () => {
   if (!celluleEnCours) return;
-  const { employeId, indexJour } = celluleEnCours;
+  const { employeId, indexJour, cle } = celluleEnCours;
   const type = document.getElementById("type-cellule").value;
   const note = document.getElementById("note-cellule").value.trim();
 
@@ -953,7 +1136,7 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
   }
   if (note) cellule.note = note;
 
-  const sem = semaineCourante();
+  const sem = semainePourCle(cle);
   if (!sem[employeId]) sem[employeId] = {};
   const estVide = type === "travail" && (!cellule.creneaux || cellule.creneaux.length === 0) && !note;
   if (estVide) {
@@ -968,8 +1151,8 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
 
 document.getElementById("btn-vider-cellule").addEventListener("click", () => {
   if (!celluleEnCours) return;
-  const { employeId, indexJour } = celluleEnCours;
-  const sem = semaineCourante();
+  const { employeId, indexJour, cle } = celluleEnCours;
+  const sem = semainePourCle(cle);
   if (sem[employeId]) delete sem[employeId][indexJour];
   sauvegarder();
   rendre();
@@ -980,49 +1163,103 @@ document.getElementById("btn-annuler-cellule").addEventListener("click", () => {
   document.getElementById("modale-cellule").close();
 });
 
-// Clic sur une cellule du planning
+// Clic sur une cellule du planning (vue semaine : index du jour ; vue mois : date)
 document.getElementById("zone-planning").addEventListener("click", (e) => {
   const td = e.target.closest("td.cellule");
   if (!td) return;
-  ouvrirModaleCellule(td.dataset.employeId, Number(td.dataset.indexJour));
+  if (td.dataset.date) {
+    const date = new Date(td.dataset.date + "T00:00:00");
+    ouvrirModaleCellule(td.dataset.employeId, (date.getDay() + 6) % 7, lundiDeLaSemaine(date));
+  } else {
+    ouvrirModaleCellule(td.dataset.employeId, Number(td.dataset.indexJour));
+  }
 });
 
 /* ================= Barre d'outils ================= */
 
-document.getElementById("btn-sem-prec").addEventListener("click", () => {
-  lundiCourant = ajouterJours(lundiCourant, -7);
+function naviguer(sens) {
+  if (vue === "mois") {
+    moisCourant = new Date(moisCourant.getFullYear(), moisCourant.getMonth() + sens, 1);
+    lundiCourant = lundiDeLaSemaine(moisCourant);
+  } else {
+    lundiCourant = ajouterJours(lundiCourant, 7 * sens);
+  }
   rendre();
-});
-document.getElementById("btn-sem-suiv").addEventListener("click", () => {
-  lundiCourant = ajouterJours(lundiCourant, 7);
-  rendre();
-});
+}
+document.getElementById("btn-sem-prec").addEventListener("click", () => naviguer(-1));
+document.getElementById("btn-sem-suiv").addEventListener("click", () => naviguer(1));
+
 document.getElementById("date-semaine").addEventListener("change", (e) => {
   if (!e.target.value) return;
-  lundiCourant = lundiDeLaSemaine(new Date(e.target.value + "T00:00:00"));
+  const date = new Date(e.target.value + "T00:00:00");
+  lundiCourant = lundiDeLaSemaine(date);
+  moisCourant = new Date(date.getFullYear(), date.getMonth(), 1);
   rendre();
 });
+
+function changerVue(nouvelleVue) {
+  vue = nouvelleVue;
+  donnees.vue = vue;
+  if (vue === "mois") moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
+  sauvegarder();
+  rendre();
+}
+document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
+document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
 
 document.getElementById("nom-societe").addEventListener("input", (e) => {
   donnees.societe = e.target.value;
   sauvegarder();
 });
 
+// Nombre de journées renseignées dans une semaine
+function nbJoursRemplis(sem) {
+  if (!sem) return 0;
+  return Object.values(sem).reduce((n, jours) => n + Object.keys(jours).length, 0);
+}
+
 document.getElementById("btn-copier").addEventListener("click", () => {
-  const clePrec = cleSemaine(ajouterJours(lundiCourant, -7));
-  const semainePrec = donnees.semaines[clePrec];
-  if (!semainePrec || Object.keys(semainePrec).length === 0) {
-    alert("La semaine précédente est vide : rien à copier.");
+  const sel = document.getElementById("copier-source");
+  sel.innerHTML = "";
+  let premiereNonVide = -1;
+  for (let i = 1; i <= 8; i++) {
+    const lundi = ajouterJours(lundiCourant, -7 * i);
+    const cle = cleSemaine(lundi);
+    const nb = nbJoursRemplis(donnees.semaines[cle]);
+    const opt = document.createElement("option");
+    opt.value = cle;
+    const precision = i === 1 ? " (précédente)" : i === 2 ? " (il y a 2 semaines)" : "";
+    opt.textContent = `Semaine ${numeroSemaineISO(lundi)} — du ${formatDateLongue(lundi)}${precision}${nb ? "" : " — vide"}`;
+    if (!nb) opt.disabled = true;
+    else if (premiereNonVide === -1) premiereNonVide = sel.options.length;
+    sel.appendChild(opt);
+  }
+  if (premiereNonVide === -1) {
+    alert("Aucune des 8 dernières semaines ne contient d'horaires : rien à copier.");
     return;
   }
+  sel.selectedIndex = premiereNonVide;
+  document.getElementById("copier-destination").textContent =
+    `Semaine ${numeroSemaineISO(lundiCourant)} (du ${formatDateLongue(lundiCourant)})`;
+  document.getElementById("modale-copier").showModal();
+});
+
+document.getElementById("btn-annuler-copier").addEventListener("click", () => {
+  document.getElementById("modale-copier").close();
+});
+
+document.getElementById("btn-valider-copier").addEventListener("click", () => {
+  const cleSource = document.getElementById("copier-source").value;
+  const semaineSource = donnees.semaines[cleSource];
+  if (!semaineSource || nbJoursRemplis(semaineSource) === 0) return;
   const cle = cleSemaine(lundiCourant);
-  const semaineActuelle = donnees.semaines[cle];
-  if (semaineActuelle && Object.keys(semaineActuelle).some(id => Object.keys(semaineActuelle[id]).length > 0)) {
-    if (!confirm("Cette semaine contient déjà des horaires. Les remplacer par ceux de la semaine précédente ?")) return;
+  if (nbJoursRemplis(donnees.semaines[cle]) > 0) {
+    if (!confirm("La semaine affichée contient déjà des horaires. Les remplacer ?")) return;
   }
-  donnees.semaines[cle] = JSON.parse(JSON.stringify(semainePrec));
+  donnees.semaines[cle] = JSON.parse(JSON.stringify(semaineSource));
   sauvegarder();
   rendre();
+  document.getElementById("modale-copier").close();
 });
 
 document.getElementById("btn-dupliquer").addEventListener("click", () => {
