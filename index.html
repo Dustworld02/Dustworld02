@@ -173,6 +173,23 @@
     -webkit-print-color-adjust: exact;
   }
 
+  .recap-vehicules {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    background: #f9fafb;
+    border: 1px solid var(--gris-bord);
+    border-radius: 8px;
+    padding: 8px 12px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .recap-vehicules .precision { color: #6b7280; font-size: 0.78rem; }
+  .liste-employes select.choix-vehicule {
+    max-width: 160px;
+    font-size: 0.82rem;
+    padding: 5px 6px;
+  }
+
   .legende {
     display: flex;
     gap: 18px;
@@ -334,6 +351,7 @@
   <input type="date" id="date-semaine">
   <button id="btn-sem-suiv" title="Période suivante">▶</button>
   <button id="btn-employes">👥 Employés</button>
+  <button id="btn-vehicules">🚙 Véhicules</button>
   <button id="btn-copier" class="action-semaine">📋 Copier une semaine…</button>
   <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
   <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
@@ -373,6 +391,28 @@
   </div>
   <div class="actions-modale">
     <button id="btn-fermer-employes">Fermer</button>
+  </div>
+</dialog>
+
+<!-- Modale gestion des véhicules -->
+<dialog id="modale-vehicules">
+  <h2>🚙 Gestion des véhicules</h2>
+  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:12px">
+    Créez vos véhicules ici, puis attribuez-les aux salariés dans <strong>👥 Employés</strong>.
+    Les salariés qui partagent un même véhicule voient leurs kilomètres comptés
+    <strong>une seule fois</strong> dans les totaux du planning.
+  </p>
+  <ul class="liste-employes" id="liste-vehicules"></ul>
+  <div class="champ" style="margin-top:14px">
+    <label for="nouveau-vehicule">Ajouter un véhicule</label>
+    <div style="display:flex; gap:8px">
+      <input type="text" id="nouveau-vehicule" placeholder="Nom (ex. : Kangoo blanc)" style="flex:2">
+      <input type="text" id="nouvelle-immat" placeholder="Immatriculation" style="flex:1; min-width:0">
+      <button class="primaire" id="btn-ajouter-vehicule">Ajouter</button>
+    </div>
+  </div>
+  <div class="actions-modale">
+    <button id="btn-fermer-vehicules">Fermer</button>
   </div>
 </dialog>
 
@@ -471,11 +511,14 @@ let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 
 let celluleEnCours = null; // { employeId, indexJour, cle }
 
 function chargerDonnees() {
+  let d = null;
   try {
     const brut = localStorage.getItem(CLE_STOCKAGE);
-    if (brut) return JSON.parse(brut);
+    if (brut) d = JSON.parse(brut);
   } catch (e) { /* stockage indisponible ou corrompu : on repart à neuf */ }
-  return { societe: "", employes: [], semaines: {} };
+  if (!d) d = { societe: "", employes: [], semaines: {} };
+  if (!Array.isArray(d.vehicules)) d.vehicules = []; // données antérieures aux véhicules
+  return d;
 }
 
 function sauvegarder() {
@@ -595,6 +638,50 @@ function formatKm(km) {
   return (Math.round(km * 10) / 10).toString().replace(".", ",");
 }
 
+/* ---------- Kilométrage par véhicule ----------
+   Deux salariés en équipe dans le même véhicule saisissent chacun leurs
+   trajets, mais le véhicule ne roule qu'une fois : pour un jour donné,
+   on retient le MAXIMUM des km saisis parmi les salariés d'un même
+   véhicule (ainsi le compte reste juste même si un seul des deux a
+   saisi les km). Les salariés sans véhicule comptent individuellement. */
+
+function kmVehiculesJour(kmParEmploye) {
+  const parVehicule = {};
+  let sansVehicule = 0;
+  for (const emp of donnees.employes) {
+    const km = kmParEmploye[emp.id] || 0;
+    if (!(km > 0)) continue;
+    const veh = emp.vehiculeId && donnees.vehicules.find(v => v.id === emp.vehiculeId);
+    if (veh) parVehicule[veh.id] = Math.max(parVehicule[veh.id] || 0, km);
+    else sansVehicule += km;
+  }
+  let total = sansVehicule;
+  for (const vid in parVehicule) total += parVehicule[vid];
+  return { total, parVehicule, sansVehicule };
+}
+
+// Récapitulatif HTML du kilométrage par véhicule sur une liste de jours
+// (chaque jour : { empId: km }). Vide si aucun km.
+function htmlRecapVehicules(kmParJourListe) {
+  const parVehicule = {};
+  let sansVehicule = 0;
+  for (const jour of kmParJourListe) {
+    const r = kmVehiculesJour(jour);
+    for (const vid in r.parVehicule) parVehicule[vid] = (parVehicule[vid] || 0) + r.parVehicule[vid];
+    sansVehicule += r.sansVehicule;
+  }
+  const parts = [];
+  for (const v of donnees.vehicules) {
+    if (parVehicule[v.id] > 0) {
+      parts.push(`🚙 <strong>${echapper(v.nom)}${v.immat ? ` (${echapper(v.immat)})` : ""}</strong> : ${formatKm(parVehicule[v.id])} km`);
+    }
+  }
+  if (sansVehicule > 0) parts.push(`Sans véhicule : ${formatKm(sansVehicule)} km`);
+  if (parts.length === 0) return "";
+  return `<div class="recap-vehicules"><strong>Kilométrage :</strong> ${parts.join(" &nbsp;·&nbsp; ")}
+    <span class="precision">(compté une seule fois par véhicule partagé)</span></div>`;
+}
+
 // Détail « dont X h trajet · Y km » pour les cases de totaux
 function sousTotalTrajet(t) {
   if (!(t.trajet > 0) && !(t.km > 0)) return "";
@@ -697,15 +784,18 @@ function rendreSemaine(zone) {
 
   // Corps : une ligne par employé
   const tbody = document.createElement("tbody");
-  const totauxParJour = Array.from({ length: 7 }, () => ({ travail: 0, trajet: 0, km: 0 }));
+  const totauxParJour = Array.from({ length: 7 }, () => ({ travail: 0, trajet: 0 }));
+  const kmParJour = Array.from({ length: 7 }, () => ({})); // empId -> km du jour
 
   for (const emp of donnees.employes) {
     const tr = document.createElement("tr");
 
+    const veh = donnees.vehicules.find(v => v.id === emp.vehiculeId);
     const tdNom = document.createElement("td");
     tdNom.className = "nom-employe";
     tdNom.style.setProperty("--coul", emp.couleur || "#1d4ed8");
-    tdNom.innerHTML = `${echapper(emp.nom)}${emp.role ? `<span class="role">${echapper(emp.role)}</span>` : ""}`;
+    tdNom.innerHTML = `${echapper(emp.nom)}${emp.role ? `<span class="role">${echapper(emp.role)}</span>` : ""}` +
+      (veh ? `<span class="role">🚙 ${echapper(veh.nom)}</span>` : "");
     tr.appendChild(tdNom);
 
     const totalEmploye = { travail: 0, trajet: 0, km: 0 };
@@ -724,7 +814,7 @@ function rendreSemaine(zone) {
         totalEmploye.km += durees.km;
         totauxParJour[j].travail += durees.travail;
         totauxParJour[j].trajet += durees.trajet;
-        totauxParJour[j].km += durees.km;
+        if (durees.km > 0) kmParJour[j][emp.id] = durees.km;
       }
       tr.appendChild(td);
     }
@@ -745,10 +835,11 @@ function rendreSemaine(zone) {
   const totalGeneral = { travail: 0, trajet: 0, km: 0 };
   for (let j = 0; j < 7; j++) {
     const t = totauxParJour[j];
-    ligneTotaux.innerHTML += `<td>${formatHeures(t.travail + t.trajet)}${sousTotalTrajet(t)}</td>`;
+    const kmJour = kmVehiculesJour(kmParJour[j]).total; // km comptés une fois par véhicule partagé
+    ligneTotaux.innerHTML += `<td>${formatHeures(t.travail + t.trajet)}${sousTotalTrajet({ trajet: t.trajet, km: kmJour })}</td>`;
     totalGeneral.travail += t.travail;
     totalGeneral.trajet += t.trajet;
-    totalGeneral.km += t.km;
+    totalGeneral.km += kmJour;
   }
   ligneTotaux.innerHTML += `<td>${formatHeures(totalGeneral.travail + totalGeneral.trajet)}${sousTotalTrajet(totalGeneral)}</td>`;
   tfoot.appendChild(ligneTotaux);
@@ -756,6 +847,7 @@ function rendreSemaine(zone) {
 
   zone.innerHTML = "";
   zone.appendChild(table);
+  zone.insertAdjacentHTML("beforeend", htmlRecapVehicules(kmParJour));
 }
 
 /* ---------- Vue mois ---------- */
@@ -778,7 +870,9 @@ function rendreMois(zone) {
   const ligneEntete = document.createElement("tr");
   ligneEntete.innerHTML = `<th class="col-date">Date</th>`;
   for (const emp of donnees.employes) {
-    ligneEntete.innerHTML += `<th>${echapper(emp.nom)}${emp.role ? `<br><span class="num-jour">${echapper(emp.role)}</span>` : ""}</th>`;
+    const veh = donnees.vehicules.find(v => v.id === emp.vehiculeId);
+    const sousTitre = [emp.role, veh ? `🚙 ${veh.nom}` : ""].filter(Boolean).join(" · ");
+    ligneEntete.innerHTML += `<th>${echapper(emp.nom)}${sousTitre ? `<br><span class="num-jour">${echapper(sousTitre)}</span>` : ""}</th>`;
   }
   thead.appendChild(ligneEntete);
   table.appendChild(thead);
@@ -787,6 +881,7 @@ function rendreMois(zone) {
   const tbody = document.createElement("tbody");
   const totaux = {};
   for (const emp of donnees.employes) totaux[emp.id] = { travail: 0, trajet: 0, km: 0 };
+  const kmParJour = []; // un {empId: km} par jour du mois
 
   for (let j = 1; j <= nbJours; j++) {
     const date = new Date(annee, mois, j);
@@ -800,6 +895,7 @@ function rendreMois(zone) {
       (indexJour === 0 ? ` <small>· S${numeroSemaineISO(lundiDeLaSemaine(date))}</small>` : "");
     tr.appendChild(tdDate);
 
+    const kmDuJour = {};
     for (const emp of donnees.employes) {
       const td = document.createElement("td");
       td.className = "cellule";
@@ -812,9 +908,11 @@ function rendreMois(zone) {
         totaux[emp.id].travail += durees.travail;
         totaux[emp.id].trajet += durees.trajet;
         totaux[emp.id].km += durees.km;
+        if (durees.km > 0) kmDuJour[emp.id] = durees.km;
       }
       tr.appendChild(td);
     }
+    kmParJour.push(kmDuJour);
     tbody.appendChild(tr);
   }
 
@@ -831,6 +929,7 @@ function rendreMois(zone) {
 
   zone.innerHTML = "";
   zone.appendChild(table);
+  zone.insertAdjacentHTML("beforeend", htmlRecapVehicules(kmParJour));
 }
 
 function echapper(texte) {
@@ -850,15 +949,101 @@ function rendreListeEmployes() {
   }
   for (const emp of donnees.employes) {
     const li = document.createElement("li");
+    const optionsVehicule = [`<option value="">— sans véhicule —</option>`]
+      .concat(donnees.vehicules.map(v =>
+        `<option value="${v.id}"${emp.vehiculeId === v.id ? " selected" : ""}>🚙 ${echapper(v.nom)}</option>`))
+      .join("");
     li.innerHTML = `
       <span class="pastille" style="background:${emp.couleur || "#1d4ed8"}"></span>
       <span class="nom">${echapper(emp.nom)}${emp.role ? ` <small style="font-weight:400;color:#6b7280">(${echapper(emp.role)})</small>` : ""}</span>
+      <select class="choix-vehicule" data-id="${emp.id}" title="Véhicule attribué">${optionsVehicule}</select>
       <button data-action="monter" data-id="${emp.id}" title="Monter">↑</button>
       <button data-action="descendre" data-id="${emp.id}" title="Descendre">↓</button>
       <button data-action="supprimer" data-id="${emp.id}" title="Supprimer">✕</button>`;
     ul.appendChild(li);
   }
 }
+
+// Attribution d'un véhicule depuis la liste des employés
+document.getElementById("liste-employes").addEventListener("change", (e) => {
+  const sel = e.target.closest("select.choix-vehicule");
+  if (!sel) return;
+  const emp = donnees.employes.find(x => x.id === sel.dataset.id);
+  if (!emp) return;
+  if (sel.value) emp.vehiculeId = sel.value;
+  else delete emp.vehiculeId;
+  sauvegarder();
+  rendre();
+});
+
+/* ================= Modale véhicules ================= */
+
+function rendreListeVehicules() {
+  const ul = document.getElementById("liste-vehicules");
+  ul.innerHTML = "";
+  if (donnees.vehicules.length === 0) {
+    ul.innerHTML = `<li style="color:#6b7280">Aucun véhicule.</li>`;
+    return;
+  }
+  for (const v of donnees.vehicules) {
+    const noms = donnees.employes.filter(e => e.vehiculeId === v.id).map(e => e.nom).join(", ");
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <span>🚙</span>
+      <span class="nom">${echapper(v.nom)}${v.immat ? ` <small style="font-weight:400;color:#6b7280">(${echapper(v.immat)})</small>` : ""}
+        ${noms ? `<small style="display:block;font-weight:400;color:#6b7280">Attribué à : ${echapper(noms)}</small>` : ""}</span>
+      <button data-action="supprimer-vehicule" data-id="${v.id}" title="Supprimer">✕</button>`;
+    ul.appendChild(li);
+  }
+}
+
+document.getElementById("liste-vehicules").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || btn.dataset.action !== "supprimer-vehicule") return;
+  const idx = donnees.vehicules.findIndex(v => v.id === btn.dataset.id);
+  if (idx === -1) return;
+  const v = donnees.vehicules[idx];
+  const attribues = donnees.employes.filter(e => e.vehiculeId === v.id);
+  const detail = attribues.length ? ` Il est attribué à ${attribues.map(e => e.nom).join(", ")}.` : "";
+  if (!confirm(`Supprimer le véhicule ${v.nom} ?${detail}`)) return;
+  donnees.vehicules.splice(idx, 1);
+  for (const e2 of attribues) delete e2.vehiculeId;
+  sauvegarder();
+  rendreListeVehicules();
+  rendre();
+});
+
+document.getElementById("btn-ajouter-vehicule").addEventListener("click", () => {
+  const champNom = document.getElementById("nouveau-vehicule");
+  const champImmat = document.getElementById("nouvelle-immat");
+  const nom = champNom.value.trim();
+  if (!nom) { champNom.focus(); return; }
+  const vehicule = {
+    id: "veh-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    nom,
+  };
+  const immat = champImmat.value.trim();
+  if (immat) vehicule.immat = immat;
+  donnees.vehicules.push(vehicule);
+  champNom.value = "";
+  champImmat.value = "";
+  champNom.focus();
+  sauvegarder();
+  rendreListeVehicules();
+  rendre();
+});
+
+document.getElementById("nouveau-vehicule").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("btn-ajouter-vehicule").click();
+});
+
+document.getElementById("btn-vehicules").addEventListener("click", () => {
+  rendreListeVehicules();
+  document.getElementById("modale-vehicules").showModal();
+});
+document.getElementById("btn-fermer-vehicules").addEventListener("click", () => {
+  document.getElementById("modale-vehicules").close();
+});
 
 document.getElementById("liste-employes").addEventListener("click", (e) => {
   const btn = e.target.closest("button");

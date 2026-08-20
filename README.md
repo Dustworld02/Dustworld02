@@ -9,6 +9,9 @@ Aucune installation nécessaire : ouvrez simplement le fichier **`index.html`** 
 ### 1. Ajouter vos employés
 Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), choisissez une couleur, puis **Ajouter**. Vous pouvez réordonner (↑ ↓) ou supprimer (✕) chaque employé.
 
+### 1 bis. Véhicules et équipes
+Cliquez sur **🚙 Véhicules** pour créer vos véhicules (nom + immatriculation), puis attribuez un véhicule à chaque salarié dans **👥 Employés**. Les salariés qui travaillent en équipe dans le **même véhicule** voient leurs kilomètres comptés **une seule fois** dans les totaux par jour et dans le récapitulatif « Kilométrage par véhicule » affiché sous le planning (pour un jour donné, on retient le plus grand kilométrage saisi parmi les membres de l'équipe).
+
 ### 2. Remplir le planning
 - Basculez entre la **vue Semaine** et la **vue Mois** avec les boutons en haut ; les deux vues s'impriment et permettent de modifier les journées d'un clic.
 - Choisissez la période avec les flèches **◀ ▶** ou le sélecteur de date.
