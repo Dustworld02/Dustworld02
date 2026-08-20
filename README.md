@@ -20,6 +20,7 @@ Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), c
   - les créneaux se **réorganisent en les faisant glisser** par la poignée ⠿ (souris ou tactile).
 - Les **totaux d'heures** par employé et par jour sont calculés automatiquement, avec le détail « dont X h trajet ».
 - **📋 Copier la semaine préc.** duplique la semaine précédente pour aller plus vite.
+- **👤➜👤 Dupliquer salarié** copie tous les créneaux de la semaine affichée d'un salarié vers un autre.
 
 ### 3. Imprimer en PDF
 Cliquez sur **🖨️ Imprimer / PDF**, puis dans la fenêtre d'impression du navigateur choisissez **« Enregistrer au format PDF »** comme destination. La mise en page est optimisée pour du **A4 paysage** : couleurs conservées, boutons masqués, tableau lisible.

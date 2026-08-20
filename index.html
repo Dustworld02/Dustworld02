@@ -293,6 +293,7 @@
   <button id="btn-sem-suiv" title="Semaine suivante">▶</button>
   <button id="btn-employes">👥 Employés</button>
   <button id="btn-copier">📋 Copier la semaine préc.</button>
+  <button id="btn-dupliquer">👤➜👤 Dupliquer salarié</button>
   <button id="btn-effacer">🗑️ Vider la semaine</button>
   <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
 </div>
@@ -330,6 +331,26 @@
   </div>
   <div class="actions-modale">
     <button id="btn-fermer-employes">Fermer</button>
+  </div>
+</dialog>
+
+<!-- Modale duplication d'une semaine entre salariés -->
+<dialog id="modale-dupliquer">
+  <h2>👤 ➜ 👤 Dupliquer la semaine d'un salarié</h2>
+  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:14px">
+    Copie tous les créneaux de la <strong>semaine affichée</strong> d'un salarié vers un autre.
+  </p>
+  <div class="champ">
+    <label for="dupliquer-source">Copier depuis</label>
+    <select id="dupliquer-source" style="width:100%"></select>
+  </div>
+  <div class="champ">
+    <label for="dupliquer-cible">Vers</label>
+    <select id="dupliquer-cible" style="width:100%"></select>
+  </div>
+  <div class="actions-modale">
+    <button id="btn-annuler-dupliquer">Annuler</button>
+    <button class="primaire" id="btn-valider-dupliquer">Dupliquer</button>
   </div>
 </dialog>
 
@@ -1002,6 +1023,53 @@ document.getElementById("btn-copier").addEventListener("click", () => {
   donnees.semaines[cle] = JSON.parse(JSON.stringify(semainePrec));
   sauvegarder();
   rendre();
+});
+
+document.getElementById("btn-dupliquer").addEventListener("click", () => {
+  if (donnees.employes.length < 2) {
+    alert("Il faut au moins deux employés pour dupliquer une semaine.");
+    return;
+  }
+  const selSource = document.getElementById("dupliquer-source");
+  const selCible = document.getElementById("dupliquer-cible");
+  for (const sel of [selSource, selCible]) {
+    sel.innerHTML = "";
+    for (const emp of donnees.employes) {
+      const opt = document.createElement("option");
+      opt.value = emp.id;
+      opt.textContent = emp.nom;
+      sel.appendChild(opt);
+    }
+  }
+  selCible.selectedIndex = 1; // proposer par défaut un autre salarié que la source
+  document.getElementById("modale-dupliquer").showModal();
+});
+
+document.getElementById("btn-annuler-dupliquer").addEventListener("click", () => {
+  document.getElementById("modale-dupliquer").close();
+});
+
+document.getElementById("btn-valider-dupliquer").addEventListener("click", () => {
+  const sourceId = document.getElementById("dupliquer-source").value;
+  const cibleId = document.getElementById("dupliquer-cible").value;
+  if (sourceId === cibleId) {
+    alert("Choisissez deux salariés différents.");
+    return;
+  }
+  const nomDe = (id) => (donnees.employes.find(e => e.id === id) || {}).nom || "";
+  const sem = semaineCourante();
+  const joursSource = sem[sourceId];
+  if (!joursSource || Object.keys(joursSource).length === 0) {
+    alert(`${nomDe(sourceId)} n'a aucun horaire cette semaine : rien à dupliquer.`);
+    return;
+  }
+  if (sem[cibleId] && Object.keys(sem[cibleId]).length > 0) {
+    if (!confirm(`${nomDe(cibleId)} a déjà des horaires cette semaine. Les remplacer par ceux de ${nomDe(sourceId)} ?`)) return;
+  }
+  sem[cibleId] = JSON.parse(JSON.stringify(joursSource));
+  sauvegarder();
+  rendre();
+  document.getElementById("modale-dupliquer").close();
 });
 
 document.getElementById("btn-effacer").addEventListener("click", () => {
