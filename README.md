@@ -1,49 +1,61 @@
-# 📅 Générateur de planning employés
+# 🧽 Gestion Nettoyage
 
-Application web simple pour créer les plannings hebdomadaires de vos employés et les **imprimer en PDF** de façon claire et lisible.
+Logiciel de gestion complet pour entreprise de nettoyage, dans **un seul fichier** : `index.html`. Aucune installation, aucun serveur : téléchargez le fichier et ouvrez-le d'un double-clic dans votre navigateur. Tout fonctionne hors ligne et s'imprime proprement en PDF.
 
-## 🚀 Utilisation
+## Les onglets
 
-Aucune installation nécessaire : ouvrez simplement le fichier **`index.html`** dans votre navigateur (double-clic).
+### 📅 Planning
+Planning des salariés en vue **Semaine** ou **Mois** :
+- créneaux de travail (horaires, **client**, description du travail) et **trajets 🚗** (durée, km, lieu de départ → arrivée) ;
+- repos, congés, fériés, notes ; réorganisation par glisser-déposer (poignée ⠿) ;
+- totaux d'heures par salarié et par jour, kilomètres comptés **une seule fois par véhicule partagé** (équipes) ;
+- **📋 Copier une semaine…** (jusqu'à 8 semaines en arrière — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ») et **👤➜👤 Dupliquer salarié** ;
+- impression A4 paysage (semaine) ou portrait (mois).
 
-### 1. Ajouter vos employés
-Cliquez sur **👥 Employés**, saisissez le nom (et le poste si vous voulez), choisissez une couleur, puis **Ajouter**. Vous pouvez réordonner (↑ ↓) ou supprimer (✕) chaque employé.
+### 🧑‍💼 Clients
+Une fiche par client :
+- coordonnées, contact, notes (codes, alarme…) ;
+- **contrat** : forfait mensuel ou taux horaire (heures facturées/mois), statut actif/terminé ;
+- **protocole / procédure** : les étapes de nettoyage, ordonnées ;
+- **check-list** : les points à vérifier à chaque intervention ;
+- **consommables par intervention** (référencés dans Stocks, avec coût calculé) et **matériel nécessaire** ;
+- temps à passer et fréquence mensuelle ;
+- deux impressions : **🖨️ Fiche** (récapitulatif interne) et **🖨️ Check-list** — la feuille d'intervention vierge que l'équipe emporte (cases à cocher, consommables à emporter, observations, signatures).
 
-### 1 bis. Véhicules et équipes
-L'onglet **🚙 Véhicules** regroupe tout le parc : pour chaque véhicule, une fiche permet de suivre :
-- le **kilométrage compteur** (avec date du relevé) et les km saisis au planning ce mois-ci ;
-- le **contrôle technique** : date du prochain CT avec alerte (vert / orange à moins de 45 jours / rouge si dépassé) ;
-- les **pleins de carburant** : objectif de pleins par mois, pleins réalisés (date + km au compteur), badge « 3 / 4 ce mois-ci » ;
-- les **révisions / entretien** : liste des choses à faire avec échéance par date ou par km (alerte ⚠️ si dépassée), case à cocher quand c'est fait ;
-- le **matériel embarqué** : liste du matériel présent dans le véhicule (avec quantité).
+### 👥 Personnel
+Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée et **coût horaire chargé** (base du calcul des marges).
 
-Attribuez ensuite un véhicule à chaque salarié dans **👥 Employés**. Les salariés qui travaillent en équipe dans le **même véhicule** voient leurs kilomètres comptés **une seule fois** dans les totaux par jour et dans le récapitulatif « Kilométrage par véhicule » affiché sous le planning (pour un jour donné, on retient le plus grand kilométrage saisi parmi les membres de l'équipe).
+### 📦 Stocks
+Consommables : quantités, seuil d'alerte (lignes rouges sous le seuil), prix unitaire, entrées/sorties (journal), et **besoin théorique du mois** = besoins des clients × interventions planifiées.
 
-### 2. Remplir le planning
-- Basculez entre la **vue Semaine** et la **vue Mois** avec les boutons en haut ; les deux vues s'impriment et permettent de modifier les journées d'un clic.
-- Choisissez la période avec les flèches **◀ ▶** ou le sélecteur de date.
-- Cliquez sur une case du tableau pour définir la journée d'un employé :
-  - **Travail** : un ou plusieurs créneaux horaires (boutons d'horaires rapides disponibles, créneaux de coupure possibles) ;
-  - pour chaque créneau : le **client** (avec suggestions des clients déjà saisis) et la **description du travail à effectuer** ;
-  - des créneaux **🚗 Trajet** : lieu de départ → lieu d'arrivée, temps (en minutes) et nombre de km ; affichés en gris et comptés à part dans les totaux (heures et kilomètres) ;
-  - **Repos**, **Congé** ou **Férié** ;
-  - une **note** libre (remplacement, formation…) ;
-  - les créneaux se **réorganisent en les faisant glisser** par la poignée ⠿ (souris ou tactile).
-- Les **totaux d'heures** par employé et par jour sont calculés automatiquement, avec le détail « dont X h trajet ».
-- **📋 Copier une semaine…** copie une semaine passée (jusqu'à 8 en arrière) vers la semaine affichée — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ».
-- **👤➜👤 Dupliquer salarié** copie tous les créneaux de la semaine affichée d'un salarié vers un autre.
+### 🧰 Matériel
+Inventaire : quantité, état (bon / moyen / hors service) et localisation (dépôt, véhicule ou laissé chez un client).
 
-### 3. Imprimer en PDF
-Cliquez sur **🖨️ Imprimer / PDF**, puis dans la fenêtre d'impression du navigateur choisissez **« Enregistrer au format PDF »** comme destination. La mise en page est optimisée automatiquement : **A4 paysage** pour la vue semaine, **A4 portrait** pour la vue mois (paysage au-delà de 4 employés). Couleurs conservées, boutons masqués, tableau lisible.
+### 🚙 Véhicules
+Une fiche par véhicule : compteur km, **contrôle technique** (alerte à moins de 45 jours), **pleins de carburant** (objectif mensuel et pleins réalisés), révisions avec échéance par date ou km, matériel embarqué, km saisis au planning ce mois-ci.
 
-> 💡 Astuce : dans les options d'impression, activez « Graphiques d'arrière-plan » si les couleurs n'apparaissent pas.
+### 📊 Marges
+Tableau de bord mensuel par client, calculé automatiquement à partir du planning :
+- heures planifiées et **interventions** (jours distincts — une équipe de 2 le même jour = 1 intervention) ;
+- **CA** (forfait, ou heures facturées × taux) ;
+- **coût de main-d'œuvre** (heures de chaque salarié × son coût horaire) ;
+- **coût des consommables** (besoins par intervention × interventions) ;
+- **marge en € et en %**, totaux, et alertes : client du planning sans fiche (bouton « Créer la fiche »), contrat manquant, coût horaire non renseigné, dépassement d'heures.
+
+Le rapprochement planning ↔ clients se fait par le nom, sans tenir compte des majuscules ni des accents.
 
 ## 💾 Sauvegarde
 
-Les données (employés, horaires, nom de l'entreprise) sont enregistrées automatiquement dans le navigateur (localStorage). Elles sont conservées d'une visite à l'autre sur le même ordinateur et le même navigateur.
+Les données sont enregistrées automatiquement dans le navigateur (localStorage). Le bouton **💾 Sauvegarde** permet :
+- **d'exporter** toutes les données dans un fichier `nettoyage-sauvegarde-AAAA-MM-JJ.json` (à conserver précieusement — c'est votre sauvegarde) ;
+- **d'importer** un fichier de sauvegarde (remplace les données actuelles, après confirmation).
+
+> 💡 Exportez régulièrement, et avant tout changement d'ordinateur ou de navigateur.
+
+## 🖨️ Impression PDF
+
+Le bouton **🖨️ Imprimer / PDF** imprime l'onglet affiché (choisissez « Enregistrer au format PDF » comme destination). Le format s'adapte tout seul (paysage/portrait). Activez « Graphiques d'arrière-plan » si les couleurs manquent.
 
 ## 🛠️ Technique
 
-- Un seul fichier `index.html` : HTML + CSS + JavaScript, sans dépendance ni serveur.
-- Fonctionne hors ligne.
-- Impression optimisée via `@media print` (format A4 paysage).
+Un seul fichier `index.html` (HTML + CSS + JavaScript), sans dépendance. Données en localStorage, migration automatique des anciennes versions, export/import JSON.

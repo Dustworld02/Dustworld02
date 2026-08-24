@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planning Employés</title>
+<title>Gestion Nettoyage</title>
 <style id="style-page">@page { size: A4 landscape; margin: 10mm; }</style>
 <style>
   :root {
@@ -26,17 +26,43 @@
 
   /* ---------- Barre d'outils (non imprimée) ---------- */
   .toolbar {
+    background: #fff;
+    border: 1px solid var(--gris-bord);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+  }
+  .rangee-onglets {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
-    background: #fff;
-    border: 1px solid var(--gris-bord);
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
   }
-  .toolbar h1 { font-size: 1.1rem; margin-right: auto; color: var(--bleu); }
+  .toolbar h1 { font-size: 1.05rem; color: var(--bleu); margin-right: 6px; white-space: nowrap; }
+  .onglets { display: inline-flex; flex-wrap: wrap; }
+  .onglets .onglet {
+    border-radius: 0;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .onglets .onglet:first-child { border-radius: 8px 0 0 8px; }
+  .onglets .onglet:not(:first-child) { border-left: none; }
+  .onglets .onglet:last-child { border-radius: 0 8px 8px 0; }
+  .onglets .onglet.actif {
+    background: var(--bleu);
+    color: #fff;
+    border-color: var(--bleu);
+  }
+  .sous-barre {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+  }
+  .sous-barre.vide { display: none; }
   button {
     font: inherit;
     padding: 8px 14px;
@@ -383,6 +409,100 @@
   .mini-form button { font-size: 0.82rem; padding: 5px 9px; white-space: nowrap; }
   .stat-vehicule { font-size: 0.85rem; margin: 2px 0; }
 
+  /* ---------- Tableaux de gestion (stocks, matériel, marges) ---------- */
+  table.tableau-gestion {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table.tableau-gestion th, table.tableau-gestion td {
+    border: 1px solid var(--gris-bord);
+    padding: 6px 8px;
+    font-size: 0.87rem;
+    text-align: left;
+    vertical-align: middle;
+  }
+  table.tableau-gestion thead th {
+    background: var(--bleu);
+    color: #fff;
+    font-size: 0.8rem;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  table.tableau-gestion td.num, table.tableau-gestion th.num { text-align: right; }
+  table.tableau-gestion tr.ligne-alerte td {
+    background: #fef2f2;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  table.tableau-gestion tr.ligne-totaux td {
+    background: #eef2ff;
+    font-weight: 700;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  table.tableau-gestion input, table.tableau-gestion select {
+    font: inherit;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    width: 100%;
+    min-width: 0;
+  }
+  table.tableau-gestion input:hover, table.tableau-gestion select:hover,
+  table.tableau-gestion input:focus, table.tableau-gestion select:focus {
+    border-color: var(--gris-bord);
+    background: #fff;
+    outline: none;
+  }
+  table.tableau-gestion input.etroit { width: 78px; }
+  .note-onglet { font-size: 0.8rem; color: #6b7280; margin-top: 10px; }
+  .marge-positive { color: #166534; font-weight: 700; }
+  .marge-negative { color: #b91c1c; font-weight: 700; }
+  .avertissements { margin-top: 10px; }
+  .avertissements .avert {
+    font-size: 0.83rem;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ---------- Documents imprimables dédiés ---------- */
+  #zone-impression { display: none; }
+  .doc h1 { font-size: 1.3rem; margin-bottom: 2px; }
+  .doc .doc-sous-titre { color: #6b7280; margin-bottom: 14px; font-size: 0.9rem; }
+  .doc h2 {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bleu);
+    border-bottom: 2px solid var(--bleu);
+    margin: 16px 0 8px;
+    padding-bottom: 2px;
+  }
+  .doc .doc-ligne { padding: 3px 0; font-size: 0.92rem; }
+  .doc .doc-case { font-size: 1rem; padding: 5px 0; border-bottom: 1px dotted #d1d5db; }
+  .doc .doc-signatures {
+    display: flex;
+    gap: 30px;
+    margin-top: 26px;
+  }
+  .doc .doc-signatures > div {
+    flex: 1;
+    border-top: 1px solid #9ca3af;
+    padding-top: 6px;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+  .doc .doc-lignes-vides div {
+    border-bottom: 1px dotted #d1d5db;
+    height: 26px;
+  }
+
   /* ---------- Impression ---------- */
   @media print {
     body { background: #fff; padding: 0; }
@@ -399,25 +519,38 @@
     .entete-feuille .societe { border: none; }
     .no-print, .ligne-item button, .carte-vehicule > div > button { display: none !important; }
     .cartes-vehicules { grid-template-columns: repeat(2, 1fr); }
+    .carte-vehicule, .carte-client { break-inside: avoid; }
+    body.impression-doc .toolbar, body.impression-doc .feuille { display: none !important; }
+    body.impression-doc #zone-impression { display: block; }
   }
 </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <h1>📅 Planning Employés</h1>
-  <span class="bascule-vue">
-    <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button><button id="btn-vue-vehicules">🚙 Véhicules</button>
-  </span>
-  <button id="btn-sem-prec" class="action-planning" title="Période précédente">◀</button>
-  <input type="date" id="date-semaine" class="action-planning">
-  <button id="btn-sem-suiv" class="action-planning" title="Période suivante">▶</button>
-  <button id="btn-employes">👥 Employés</button>
-  <button id="btn-copier" class="action-semaine">📋 Copier une semaine…</button>
-  <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
-  <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
-  <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
+  <div class="rangee-onglets">
+    <h1>🧽 Gestion Nettoyage</h1>
+    <span class="onglets">
+      <button class="onglet" id="btn-vue-planning">📅 Planning</button><button class="onglet" id="btn-vue-clients">🧑‍💼 Clients</button><button class="onglet" id="btn-vue-personnel">👥 Personnel</button><button class="onglet" id="btn-vue-stocks">📦 Stocks</button><button class="onglet" id="btn-vue-materiel">🧰 Matériel</button><button class="onglet" id="btn-vue-vehicules">🚙 Véhicules</button><button class="onglet" id="btn-vue-marges">📊 Marges</button>
+    </span>
+    <span style="flex:1"></span>
+    <button id="btn-sauvegarde">💾 Sauvegarde</button>
+    <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
+  </div>
+  <div class="sous-barre" id="sous-barre">
+    <span class="bascule-vue action-planning">
+      <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button>
+    </span>
+    <button id="btn-sem-prec" class="action-navig" title="Période précédente">◀</button>
+    <input type="date" id="date-semaine" class="action-navig">
+    <button id="btn-sem-suiv" class="action-navig" title="Période suivante">▶</button>
+    <button id="btn-copier" class="action-semaine">📋 Copier une semaine…</button>
+    <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
+    <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
+    <input type="text" id="recherche-clients" class="action-clients" placeholder="🔍 Rechercher un client…" style="min-width:220px">
+  </div>
 </div>
+<input type="file" id="fichier-import" accept=".json,application/json" style="display:none">
 
 <div class="feuille">
   <div class="entete-feuille">
@@ -437,23 +570,8 @@
   <div class="pied-impression" id="pied-impression"></div>
 </div>
 
-<!-- Modale gestion des employés -->
-<dialog id="modale-employes">
-  <h2>👥 Gestion des employés</h2>
-  <ul class="liste-employes" id="liste-employes"></ul>
-  <div class="champ" style="margin-top:14px">
-    <label for="nouvel-employe">Ajouter un employé</label>
-    <div style="display:flex; gap:8px">
-      <input type="text" id="nouvel-employe" placeholder="Nom" style="flex:2">
-      <input type="text" id="nouveau-role" placeholder="Poste (optionnel)" style="flex:2">
-      <input type="color" id="nouvelle-couleur" value="#1d4ed8" title="Couleur" style="width:44px; height:38px; border:1px solid var(--gris-bord); border-radius:8px; padding:2px; cursor:pointer">
-      <button class="primaire" id="btn-ajouter-employe">Ajouter</button>
-    </div>
-  </div>
-  <div class="actions-modale">
-    <button id="btn-fermer-employes">Fermer</button>
-  </div>
-</dialog>
+<!-- Documents imprimables dédiés (fiche client, check-list…) -->
+<div id="zone-impression"></div>
 
 <!-- Modale copie d'une semaine passée vers la semaine affichée -->
 <dialog id="modale-copier">
@@ -545,9 +663,24 @@ const ETIQUETTES = { repos: "REPOS", conge: "CONGÉ", ferie: "FÉRIÉ" };
 
 let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
-let vue = ["mois", "vehicules"].includes(donnees.vue) ? donnees.vue : "semaine"; // "semaine", "mois" ou "vehicules"
+const VUES = ["semaine", "mois", "clients", "personnel", "stocks", "materiel", "vehicules", "marges"];
+let vue = VUES.includes(donnees.vue) ? donnees.vue : "semaine";
 let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
 let celluleEnCours = null; // { employeId, indexJour, cle }
+
+// Migration douce : complète les collections manquantes sans jamais
+// transformer les données existantes (sert au chargement ET à l'import)
+function migrer(d) {
+  if (!d || typeof d !== "object") d = {};
+  if (typeof d.societe !== "string") d.societe = "";
+  if (!Array.isArray(d.employes)) d.employes = [];
+  if (typeof d.semaines !== "object" || d.semaines === null) d.semaines = {};
+  if (!Array.isArray(d.vehicules)) d.vehicules = [];
+  if (!Array.isArray(d.clients)) d.clients = [];
+  if (!Array.isArray(d.produits)) d.produits = [];   // consommables en stock
+  if (!Array.isArray(d.materiels)) d.materiels = []; // inventaire matériel
+  return d;
+}
 
 function chargerDonnees() {
   let d = null;
@@ -555,9 +688,34 @@ function chargerDonnees() {
     const brut = localStorage.getItem(CLE_STOCKAGE);
     if (brut) d = JSON.parse(brut);
   } catch (e) { /* stockage indisponible ou corrompu : on repart à neuf */ }
-  if (!d) d = { societe: "", employes: [], semaines: {} };
-  if (!Array.isArray(d.vehicules)) d.vehicules = []; // données antérieures aux véhicules
-  return d;
+  return migrer(d);
+}
+
+function nouvelId(prefixe) {
+  return prefixe + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// Rapprochement de noms : insensible à la casse, aux accents et aux espaces
+function normaliserNom(s) {
+  return (s || "").trim().toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+}
+
+// Nombre saisi à la française (virgule décimale acceptée)
+function lireNombre(v) {
+  const n = parseFloat((v || "").toString().replace(",", "."));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatEuros(n) {
+  let v = Math.round(n * 100) / 100;
+  if (v === 0) v = 0; // évite l'affichage « -0 € »
+  return v.toLocaleString("fr-FR",
+    { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " €";
+}
+
+function formatPourcent(p) {
+  return (Math.round(p * 10) / 10).toLocaleString("fr-FR") + " %";
 }
 
 function sauvegarder() {
@@ -767,7 +925,8 @@ function remplirCelluleTd(td, cellule) {
 // Format d'impression : la vue semaine s'imprime en paysage, la vue mois
 // en portrait (paysage au-delà de 4 employés pour garder des colonnes lisibles)
 function majStylePage() {
-  const paysage = vue === "semaine" || (vue === "mois" && donnees.employes.length > 4);
+  const paysage = vue === "semaine" || vue === "marges" ||
+    (vue === "mois" && donnees.employes.length > 4);
   document.getElementById("style-page").textContent =
     `@page { size: A4 ${paysage ? "landscape" : "portrait"}; margin: 10mm; }`;
 }
@@ -778,34 +937,60 @@ function rendre() {
     `Planning édité le ${formatDateLongue(new Date())}`;
   majStylePage();
 
-  document.getElementById("btn-vue-semaine").classList.toggle("actif", vue === "semaine");
-  document.getElementById("btn-vue-mois").classList.toggle("actif", vue === "mois");
-  document.getElementById("btn-vue-vehicules").classList.toggle("actif", vue === "vehicules");
-  for (const b of document.querySelectorAll(".action-semaine")) {
-    b.style.display = vue === "semaine" ? "" : "none";
-  }
-  for (const b of document.querySelectorAll(".action-planning")) {
-    b.style.display = vue === "vehicules" ? "none" : "";
-  }
-  document.getElementById("legende").style.display = vue === "vehicules" ? "none" : "";
+  majBarres();
 
   const zone = document.getElementById("zone-planning");
 
-  if (vue === "vehicules") {
-    rendreVehicules(zone);
-    return;
+  switch (vue) {
+    case "vehicules": rendreVehicules(zone); return;
+    case "clients": rendreClients(zone); return;
+    case "personnel": rendrePersonnel(zone); return;
+    case "stocks": rendreStocks(zone); return;
+    case "materiel": rendreMateriel(zone); return;
+    case "marges": rendreMarges(zone); return;
   }
 
   if (donnees.employes.length === 0) {
     document.getElementById("date-semaine").value = versInputDate(vue === "mois" ? moisCourant : lundiCourant);
     document.getElementById("libelle-periode").textContent = "";
     zone.innerHTML = `<div class="vide">Aucun employé pour le moment.<br>
-      Cliquez sur <strong>👥 Employés</strong> pour commencer.</div>`;
+      Ajoutez vos salariés dans l'onglet <strong>👥 Personnel</strong> pour commencer.</div>`;
     return;
   }
 
   if (vue === "mois") rendreMois(zone);
   else rendreSemaine(zone);
+}
+
+// Onglets, sous-barre contextuelle et légende selon la vue active
+function majBarres() {
+  const estPlanning = vue === "semaine" || vue === "mois";
+  const actifs = {
+    "btn-vue-planning": estPlanning,
+    "btn-vue-clients": vue === "clients",
+    "btn-vue-personnel": vue === "personnel",
+    "btn-vue-stocks": vue === "stocks",
+    "btn-vue-materiel": vue === "materiel",
+    "btn-vue-vehicules": vue === "vehicules",
+    "btn-vue-marges": vue === "marges",
+  };
+  for (const id in actifs) document.getElementById(id).classList.toggle("actif", actifs[id]);
+  document.getElementById("btn-vue-semaine").classList.toggle("actif", vue === "semaine");
+  document.getElementById("btn-vue-mois").classList.toggle("actif", vue === "mois");
+
+  const visibilites = [
+    [".action-planning", estPlanning],
+    [".action-navig", estPlanning || vue === "marges"],
+    [".action-semaine", vue === "semaine"],
+    [".action-clients", vue === "clients"],
+  ];
+  let sousBarreUtile = false;
+  for (const [sel, visible] of visibilites) {
+    for (const el of document.querySelectorAll(sel)) el.style.display = visible ? "" : "none";
+    if (visible) sousBarreUtile = true;
+  }
+  document.getElementById("sous-barre").classList.toggle("vide", !sousBarreUtile);
+  document.getElementById("legende").style.display = estPlanning ? "" : "none";
 }
 
 /* ---------- Vue semaine ---------- */
@@ -987,40 +1172,140 @@ function echapper(texte) {
   return div.innerHTML;
 }
 
-/* ================= Modale employés ================= */
+/* ================= Onglet Personnel ================= */
 
-function rendreListeEmployes() {
-  const ul = document.getElementById("liste-employes");
-  ul.innerHTML = "";
+function rendrePersonnel(zone) {
+  document.getElementById("libelle-periode").textContent = "Équipe";
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="perso-nouveau-nom" placeholder="Nom du salarié" style="flex:2; min-width:160px">
+      <input type="text" id="perso-nouveau-role" placeholder="Poste (optionnel)" style="flex:1; min-width:120px">
+      <input type="color" id="perso-nouvelle-couleur" value="#1d4ed8" title="Couleur dans le planning"
+        style="width:44px; height:38px; border:1px solid var(--gris-bord); border-radius:8px; padding:2px; cursor:pointer">
+      <button class="primaire" data-paction="ajouter">+ Ajouter le salarié</button>
+    </div>`;
   if (donnees.employes.length === 0) {
-    ul.innerHTML = `<li style="color:#6b7280">Aucun employé.</li>`;
-    return;
+    html += `<div class="vide">Aucun salarié pour le moment.<br>Ajoutez votre premier salarié ci-dessus.</div>`;
+  } else {
+    html += `<div class="cartes-vehicules">` +
+      donnees.employes.map((emp, i) => cartePersonnel(emp, i)).join("") + `</div>`;
   }
-  for (const emp of donnees.employes) {
-    const li = document.createElement("li");
-    const optionsVehicule = [`<option value="">— sans véhicule —</option>`]
-      .concat(donnees.vehicules.map(v =>
-        `<option value="${v.id}"${emp.vehiculeId === v.id ? " selected" : ""}>🚙 ${echapper(v.nom)}</option>`))
-      .join("");
-    li.innerHTML = `
-      <span class="pastille" style="background:${emp.couleur || "#1d4ed8"}"></span>
-      <span class="nom">${echapper(emp.nom)}${emp.role ? ` <small style="font-weight:400;color:#6b7280">(${echapper(emp.role)})</small>` : ""}</span>
-      <select class="choix-vehicule" data-id="${emp.id}" title="Véhicule attribué">${optionsVehicule}</select>
-      <button data-action="monter" data-id="${emp.id}" title="Monter">↑</button>
-      <button data-action="descendre" data-id="${emp.id}" title="Descendre">↓</button>
-      <button data-action="supprimer" data-id="${emp.id}" title="Supprimer">✕</button>`;
-    ul.appendChild(li);
-  }
+  zone.innerHTML = html;
 }
 
-// Attribution d'un véhicule depuis la liste des employés
-document.getElementById("liste-employes").addEventListener("change", (e) => {
-  const sel = e.target.closest("select.choix-vehicule");
-  if (!sel) return;
-  const emp = donnees.employes.find(x => x.id === sel.dataset.id);
+function cartePersonnel(emp, idx) {
+  const optionsVehicule = [`<option value="">— sans véhicule —</option>`]
+    .concat(donnees.vehicules.map(v =>
+      `<option value="${v.id}"${emp.vehiculeId === v.id ? " selected" : ""}>🚙 ${echapper(v.nom)}</option>`))
+    .join("");
+  const champ = (libelle, type, prop, valeur, options = "") => `
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 118px">${libelle}</span>
+      <input type="${type}" data-pchange="${prop}" data-eid="${emp.id}" value="${echapper(valeur ?? "")}" ${options} style="flex:1; min-width:0">
+    </div>`;
+  return `
+  <div class="carte-vehicule">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+      <input type="color" data-pchange="couleur" data-eid="${emp.id}" value="${emp.couleur || "#1d4ed8"}"
+        title="Couleur dans le planning" class="no-print"
+        style="width:34px; height:30px; border:1px solid var(--gris-bord); border-radius:6px; padding:1px; cursor:pointer">
+      <h3 style="flex:1">${echapper(emp.nom)}</h3>
+      <button class="no-print" data-paction="monter" data-eid="${emp.id}" title="Monter">↑</button>
+      <button class="no-print" data-paction="descendre" data-eid="${emp.id}" title="Descendre">↓</button>
+      <button class="no-print" data-paction="supprimer" data-eid="${emp.id}" title="Supprimer">✕</button>
+    </div>
+    <div class="section-vehicule">
+      ${champ("Nom", "text", "nom", emp.nom)}
+      ${champ("Poste", "text", "role", emp.role, `placeholder="ex. : agent d'entretien"`)}
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 118px">Véhicule</span>
+        <select data-pchange="vehicule" data-eid="${emp.id}" style="flex:1; min-width:0">${optionsVehicule}</select>
+      </div>
+    </div>
+    <div class="section-vehicule">
+      <h4>Coordonnées</h4>
+      ${champ("📞 Téléphone", "text", "tel", emp.tel)}
+      ${champ("✉️ Email", "text", "email", emp.email)}
+    </div>
+    <div class="section-vehicule">
+      <h4>Contrat</h4>
+      ${champ("Type de contrat", "text", "typeContrat", emp.typeContrat, `placeholder="ex. : CDI 35h, CDD…"`)}
+      ${champ("Entré(e) le", "date", "dateEntree", emp.dateEntree)}
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 118px">💶 Coût horaire</span>
+        <input type="number" min="0" step="0.5" data-pchange="coutHoraire" data-eid="${emp.id}"
+          value="${emp.coutHoraire > 0 ? emp.coutHoraire : ""}" placeholder="ex. : 18" style="width:90px"> €/h chargé
+      </div>
+      <div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">
+        Le coût horaire chargé (salaire + charges) sert au calcul des marges par client.</div>
+    </div>
+  </div>`;
+}
+
+// Actions (clics) de l'onglet Personnel
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-paction]");
+  if (!btn) return;
+  const idx = donnees.employes.findIndex(x => x.id === btn.dataset.eid);
+
+  switch (btn.dataset.paction) {
+    case "ajouter": {
+      const champNom = document.getElementById("perso-nouveau-nom");
+      const nom = champNom.value.trim();
+      if (!nom) { champNom.focus(); return; }
+      donnees.employes.push({
+        id: nouvelId("emp"),
+        nom,
+        role: document.getElementById("perso-nouveau-role").value.trim(),
+        couleur: document.getElementById("perso-nouvelle-couleur").value,
+      });
+      break;
+    }
+    case "supprimer": {
+      if (idx === -1) return;
+      const emp = donnees.employes[idx];
+      if (!confirm(`Supprimer ${emp.nom} ? Ses horaires de planning seront aussi supprimés.`)) return;
+      donnees.employes.splice(idx, 1);
+      for (const cle in donnees.semaines) delete donnees.semaines[cle][emp.id];
+      break;
+    }
+    case "monter":
+      if (idx <= 0) return;
+      [donnees.employes[idx - 1], donnees.employes[idx]] = [donnees.employes[idx], donnees.employes[idx - 1]];
+      break;
+    case "descendre":
+      if (idx === -1 || idx >= donnees.employes.length - 1) return;
+      [donnees.employes[idx + 1], donnees.employes[idx]] = [donnees.employes[idx], donnees.employes[idx + 1]];
+      break;
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+// Saisies (champs) de l'onglet Personnel
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-pchange]");
+  if (!el) return;
+  const emp = donnees.employes.find(x => x.id === el.dataset.eid);
   if (!emp) return;
-  if (sel.value) emp.vehiculeId = sel.value;
-  else delete emp.vehiculeId;
+  const prop = el.dataset.pchange;
+  const valeur = el.value.trim();
+
+  if (prop === "vehicule") {
+    if (valeur) emp.vehiculeId = valeur;
+    else delete emp.vehiculeId;
+  } else if (prop === "coutHoraire") {
+    const n = lireNombre(valeur);
+    if (n > 0) emp.coutHoraire = n;
+    else delete emp.coutHoraire;
+  } else if (prop === "nom") {
+    if (valeur) emp.nom = valeur; // on refuse un nom vide
+  } else if (["role", "couleur", "tel", "email", "typeContrat", "dateEntree"].includes(prop)) {
+    if (valeur) emp[prop] = el.type === "color" ? el.value : valeur;
+    else delete emp[prop];
+  }
   sauvegarder();
   rendre();
 });
@@ -1196,7 +1481,7 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
       const champNom = document.getElementById("veh-nouveau-nom");
       const nom = champNom.value.trim();
       if (!nom) { champNom.focus(); return; }
-      const nv = { id: "veh-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom };
+      const nv = { id: nouvelId("veh"), nom };
       const immat = document.getElementById("veh-nouvelle-immat").value.trim();
       if (immat) nv.immat = immat;
       donnees.vehicules.push(nv);
@@ -1299,59 +1584,992 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
   rendre();
 });
 
-document.getElementById("liste-employes").addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const idx = donnees.employes.findIndex(emp => emp.id === id);
-  if (idx === -1) return;
+/* ================= Clients : accès et statistiques ================= */
 
-  if (btn.dataset.action === "supprimer") {
-    const emp = donnees.employes[idx];
-    if (!confirm(`Supprimer ${emp.nom} ? Ses horaires seront aussi supprimés.`)) return;
-    donnees.employes.splice(idx, 1);
-    for (const cle in donnees.semaines) delete donnees.semaines[cle][id];
-  } else if (btn.dataset.action === "monter" && idx > 0) {
-    [donnees.employes[idx - 1], donnees.employes[idx]] = [donnees.employes[idx], donnees.employes[idx - 1]];
-  } else if (btn.dataset.action === "descendre" && idx < donnees.employes.length - 1) {
-    [donnees.employes[idx + 1], donnees.employes[idx]] = [donnees.employes[idx], donnees.employes[idx + 1]];
+function clientParId(id) { return donnees.clients.find(c => c.id === id); }
+function produitParId(id) { return donnees.produits.find(p => p.id === id); }
+function materielParId(id) { return donnees.materiels.find(m => m.id === id); }
+
+// Contrat applicable à un mois donné : d'abord un contrat dont les dates
+// couvrent le mois (non terminé de préférence), sinon un contrat actif.
+function contratPourMois(client, annee, mois) {
+  const contrats = client.contrats || [];
+  const debutMois = versInputDate(new Date(annee, mois, 1));
+  const finMois = versInputDate(new Date(annee, mois + 1, 0));
+  const couvrants = contrats.filter(ct =>
+    (ct.debut || "0000-01-01") <= finMois && (ct.fin || "9999-12-31") >= debutMois);
+  return couvrants.find(ct => ct.statut !== "termine") || couvrants[0] ||
+    contrats.find(ct => ct.statut !== "termine") || null;
+}
+
+// Statistiques du planning pour un mois : heures et coût de main-d'œuvre
+// par client (rapprochement des noms insensible à la casse/accents),
+// interventions = jours distincts (une équipe de 2 le même jour = 1),
+// heures non affectées (trajets et créneaux sans client) à part.
+function statsClientsMois(annee, mois) {
+  const mapNoms = {};
+  for (const cli of donnees.clients) mapNoms[normaliserNom(cli.nom)] = cli.id;
+  const nbJours = new Date(annee, mois + 1, 0).getDate();
+  const bruts = {};
+  const nonAffecte = { minutes: 0, coutMO: 0 };
+  const sansCout = new Set();
+
+  for (let j = 1; j <= nbJours; j++) {
+    const date = new Date(annee, mois, j);
+    const dateCle = versInputDate(date);
+    for (const emp of donnees.employes) {
+      const cellule = celluleDeDate(emp.id, date);
+      if (!cellule || cellule.type !== "travail" || !cellule.creneaux) continue;
+      for (const c of cellule.creneaux) {
+        if (c.type === "trajet") {
+          const mins = c.duree > 0 ? c.duree : (c.debut && c.fin ? dureeEntre(c.debut, c.fin) : 0);
+          if (mins > 0) {
+            nonAffecte.minutes += mins;
+            nonAffecte.coutMO += (mins / 60) * (emp.coutHoraire || 0);
+            if (!(emp.coutHoraire > 0)) sansCout.add(emp.nom);
+          }
+          continue;
+        }
+        if (!c.debut || !c.fin) continue;
+        const mins = dureeEntre(c.debut, c.fin);
+        const cout = (mins / 60) * (emp.coutHoraire || 0);
+        if (!(emp.coutHoraire > 0)) sansCout.add(emp.nom);
+        const nomNorme = normaliserNom(c.client);
+        if (!nomNorme) {
+          nonAffecte.minutes += mins;
+          nonAffecte.coutMO += cout;
+          continue;
+        }
+        const cle = mapNoms[nomNorme] || ("?" + nomNorme);
+        const s = bruts[cle] || (bruts[cle] = { minutes: 0, coutMO: 0, jours: new Set(), nom: c.client.trim() });
+        s.minutes += mins;
+        s.coutMO += cout;
+        s.jours.add(dateCle);
+      }
+    }
+  }
+
+  const resultat = { parClient: {}, nonRepertories: [], nonAffecte, sansCout: [...sansCout] };
+  for (const cle in bruts) {
+    const s = bruts[cle];
+    const entree = { heures: s.minutes / 60, minutes: s.minutes, coutMO: s.coutMO,
+      interventions: s.jours.size, nom: s.nom };
+    if (cle.startsWith("?")) resultat.nonRepertories.push(entree);
+    else resultat.parClient[cle] = entree;
+  }
+  return resultat;
+}
+
+// Coût des consommables prévus pour UNE intervention chez ce client
+function coutConsommablesParIntervention(client) {
+  let cout = 0;
+  let manquePrix = false;
+  for (const b of (client.besoins || [])) {
+    const p = produitParId(b.produitId);
+    if (!p) { manquePrix = true; continue; }
+    if (!(p.prixUnitaire > 0)) manquePrix = true;
+    cout += (b.qte || 0) * (p.prixUnitaire || 0);
+  }
+  return { cout, manquePrix };
+}
+
+/* ================= Onglet Stocks (consommables) ================= */
+
+function rendreStocks(zone) {
+  document.getElementById("libelle-periode").textContent = "Stock de consommables";
+  const auj = new Date();
+  const stats = statsClientsMois(auj.getFullYear(), auj.getMonth());
+  const besoinsMois = {}; // produitId -> quantité théorique du mois
+  for (const cli of donnees.clients) {
+    const s = stats.parClient[cli.id];
+    if (!s || !s.interventions) continue;
+    for (const b of (cli.besoins || [])) {
+      besoinsMois[b.produitId] = (besoinsMois[b.produitId] || 0) + (b.qte || 0) * s.interventions;
+    }
+  }
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="stock-nouveau-nom" placeholder="Nom du produit (ex. : détergent sols)" style="flex:2; min-width:170px">
+      <input type="text" id="stock-nouvelle-unite" placeholder="Unité (bidon, L…)" style="flex:1; min-width:100px">
+      <input type="number" id="stock-nouvelle-qte" min="0" placeholder="Qté" title="Quantité en stock" style="width:80px">
+      <input type="number" id="stock-nouveau-seuil" min="0" placeholder="Seuil" title="Seuil d'alerte" style="width:80px">
+      <input type="number" id="stock-nouveau-prix" min="0" step="0.01" placeholder="Prix €" title="Prix unitaire" style="width:90px">
+      <button class="primaire" data-saction="ajouter">+ Ajouter</button>
+    </div>`;
+
+  if (donnees.produits.length === 0) {
+    html += `<div class="vide">Aucun consommable pour le moment.<br>
+      Ajoutez vos produits ci-dessus (détergents, sacs, lavettes…), puis indiquez les besoins
+      par intervention dans les fiches <strong>🧑‍💼 Clients</strong>.</div>`;
+  } else {
+    const lignes = donnees.produits.map(p => {
+      const alerte = p.seuil > 0 && p.quantite <= p.seuil;
+      const besoin = besoinsMois[p.id] || 0;
+      const dernierMvt = (p.mouvements || [])[0];
+      return `
+      <tr class="${alerte ? "ligne-alerte" : ""}">
+        <td><input type="text" data-schange="nom" data-sid="${p.id}" value="${echapper(p.nom)}">
+          ${dernierMvt ? `<div style="font-size:0.72rem;color:#6b7280">dernier mouvement : ${dernierMvt.delta > 0 ? "+" : ""}${dernierMvt.delta} le ${dernierMvt.date ? formatDateCourte(new Date(dernierMvt.date + "T00:00:00")) : "?"}</div>` : ""}</td>
+        <td><input type="text" data-schange="unite" data-sid="${p.id}" value="${echapper(p.unite || "")}" placeholder="—"></td>
+        <td class="num"><input class="etroit" type="number" min="0" data-schange="quantite" data-sid="${p.id}" value="${p.quantite ?? 0}">
+          ${alerte ? `<span class="badge alerte">stock bas</span>` : ""}</td>
+        <td class="num"><input class="etroit" type="number" min="0" data-schange="seuil" data-sid="${p.id}" value="${p.seuil > 0 ? p.seuil : ""}" placeholder="—"></td>
+        <td class="num"><input class="etroit" type="number" min="0" step="0.01" data-schange="prixUnitaire" data-sid="${p.id}" value="${p.prixUnitaire > 0 ? p.prixUnitaire : ""}" placeholder="—"></td>
+        <td class="num">${besoin > 0 ? formatKm(besoin) : "—"}</td>
+        <td class="no-print" style="white-space:nowrap">
+          <input type="number" min="1" class="mvt-qte etroit" placeholder="Qté" style="width:64px">
+          <button data-saction="entree" data-sid="${p.id}" title="Entrée en stock">＋ Entrée</button>
+          <button data-saction="sortie" data-sid="${p.id}" title="Sortie de stock">－ Sortie</button>
+        </td>
+        <td class="no-print"><button data-saction="supprimer" data-sid="${p.id}" title="Supprimer">✕</button></td>
+      </tr>`;
+    }).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th>Produit</th><th style="width:90px">Unité</th><th class="num" style="width:110px">En stock</th>
+        <th class="num" style="width:80px">Seuil</th><th class="num" style="width:90px">Prix unit. €</th>
+        <th class="num" style="width:110px">Besoin ce mois-ci*</th>
+        <th class="no-print" style="width:230px">Mouvement</th><th class="no-print" style="width:40px"></th>
+      </tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>
+    </div>
+    <div class="note-onglet">* Besoin théorique du mois en cours = quantités prévues par intervention
+      (fiches clients) × interventions planifiées ce mois-ci. Les lignes rouges sont sous leur seuil d'alerte.</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-saction]");
+  if (!btn) return;
+  const p = donnees.produits.find(x => x.id === btn.dataset.sid);
+
+  switch (btn.dataset.saction) {
+    case "ajouter": {
+      const champNom = document.getElementById("stock-nouveau-nom");
+      const nom = champNom.value.trim();
+      if (!nom) { champNom.focus(); return; }
+      const np = { id: nouvelId("prd"), nom, quantite: Math.max(0, lireNombre(document.getElementById("stock-nouvelle-qte").value)), mouvements: [] };
+      const unite = document.getElementById("stock-nouvelle-unite").value.trim();
+      const seuil = lireNombre(document.getElementById("stock-nouveau-seuil").value);
+      const prix = lireNombre(document.getElementById("stock-nouveau-prix").value);
+      if (unite) np.unite = unite;
+      if (seuil > 0) np.seuil = seuil;
+      if (prix > 0) np.prixUnitaire = prix;
+      donnees.produits.push(np);
+      break;
+    }
+    case "supprimer": {
+      if (!p) return;
+      const utilise = donnees.clients.filter(c => (c.besoins || []).some(b => b.produitId === p.id));
+      const detail = utilise.length ? `\nIl est prévu chez : ${utilise.map(c => c.nom).join(", ")}.` : "";
+      if (!confirm(`Supprimer le produit ${p.nom} ?${detail}`)) return;
+      donnees.produits = donnees.produits.filter(x => x !== p);
+      for (const c of donnees.clients) {
+        if (c.besoins) c.besoins = c.besoins.filter(b => b.produitId !== p.id);
+      }
+      break;
+    }
+    case "entree":
+    case "sortie": {
+      if (!p) return;
+      const champ = btn.closest("tr").querySelector(".mvt-qte");
+      let qte = lireNombre(champ.value);
+      if (!(qte > 0)) qte = 1;
+      const delta = btn.dataset.saction === "entree" ? qte : -qte;
+      p.quantite = Math.max(0, (p.quantite || 0) + delta);
+      p.mouvements = p.mouvements || [];
+      p.mouvements.unshift({ date: versInputDate(new Date()), delta });
+      p.mouvements = p.mouvements.slice(0, 50);
+      break;
+    }
+    default:
+      return;
   }
   sauvegarder();
-  rendreListeEmployes();
   rendre();
 });
 
-document.getElementById("btn-ajouter-employe").addEventListener("click", () => {
-  const champNom = document.getElementById("nouvel-employe");
-  const champRole = document.getElementById("nouveau-role");
-  const champCouleur = document.getElementById("nouvelle-couleur");
-  const nom = champNom.value.trim();
-  if (!nom) { champNom.focus(); return; }
-  donnees.employes.push({
-    id: "emp-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    nom,
-    role: champRole.value.trim(),
-    couleur: champCouleur.value,
-  });
-  champNom.value = "";
-  champRole.value = "";
-  champNom.focus();
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-schange]");
+  if (!el) return;
+  const p = donnees.produits.find(x => x.id === el.dataset.sid);
+  if (!p) return;
+  const prop = el.dataset.schange;
+  const valeur = el.value.trim();
+  if (prop === "nom") {
+    if (valeur) p.nom = valeur;
+  } else if (prop === "unite") {
+    if (valeur) p.unite = valeur; else delete p.unite;
+  } else if (prop === "quantite") {
+    p.quantite = Math.max(0, lireNombre(valeur));
+  } else if (prop === "seuil" || prop === "prixUnitaire") {
+    const n = lireNombre(valeur);
+    if (n > 0) p[prop] = n; else delete p[prop];
+  }
   sauvegarder();
-  rendreListeEmployes();
   rendre();
 });
 
-document.getElementById("nouvel-employe").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") document.getElementById("btn-ajouter-employe").click();
+/* ================= Onglet Matériel (inventaire) ================= */
+
+function libelleLocalisation(loc) {
+  if (!loc || loc.type === "depot") return "🏠 Dépôt";
+  if (loc.type === "vehicule") {
+    const v = donnees.vehicules.find(x => x.id === loc.id);
+    return v ? `🚙 ${v.nom}` : "🚙 (véhicule supprimé)";
+  }
+  if (loc.type === "client") {
+    const c = clientParId(loc.id);
+    return c ? `🧑‍💼 ${c.nom}` : "🧑‍💼 (client supprimé)";
+  }
+  return "—";
+}
+
+function rendreMateriel(zone) {
+  document.getElementById("libelle-periode").textContent = "Inventaire du matériel";
+
+  const optionsLocalisation = (loc) => {
+    const valeur = !loc || loc.type === "depot" ? "depot" : `${loc.type}:${loc.id}`;
+    let opts = `<option value="depot"${valeur === "depot" ? " selected" : ""}>🏠 Dépôt</option>`;
+    for (const v of donnees.vehicules) {
+      opts += `<option value="vehicule:${v.id}"${valeur === "vehicule:" + v.id ? " selected" : ""}>🚙 ${echapper(v.nom)}</option>`;
+    }
+    for (const c of donnees.clients) {
+      opts += `<option value="client:${c.id}"${valeur === "client:" + c.id ? " selected" : ""}>🧑‍💼 ${echapper(c.nom)}</option>`;
+    }
+    return opts;
+  };
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="mat-nouveau-nom" placeholder="Nom du matériel (ex. : autolaveuse, aspirateur…)" style="flex:2; min-width:180px">
+      <input type="number" id="mat-nouvelle-qte" min="1" value="1" title="Quantité" style="width:80px">
+      <button class="primaire" data-maction="ajouter">+ Ajouter</button>
+    </div>`;
+
+  if (donnees.materiels.length === 0) {
+    html += `<div class="vide">Aucun matériel dans l'inventaire.<br>
+      Ajoutez votre matériel ci-dessus (autolaveuse, monobrosse, aspirateurs, chariots…).</div>`;
+  } else {
+    const badgesEtat = { bon: `<span class="badge ok">bon état</span>`, moyen: `<span class="badge attention">état moyen</span>`, hs: `<span class="badge alerte">hors service</span>` };
+    const lignes = donnees.materiels.map(m => `
+      <tr class="${m.etat === "hs" ? "ligne-alerte" : ""}">
+        <td><input type="text" data-mchange="nom" data-mid="${m.id}" value="${echapper(m.nom)}"></td>
+        <td class="num"><input class="etroit" type="number" min="1" data-mchange="qte" data-mid="${m.id}" value="${m.qte || 1}"></td>
+        <td style="white-space:nowrap">
+          <select data-mchange="etat" data-mid="${m.id}">
+            <option value="bon"${(m.etat || "bon") === "bon" ? " selected" : ""}>Bon état</option>
+            <option value="moyen"${m.etat === "moyen" ? " selected" : ""}>État moyen</option>
+            <option value="hs"${m.etat === "hs" ? " selected" : ""}>Hors service</option>
+          </select> ${badgesEtat[m.etat || "bon"] || ""}</td>
+        <td><select data-mchange="localisation" data-mid="${m.id}">${optionsLocalisation(m.localisation)}</select></td>
+        <td class="no-print" style="width:40px"><button data-maction="supprimer" data-mid="${m.id}" title="Supprimer">✕</button></td>
+      </tr>`).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr><th>Matériel</th><th class="num" style="width:70px">Qté</th>
+        <th style="width:220px">État</th><th style="width:220px">Localisation</th><th class="no-print" style="width:40px"></th></tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>
+    </div>
+    <div class="note-onglet">La localisation indique où se trouve le matériel : au dépôt, dans un véhicule
+      ou laissé chez un client.</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-maction]");
+  if (!btn) return;
+  const m = donnees.materiels.find(x => x.id === btn.dataset.mid);
+
+  switch (btn.dataset.maction) {
+    case "ajouter": {
+      const champNom = document.getElementById("mat-nouveau-nom");
+      const nom = champNom.value.trim();
+      if (!nom) { champNom.focus(); return; }
+      const qte = Math.max(1, Math.round(lireNombre(document.getElementById("mat-nouvelle-qte").value)) || 1);
+      donnees.materiels.push({ id: nouvelId("mat"), nom, qte, etat: "bon", localisation: { type: "depot" } });
+      break;
+    }
+    case "supprimer": {
+      if (!m) return;
+      if (!confirm(`Supprimer ${m.nom} de l'inventaire ?`)) return;
+      donnees.materiels = donnees.materiels.filter(x => x !== m);
+      for (const c of donnees.clients) {
+        if (c.materielRequis) c.materielRequis = c.materielRequis.filter(r => r.materielId !== m.id);
+      }
+      break;
+    }
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
 });
 
-document.getElementById("btn-employes").addEventListener("click", () => {
-  rendreListeEmployes();
-  document.getElementById("modale-employes").showModal();
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-mchange]");
+  if (!el) return;
+  const m = donnees.materiels.find(x => x.id === el.dataset.mid);
+  if (!m) return;
+  const prop = el.dataset.mchange;
+  if (prop === "nom") {
+    if (el.value.trim()) m.nom = el.value.trim();
+  } else if (prop === "qte") {
+    m.qte = Math.max(1, Math.round(lireNombre(el.value)) || 1);
+  } else if (prop === "etat") {
+    m.etat = el.value;
+  } else if (prop === "localisation") {
+    const v = el.value;
+    if (v === "depot") m.localisation = { type: "depot" };
+    else {
+      const [type, id] = v.split(":");
+      m.localisation = { type, id };
+    }
+  }
+  sauvegarder();
+  rendre();
 });
-document.getElementById("btn-fermer-employes").addEventListener("click", () => {
-  document.getElementById("modale-employes").close();
+
+/* ================= Onglet Clients ================= */
+
+function rendreClients(zone) {
+  document.getElementById("libelle-periode").textContent = "Clients";
+  const filtre = normaliserNom(document.getElementById("recherche-clients").value);
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="cli-nouveau-nom" placeholder="Nom du nouveau client (ex. : Boulangerie Dupont)" style="flex:2; min-width:200px">
+      <button class="primaire" data-caction="ajouter">+ Ajouter le client</button>
+    </div>`;
+
+  const visibles = donnees.clients.filter(c => !filtre || normaliserNom(c.nom).includes(filtre));
+  if (donnees.clients.length === 0) {
+    html += `<div class="vide">Aucun client pour le moment.<br>
+      Ajoutez votre premier client ci-dessus : vous pourrez ensuite définir son contrat, son protocole
+      de nettoyage, sa check-list et les consommables nécessaires.</div>`;
+  } else if (visibles.length === 0) {
+    html += `<div class="vide">Aucun client ne correspond à la recherche.</div>`;
+  } else {
+    html += `<div class="cartes-clients">` + visibles.map(carteClient).join("") + `</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+function carteClient(cli) {
+  const auj = new Date();
+  const ct = contratPourMois(cli, auj.getFullYear(), auj.getMonth());
+  const badgeContrat = ct
+    ? (ct.type === "forfait"
+      ? `<span class="badge ok">forfait ${formatEuros(ct.forfaitMensuel || 0)}/mois</span>`
+      : `<span class="badge ok">${ct.heuresFacturees > 0 ? formatKm(ct.heuresFacturees) + " h × " : ""}${formatEuros(ct.tauxHoraire || 0)}/h</span>`)
+    : `<span class="badge attention">sans contrat</span>`;
+
+  const champ = (libelle, type, prop, valeur, options = "") => `
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 108px">${libelle}</span>
+      <input type="${type}" data-cchange="${prop}" data-cid="${cli.id}" value="${echapper(valeur ?? "")}" ${options} style="flex:1; min-width:0">
+    </div>`;
+
+  // --- Contrats ---
+  const lignesContrats = (cli.contrats || []).map((c, i) => {
+    const resume = c.type === "forfait"
+      ? `Forfait — ${formatEuros(c.forfaitMensuel || 0)} / mois`
+      : `Horaire — ${c.heuresFacturees > 0 ? formatKm(c.heuresFacturees) + " h/mois × " : ""}${formatEuros(c.tauxHoraire || 0)}/h`;
+    return `
+    <div class="ligne-item${c.statut === "termine" ? " fait" : ""}">
+      <span class="texte">${resume}</span>
+      <input type="date" data-cchange="ct-debut" data-cid="${cli.id}" data-idx="${i}" value="${c.debut || ""}" title="Début" style="width:130px">
+      <select data-cchange="ct-statut" data-cid="${cli.id}" data-idx="${i}" title="Statut">
+        <option value="actif"${c.statut !== "termine" ? " selected" : ""}>Actif</option>
+        <option value="termine"${c.statut === "termine" ? " selected" : ""}>Terminé</option>
+      </select>
+      <button class="no-print" data-caction="supprimer-contrat" data-cid="${cli.id}" data-idx="${i}" title="Supprimer">✕</button>
+    </div>`;
+  }).join("");
+
+  // --- Procédure / protocole ---
+  const lignesProcedure = (cli.procedure || []).map((p, i) => `
+    <div class="ligne-item">
+      <span style="color:#6b7280; font-weight:700; flex:0 0 20px">${i + 1}.</span>
+      <span class="texte">${echapper(p.texte)}</span>
+      <button class="no-print" data-caction="monter-etape" data-cid="${cli.id}" data-idx="${i}" title="Monter">↑</button>
+      <button class="no-print" data-caction="descendre-etape" data-cid="${cli.id}" data-idx="${i}" title="Descendre">↓</button>
+      <button class="no-print" data-caction="supprimer-etape" data-cid="${cli.id}" data-idx="${i}" title="Supprimer">✕</button>
+    </div>`).join("");
+
+  // --- Check-list ---
+  const lignesChecklist = (cli.checklist || []).map((t, i) => `
+    <div class="ligne-item">
+      <span style="flex:0 0 18px">☐</span>
+      <span class="texte">${echapper(t.texte)}</span>
+      <button class="no-print" data-caction="supprimer-tache" data-cid="${cli.id}" data-idx="${i}" title="Supprimer">✕</button>
+    </div>`).join("");
+
+  // --- Consommables par intervention ---
+  const optionsProduits = donnees.produits.map(p =>
+    `<option value="${p.id}">${echapper(p.nom)}${p.unite ? ` (${echapper(p.unite)})` : ""}</option>`).join("");
+  const conso = coutConsommablesParIntervention(cli);
+  const lignesBesoins = (cli.besoins || []).map((b, i) => {
+    const p = produitParId(b.produitId);
+    return `
+    <div class="ligne-item">
+      <span class="texte">${p ? echapper(p.nom) : "(produit supprimé)"}</span>
+      <input type="number" min="0" step="0.1" data-cchange="besoin-qte" data-cid="${cli.id}" data-idx="${i}" value="${b.qte || 0}" style="width:70px" title="Quantité par intervention">
+      <span style="color:#6b7280; font-size:0.78rem">${p && p.unite ? echapper(p.unite) : ""}</span>
+      <span style="color:#6b7280; font-size:0.8rem">${p && p.prixUnitaire > 0 ? formatEuros((b.qte || 0) * p.prixUnitaire) : ""}</span>
+      <button class="no-print" data-caction="supprimer-besoin" data-cid="${cli.id}" data-idx="${i}" title="Retirer">✕</button>
+    </div>`;
+  }).join("");
+
+  // --- Matériel nécessaire ---
+  const optionsMateriels = donnees.materiels.map(m => `<option value="${m.id}">${echapper(m.nom)}</option>`).join("");
+  const lignesMatRequis = (cli.materielRequis || []).map((r, i) => {
+    const m = materielParId(r.materielId);
+    return `
+    <div class="ligne-item">
+      <span class="texte">${m ? echapper(m.nom) : "(matériel supprimé)"}
+        ${m ? `<small style="color:#6b7280">— ${libelleLocalisation(m.localisation)}</small>` : ""}</span>
+      <button class="no-print" data-caction="supprimer-materiel-requis" data-cid="${cli.id}" data-idx="${i}" title="Retirer">✕</button>
+    </div>`;
+  }).join("");
+
+  const heuresTheoriques = (cli.dureeInterventionMin > 0 && cli.frequenceParMois > 0)
+    ? formatHeures(Math.round(cli.dureeInterventionMin * cli.frequenceParMois)) + " / mois"
+    : null;
+
+  return `
+  <div class="carte-vehicule carte-client">
+    <div style="display:flex; align-items:flex-start; gap:8px">
+      <div style="flex:1">
+        <h3>🧑‍💼 ${echapper(cli.nom)} ${badgeContrat}</h3>
+      </div>
+      <button class="no-print" data-caction="imprimer-checklist" data-cid="${cli.id}" title="Imprimer la feuille d'intervention (check-list)">🖨️ Check-list</button>
+      <button class="no-print" data-caction="imprimer-fiche" data-cid="${cli.id}" title="Imprimer la fiche client">🖨️ Fiche</button>
+      <button class="no-print" data-caction="supprimer" data-cid="${cli.id}" title="Supprimer le client">✕</button>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>Coordonnées</h4>
+      ${champ("Nom", "text", "nom", cli.nom)}
+      ${champ("Adresse", "text", "adresse", cli.adresse)}
+      ${champ("Contact", "text", "contact", cli.contact, `placeholder="nom du contact sur place"`)}
+      ${champ("📞 Téléphone", "text", "tel", cli.tel)}
+      ${champ("✉️ Email", "text", "email", cli.email)}
+      ${champ("Notes", "text", "notes", cli.notes, `placeholder="code portail, alarme, consignes…"`)}
+    </div>
+
+    <div class="section-vehicule">
+      <h4>Intervention type</h4>
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 108px">Durée prévue</span>
+        <input type="number" min="0" step="5" data-cchange="dureeInterventionMin" data-cid="${cli.id}" value="${cli.dureeInterventionMin > 0 ? cli.dureeInterventionMin : ""}" placeholder="ex. : 120" style="width:90px"> min
+      </div>
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 108px">Fréquence</span>
+        <input type="number" min="0" step="0.5" data-cchange="frequenceParMois" data-cid="${cli.id}" value="${cli.frequenceParMois > 0 ? cli.frequenceParMois : ""}" placeholder="ex. : 8" style="width:90px"> interventions / mois
+      </div>
+      ${heuresTheoriques ? `<div class="stat-vehicule">Temps théorique : <strong>${heuresTheoriques}</strong></div>` : ""}
+    </div>
+
+    <div class="section-vehicule">
+      <h4>📄 Contrat</h4>
+      ${lignesContrats || `<div class="stat-vehicule" style="color:#6b7280">Aucun contrat enregistré.</div>`}
+      <div class="mini-form no-print">
+        <select class="ct-type" data-cid="${cli.id}" title="Type de contrat">
+          <option value="forfait">Forfait mensuel</option>
+          <option value="horaire">Taux horaire</option>
+        </select>
+        <input type="number" min="0" step="0.01" class="ct-forfait" placeholder="€ / mois" style="max-width:110px">
+        <input type="number" min="0" step="0.01" class="ct-taux" placeholder="€ / h" style="max-width:90px; display:none">
+        <input type="number" min="0" step="0.5" class="ct-heures" placeholder="h facturées/mois" style="max-width:130px; display:none">
+        <button data-caction="ajouter-contrat" data-cid="${cli.id}">+ Contrat</button>
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🧼 Protocole / procédure</h4>
+      ${lignesProcedure || `<div class="stat-vehicule" style="color:#6b7280">Aucune étape définie.</div>`}
+      <div class="mini-form no-print">
+        <input type="text" class="etape-texte" placeholder="ex. : Vider les poubelles et remplacer les sacs" style="flex:3; min-width:180px">
+        <button data-caction="ajouter-etape" data-cid="${cli.id}">+ Étape</button>
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>✅ Check-list</h4>
+      ${lignesChecklist || `<div class="stat-vehicule" style="color:#6b7280">Aucun point de contrôle.</div>`}
+      <div class="mini-form no-print">
+        <input type="text" class="tache-texte" placeholder="ex. : Sanitaires réapprovisionnés" style="flex:3; min-width:180px">
+        <button data-caction="ajouter-tache" data-cid="${cli.id}">+ Point</button>
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🧴 Consommables par intervention ${conso.cout > 0 ? `<span class="badge ok">${formatEuros(conso.cout)} / intervention</span>` : ""}${conso.manquePrix ? ` <span class="badge attention">prix manquant</span>` : ""}</h4>
+      ${lignesBesoins || `<div class="stat-vehicule" style="color:#6b7280">Aucun consommable prévu.</div>`}
+      <div class="mini-form no-print">
+        ${donnees.produits.length
+          ? `<select class="besoin-produit" style="flex:2">${optionsProduits}</select>
+             <input type="number" min="0" step="0.1" class="besoin-qte" placeholder="Qté" value="1" style="max-width:70px">
+             <button data-caction="ajouter-besoin" data-cid="${cli.id}">+ Ajouter</button>`
+          : `<span style="font-size:0.8rem; color:#6b7280">Créez d'abord vos produits dans l'onglet 📦 Stocks.</span>`}
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🧰 Matériel nécessaire</h4>
+      ${lignesMatRequis || `<div class="stat-vehicule" style="color:#6b7280">Aucun matériel spécifique.</div>`}
+      <div class="mini-form no-print">
+        ${donnees.materiels.length
+          ? `<select class="materiel-requis" style="flex:2">${optionsMateriels}</select>
+             <button data-caction="ajouter-materiel-requis" data-cid="${cli.id}">+ Ajouter</button>`
+          : `<span style="font-size:0.8rem; color:#6b7280">Créez d'abord votre matériel dans l'onglet 🧰 Matériel.</span>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// Bascule des champs du mini-formulaire de contrat selon le type choisi
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const sel = e.target.closest("select.ct-type");
+  if (!sel) return;
+  const form = sel.closest(".mini-form");
+  const forfait = sel.value === "forfait";
+  form.querySelector(".ct-forfait").style.display = forfait ? "" : "none";
+  form.querySelector(".ct-taux").style.display = forfait ? "none" : "";
+  form.querySelector(".ct-heures").style.display = forfait ? "none" : "";
 });
+
+// Actions (clics) de l'onglet Clients
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-caction]");
+  if (!btn) return;
+  const cli = clientParId(btn.dataset.cid);
+  const idx = btn.dataset.idx !== undefined ? Number(btn.dataset.idx) : -1;
+  const carte = btn.closest(".carte-client");
+
+  switch (btn.dataset.caction) {
+    case "ajouter": {
+      const champNom = document.getElementById("cli-nouveau-nom");
+      const nom = champNom.value.trim();
+      if (!nom) { champNom.focus(); return; }
+      if (donnees.clients.some(c => normaliserNom(c.nom) === normaliserNom(nom))) {
+        alert("Un client porte déjà ce nom.");
+        return;
+      }
+      donnees.clients.push({ id: nouvelId("cli"), nom, contrats: [], procedure: [], checklist: [], besoins: [], materielRequis: [] });
+      break;
+    }
+    case "supprimer": {
+      if (!cli) return;
+      if (!confirm(`Supprimer le client ${cli.nom} ?\nSa fiche, ses contrats, procédures et check-lists seront perdus.\n(Les heures déjà saisies au planning restent intactes.)`)) return;
+      donnees.clients = donnees.clients.filter(x => x !== cli);
+      break;
+    }
+    case "imprimer-fiche":
+      if (cli) imprimerDocument(docFicheClient(cli));
+      return;
+    case "imprimer-checklist":
+      if (cli) imprimerDocument(docChecklistClient(cli));
+      return;
+    case "ajouter-contrat": {
+      if (!cli || !carte) return;
+      const form = btn.closest(".mini-form");
+      const type = form.querySelector(".ct-type").value;
+      const c = { id: nouvelId("ct"), type, statut: "actif" };
+      if (type === "forfait") {
+        const montant = lireNombre(form.querySelector(".ct-forfait").value);
+        if (!(montant > 0)) { alert("Indiquez le montant du forfait mensuel."); return; }
+        c.forfaitMensuel = montant;
+      } else {
+        const taux = lireNombre(form.querySelector(".ct-taux").value);
+        if (!(taux > 0)) { alert("Indiquez le taux horaire facturé."); return; }
+        c.tauxHoraire = taux;
+        const heures = lireNombre(form.querySelector(".ct-heures").value);
+        if (heures > 0) c.heuresFacturees = heures;
+      }
+      cli.contrats = cli.contrats || [];
+      cli.contrats.push(c);
+      break;
+    }
+    case "supprimer-contrat":
+      if (!cli || !cli.contrats) return;
+      if (!confirm("Supprimer ce contrat ?")) return;
+      cli.contrats.splice(idx, 1);
+      break;
+    case "ajouter-etape": {
+      if (!cli || !carte) return;
+      const champ = carte.querySelector(".etape-texte");
+      const texte = champ.value.trim();
+      if (!texte) { champ.focus(); return; }
+      cli.procedure = cli.procedure || [];
+      cli.procedure.push({ texte });
+      break;
+    }
+    case "supprimer-etape":
+      if (!cli || !cli.procedure) return;
+      cli.procedure.splice(idx, 1);
+      break;
+    case "monter-etape":
+      if (!cli || !cli.procedure || idx <= 0) return;
+      [cli.procedure[idx - 1], cli.procedure[idx]] = [cli.procedure[idx], cli.procedure[idx - 1]];
+      break;
+    case "descendre-etape":
+      if (!cli || !cli.procedure || idx < 0 || idx >= cli.procedure.length - 1) return;
+      [cli.procedure[idx + 1], cli.procedure[idx]] = [cli.procedure[idx], cli.procedure[idx + 1]];
+      break;
+    case "ajouter-tache": {
+      if (!cli || !carte) return;
+      const champ = carte.querySelector(".tache-texte");
+      const texte = champ.value.trim();
+      if (!texte) { champ.focus(); return; }
+      cli.checklist = cli.checklist || [];
+      cli.checklist.push({ texte });
+      break;
+    }
+    case "supprimer-tache":
+      if (!cli || !cli.checklist) return;
+      cli.checklist.splice(idx, 1);
+      break;
+    case "ajouter-besoin": {
+      if (!cli || !carte) return;
+      const produitId = carte.querySelector(".besoin-produit").value;
+      if (!produitId) return;
+      const qte = lireNombre(carte.querySelector(".besoin-qte").value);
+      cli.besoins = cli.besoins || [];
+      const existant = cli.besoins.find(b => b.produitId === produitId);
+      if (existant) existant.qte = qte > 0 ? qte : existant.qte;
+      else cli.besoins.push({ produitId, qte: qte > 0 ? qte : 1 });
+      break;
+    }
+    case "supprimer-besoin":
+      if (!cli || !cli.besoins) return;
+      cli.besoins.splice(idx, 1);
+      break;
+    case "ajouter-materiel-requis": {
+      if (!cli || !carte) return;
+      const materielId = carte.querySelector(".materiel-requis").value;
+      if (!materielId) return;
+      cli.materielRequis = cli.materielRequis || [];
+      if (!cli.materielRequis.some(r => r.materielId === materielId)) {
+        cli.materielRequis.push({ materielId });
+      }
+      break;
+    }
+    case "supprimer-materiel-requis":
+      if (!cli || !cli.materielRequis) return;
+      cli.materielRequis.splice(idx, 1);
+      break;
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+// Saisies (champs) de l'onglet Clients
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-cchange]");
+  if (!el) return;
+  const cli = clientParId(el.dataset.cid);
+  if (!cli) return;
+  const prop = el.dataset.cchange;
+  const valeur = el.value.trim();
+  const idx = el.dataset.idx !== undefined ? Number(el.dataset.idx) : -1;
+
+  if (prop === "nom") {
+    if (valeur) cli.nom = valeur;
+  } else if (["adresse", "contact", "tel", "email", "notes"].includes(prop)) {
+    if (valeur) cli[prop] = valeur; else delete cli[prop];
+  } else if (prop === "dureeInterventionMin" || prop === "frequenceParMois") {
+    const n = lireNombre(valeur);
+    if (n > 0) cli[prop] = n; else delete cli[prop];
+  } else if (prop === "besoin-qte") {
+    const b = (cli.besoins || [])[idx];
+    if (b) b.qte = Math.max(0, lireNombre(valeur));
+  } else if (prop === "ct-statut") {
+    const c = (cli.contrats || [])[idx];
+    if (c) c.statut = el.value;
+  } else if (prop === "ct-debut") {
+    const c = (cli.contrats || [])[idx];
+    if (c) { if (el.value) c.debut = el.value; else delete c.debut; }
+  }
+  sauvegarder();
+  rendre();
+});
+
+// La recherche filtre les cartes clients en direct (le champ est hors zone re-rendue)
+document.getElementById("recherche-clients").addEventListener("input", () => {
+  if (vue === "clients") rendre();
+});
+
+/* ================= Onglet Marges ================= */
+
+function rendreMarges(zone) {
+  document.getElementById("date-semaine").value = versInputDate(moisCourant);
+  const libelleMois = moisCourant.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  document.getElementById("libelle-periode").textContent =
+    "Marges — " + libelleMois.charAt(0).toUpperCase() + libelleMois.slice(1);
+
+  const annee = moisCourant.getFullYear();
+  const mois = moisCourant.getMonth();
+  const stats = statsClientsMois(annee, mois);
+
+  if (donnees.clients.length === 0 && stats.nonRepertories.length === 0) {
+    zone.innerHTML = `<div class="vide">Aucun client pour le moment.<br>
+      Créez vos clients dans l'onglet <strong>🧑‍💼 Clients</strong> (avec leur contrat), remplissez le
+      planning, et retrouvez ici le calcul automatique des marges.</div>`;
+    return;
+  }
+
+  const totaux = { heures: 0, interventions: 0, ca: 0, coutMO: 0, coutConso: 0, marge: 0 };
+  const lignes = [];
+
+  for (const cli of donnees.clients) {
+    const s = stats.parClient[cli.id] || { heures: 0, minutes: 0, coutMO: 0, interventions: 0 };
+    const ct = contratPourMois(cli, annee, mois);
+    let ca = 0;
+    let libelleCA = "";
+    if (!ct) {
+      libelleCA = `<span class="badge attention">sans contrat</span>`;
+    } else if (ct.type === "forfait") {
+      ca = ct.forfaitMensuel || 0;
+      libelleCA = "forfait";
+    } else {
+      const heuresFacturees = ct.heuresFacturees > 0 ? ct.heuresFacturees : s.heures;
+      ca = heuresFacturees * (ct.tauxHoraire || 0);
+      libelleCA = ct.heuresFacturees > 0
+        ? `${formatKm(ct.heuresFacturees)} h × ${formatEuros(ct.tauxHoraire || 0)}`
+        : `<span title="heures facturées non renseignées : estimation sur les heures planifiées">${formatKm(Math.round(s.heures * 10) / 10)} h (estimé) × ${formatEuros(ct.tauxHoraire || 0)}</span>`;
+    }
+    const conso = coutConsommablesParIntervention(cli);
+    const coutConso = conso.cout * s.interventions;
+    const marge = ca - s.coutMO - coutConso;
+    const pct = ca > 0 ? (marge / ca) * 100 : null;
+
+    // dépassement : plus d'heures planifiées que facturées (contrat horaire)
+    const depassement = ct && ct.type === "horaire" && ct.heuresFacturees > 0 && s.heures > ct.heuresFacturees;
+
+    totaux.heures += s.heures;
+    totaux.interventions += s.interventions;
+    totaux.ca += ca;
+    totaux.coutMO += s.coutMO;
+    totaux.coutConso += coutConso;
+    totaux.marge += marge;
+
+    lignes.push(`
+    <tr>
+      <td><strong>${echapper(cli.nom)}</strong>${conso.manquePrix ? ` <span class="badge attention" title="certains consommables n'ont pas de prix unitaire">prix manquant</span>` : ""}</td>
+      <td class="num">${s.heures > 0 ? formatHeures(Math.round(s.minutes)) : "—"}${depassement ? ` <span class="badge alerte" title="heures planifiées supérieures aux heures facturées">dépassement</span>` : ""}</td>
+      <td class="num">${s.interventions || "—"}</td>
+      <td>${libelleCA}</td>
+      <td class="num">${ca > 0 ? formatEuros(ca) : "—"}</td>
+      <td class="num">${s.coutMO > 0 ? formatEuros(s.coutMO) : "—"}</td>
+      <td class="num">${coutConso > 0 ? formatEuros(coutConso) : "—"}</td>
+      <td class="num ${marge >= 0 ? "marge-positive" : "marge-negative"}">${formatEuros(marge)}</td>
+      <td class="num ${marge >= 0 ? "marge-positive" : "marge-negative"}">${pct === null ? "—" : formatPourcent(pct)}</td>
+    </tr>`);
+  }
+
+  // Clients présents au planning mais sans fiche
+  for (const nr of stats.nonRepertories) {
+    totaux.heures += nr.heures;
+    totaux.interventions += nr.interventions;
+    totaux.coutMO += nr.coutMO;
+    totaux.marge -= nr.coutMO;
+    lignes.push(`
+    <tr class="ligne-alerte">
+      <td>❓ ${echapper(nr.nom)} <span class="badge alerte">non répertorié</span>
+        <button class="no-print" data-gaction="creer-fiche" data-nom="${echapper(nr.nom)}" style="font-size:0.76rem; padding:2px 8px">Créer la fiche</button></td>
+      <td class="num">${formatHeures(Math.round(nr.minutes))}</td>
+      <td class="num">${nr.interventions}</td>
+      <td><span class="badge attention">sans fiche → CA 0</span></td>
+      <td class="num">—</td>
+      <td class="num">${nr.coutMO > 0 ? formatEuros(nr.coutMO) : "—"}</td>
+      <td class="num">—</td>
+      <td class="num marge-negative">${formatEuros(-nr.coutMO)}</td>
+      <td class="num">—</td>
+    </tr>`);
+  }
+
+  const pctTotal = totaux.ca > 0 ? (totaux.marge / totaux.ca) * 100 : null;
+  const na = stats.nonAffecte;
+
+  let html = `
+  <div style="overflow-x:auto">
+  <table class="tableau-gestion">
+    <thead><tr>
+      <th>Client</th><th class="num" style="width:105px">Heures plan.</th><th class="num" style="width:70px">Interv.</th>
+      <th style="width:150px">Facturation</th><th class="num" style="width:95px">CA</th>
+      <th class="num" style="width:95px">Coût MO</th><th class="num" style="width:95px">Conso.</th>
+      <th class="num" style="width:100px">Marge €</th><th class="num" style="width:85px">Marge %</th>
+    </tr></thead>
+    <tbody>
+      ${lignes.join("")}
+      <tr class="ligne-totaux">
+        <td>TOTAL</td>
+        <td class="num">${formatHeures(Math.round(totaux.heures * 60))}</td>
+        <td class="num">${totaux.interventions}</td>
+        <td></td>
+        <td class="num">${formatEuros(totaux.ca)}</td>
+        <td class="num">${formatEuros(totaux.coutMO)}</td>
+        <td class="num">${formatEuros(totaux.coutConso)}</td>
+        <td class="num ${totaux.marge >= 0 ? "marge-positive" : "marge-negative"}">${formatEuros(totaux.marge)}</td>
+        <td class="num ${totaux.marge >= 0 ? "marge-positive" : "marge-negative"}">${pctTotal === null ? "—" : formatPourcent(pctTotal)}</td>
+      </tr>
+      ${na.minutes > 0 ? `
+      <tr>
+        <td style="color:#6b7280">🚗 Heures non affectées (trajets, créneaux sans client) — hors totaux</td>
+        <td class="num" style="color:#6b7280">${formatHeures(Math.round(na.minutes))}</td>
+        <td class="num" style="color:#6b7280">—</td>
+        <td></td>
+        <td class="num" style="color:#6b7280">—</td>
+        <td class="num" style="color:#6b7280">${na.coutMO > 0 ? formatEuros(na.coutMO) : "—"}</td>
+        <td class="num" style="color:#6b7280">—</td>
+        <td class="num" style="color:#6b7280">—</td>
+        <td class="num" style="color:#6b7280">—</td>
+      </tr>` : ""}
+    </tbody>
+  </table>
+  </div>`;
+
+  const avertissements = [];
+  if (stats.sansCout.length > 0) {
+    avertissements.push(`💶 Coûts de main-d'œuvre incomplets : renseignez le coût horaire de
+      <strong>${stats.sansCout.map(echapper).join(", ")}</strong> dans l'onglet 👥 Personnel.`);
+  }
+  if (avertissements.length) {
+    html += `<div class="avertissements">` +
+      avertissements.map(a => `<div class="avert">${a}</div>`).join("") + `</div>`;
+  }
+  html += `<div class="note-onglet">Heures planifiées et interventions proviennent du planning
+    (rapprochement par nom de client, insensible aux majuscules et accents). Coût MO = heures de chaque
+    salarié × son coût horaire chargé. Conso. = consommables prévus par intervention × interventions.
+    Les trajets ne sont pas affectés aux clients.</div>`;
+
+  zone.innerHTML = html;
+}
+
+// Création rapide d'une fiche client depuis le tableau des marges
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-gaction]");
+  if (!btn) return;
+  if (btn.dataset.gaction === "creer-fiche") {
+    const nom = btn.dataset.nom;
+    if (!donnees.clients.some(c => normaliserNom(c.nom) === normaliserNom(nom))) {
+      donnees.clients.push({ id: nouvelId("cli"), nom, contrats: [], procedure: [], checklist: [], besoins: [], materielRequis: [] });
+      sauvegarder();
+    }
+    changerVue("clients");
+  }
+});
+
+/* ================= Documents imprimables ================= */
+
+function imprimerDocument(html, paysage = false) {
+  const zoneDoc = document.getElementById("zone-impression");
+  zoneDoc.innerHTML = `<div class="doc">${html}</div>`;
+  document.body.classList.add("impression-doc");
+  document.getElementById("style-page").textContent =
+    `@page { size: A4 ${paysage ? "landscape" : "portrait"}; margin: 12mm; }`;
+  const restaurer = () => {
+    document.body.classList.remove("impression-doc");
+    zoneDoc.innerHTML = "";
+    majStylePage();
+    window.removeEventListener("afterprint", restaurer);
+  };
+  window.addEventListener("afterprint", restaurer);
+  window.print();
+}
+
+function enTeteDoc(titre, cli) {
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">${titre}</div>
+    <h2>Client</h2>
+    <div class="doc-ligne"><strong>${echapper(cli.nom)}</strong>${cli.adresse ? ` — ${echapper(cli.adresse)}` : ""}</div>
+    ${cli.contact || cli.tel ? `<div class="doc-ligne">${[cli.contact, cli.tel].filter(Boolean).map(echapper).join(" — ")}</div>` : ""}
+    ${cli.notes ? `<div class="doc-ligne">⚠️ ${echapper(cli.notes)}</div>` : ""}`;
+}
+
+// Feuille d'intervention : la check-list vierge que l'équipe emporte
+function docChecklistClient(cli) {
+  const procedure = (cli.procedure || []).map((p, i) =>
+    `<div class="doc-ligne">${i + 1}. ${echapper(p.texte)}</div>`).join("");
+  const checklist = (cli.checklist || []).map(t =>
+    `<div class="doc-case">☐&nbsp; ${echapper(t.texte)}</div>`).join("");
+  const besoins = (cli.besoins || []).map(b => {
+    const p = produitParId(b.produitId);
+    return p ? `<div class="doc-ligne">☐&nbsp; ${b.qte > 0 ? formatKm(b.qte) + (p.unite ? " " + echapper(p.unite) : "") + " — " : ""}${echapper(p.nom)}</div>` : "";
+  }).join("");
+  const materiels = (cli.materielRequis || []).map(r => {
+    const m = materielParId(r.materielId);
+    return m ? `<div class="doc-ligne">☐&nbsp; ${echapper(m.nom)}</div>` : "";
+  }).join("");
+
+  return `
+    ${enTeteDoc("Feuille d'intervention", cli)}
+    <div class="doc-ligne" style="margin-top:10px">
+      Date : ________________ &nbsp;&nbsp; Intervenant(s) : ____________________________
+      &nbsp;&nbsp; Début : ________ &nbsp; Fin : ________
+      ${cli.dureeInterventionMin > 0 ? `&nbsp;&nbsp; <em>(durée prévue : ${formatDuree(cli.dureeInterventionMin)})</em>` : ""}
+    </div>
+    ${procedure ? `<h2>Protocole</h2>${procedure}` : ""}
+    ${checklist ? `<h2>Check-list — à cocher sur place</h2>${checklist}` : ""}
+    ${besoins ? `<h2>Consommables à emporter</h2>${besoins}` : ""}
+    ${materiels ? `<h2>Matériel nécessaire</h2>${materiels}` : ""}
+    <h2>Observations</h2>
+    <div class="doc-lignes-vides"><div></div><div></div><div></div></div>
+    <div class="doc-signatures">
+      <div>Signature de l'intervenant</div>
+      <div>Signature / cachet du client</div>
+    </div>`;
+}
+
+// Fiche client complète (usage interne)
+function docFicheClient(cli) {
+  const auj = new Date();
+  const contrats = (cli.contrats || []).map(c => {
+    const resume = c.type === "forfait"
+      ? `Forfait — ${formatEuros(c.forfaitMensuel || 0)} / mois`
+      : `Horaire — ${c.heuresFacturees > 0 ? formatKm(c.heuresFacturees) + " h/mois × " : ""}${formatEuros(c.tauxHoraire || 0)}/h`;
+    return `<div class="doc-ligne">• ${resume}${c.debut ? `, depuis le ${formatDateLongue(new Date(c.debut + "T00:00:00"))}` : ""} — ${c.statut === "termine" ? "terminé" : "actif"}</div>`;
+  }).join("");
+  const procedure = (cli.procedure || []).map((p, i) => `<div class="doc-ligne">${i + 1}. ${echapper(p.texte)}</div>`).join("");
+  const checklist = (cli.checklist || []).map(t => `<div class="doc-ligne">☐ ${echapper(t.texte)}</div>`).join("");
+  const besoins = (cli.besoins || []).map(b => {
+    const p = produitParId(b.produitId);
+    return p ? `<div class="doc-ligne">• ${formatKm(b.qte || 0)}${p.unite ? " " + echapper(p.unite) : ""} — ${echapper(p.nom)}${p.prixUnitaire > 0 ? ` (${formatEuros((b.qte || 0) * p.prixUnitaire)})` : ""}</div>` : "";
+  }).join("");
+  const materiels = (cli.materielRequis || []).map(r => {
+    const m = materielParId(r.materielId);
+    return m ? `<div class="doc-ligne">• ${echapper(m.nom)} — ${libelleLocalisation(m.localisation)}</div>` : "";
+  }).join("");
+
+  return `
+    ${enTeteDoc("Fiche client", cli)}
+    ${cli.email ? `<div class="doc-ligne">✉️ ${echapper(cli.email)}</div>` : ""}
+    ${cli.dureeInterventionMin > 0 || cli.frequenceParMois > 0 ? `
+      <h2>Intervention type</h2>
+      <div class="doc-ligne">${cli.dureeInterventionMin > 0 ? `Durée prévue : ${formatDuree(cli.dureeInterventionMin)}` : ""}
+        ${cli.frequenceParMois > 0 ? ` — ${formatKm(cli.frequenceParMois)} interventions / mois` : ""}</div>` : ""}
+    ${contrats ? `<h2>Contrat</h2>${contrats}` : ""}
+    ${procedure ? `<h2>Protocole / procédure</h2>${procedure}` : ""}
+    ${checklist ? `<h2>Check-list</h2>${checklist}` : ""}
+    ${besoins ? `<h2>Consommables par intervention</h2>${besoins}` : ""}
+    ${materiels ? `<h2>Matériel nécessaire</h2>${materiels}` : ""}
+    <div class="doc-sous-titre" style="margin-top:16px">Fiche éditée le ${formatDateLongue(auj)}</div>`;
+}
 
 /* ================= Modale cellule ================= */
 
@@ -1477,16 +2695,25 @@ function activerGlisser(bloc) {
   });
 }
 
-// Suggestions de clients et de lieux déjà saisis (toutes semaines confondues)
+// Suggestions de clients (fiches d'abord, puis historique du planning,
+// dédupliquées sans tenir compte de la casse/accents) et de lieux
 function majListeClients() {
-  const clients = new Set();
+  const clientsParNorme = new Map(); // nom normalisé -> nom affiché (la fiche gagne)
   const lieux = new Set();
+  for (const cli of donnees.clients) {
+    clientsParNorme.set(normaliserNom(cli.nom), cli.nom);
+    lieux.add(cli.nom);
+  }
   for (const cle in donnees.semaines) {
     const sem = donnees.semaines[cle];
     for (const empId in sem) {
       for (const j in sem[empId]) {
         for (const c of (sem[empId][j].creneaux || [])) {
-          if (c.client) { clients.add(c.client); lieux.add(c.client); }
+          if (c.client) {
+            const n = normaliserNom(c.client);
+            if (!clientsParNorme.has(n)) clientsParNorme.set(n, c.client);
+            lieux.add(c.client);
+          }
           if (c.depart) lieux.add(c.depart);
           if (c.arrivee) lieux.add(c.arrivee);
         }
@@ -1502,7 +2729,7 @@ function majListeClients() {
       dl.appendChild(opt);
     }
   };
-  remplir("liste-clients", clients);
+  remplir("liste-clients", clientsParNorme.values());
   remplir("liste-lieux", lieux);
 }
 
@@ -1617,7 +2844,7 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
 /* ================= Barre d'outils ================= */
 
 function naviguer(sens) {
-  if (vue === "mois") {
+  if (vue === "mois" || vue === "marges") {
     moisCourant = new Date(moisCourant.getFullYear(), moisCourant.getMonth() + sens, 1);
     lundiCourant = lundiDeLaSemaine(moisCourant);
   } else {
@@ -1636,16 +2863,82 @@ document.getElementById("date-semaine").addEventListener("change", (e) => {
   rendre();
 });
 
+let sousVuePlanning = vue === "mois" ? "mois" : "semaine"; // dernière sous-vue du planning
+
 function changerVue(nouvelleVue) {
   vue = nouvelleVue;
   donnees.vue = vue;
-  if (vue === "mois") moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
+  if (vue === "semaine" || vue === "mois") sousVuePlanning = vue;
+  if (vue === "mois" || vue === "marges") {
+    moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
+  }
   sauvegarder();
   rendre();
 }
+document.getElementById("btn-vue-planning").addEventListener("click", () => changerVue(sousVuePlanning));
 document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
 document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
+document.getElementById("btn-vue-clients").addEventListener("click", () => changerVue("clients"));
+document.getElementById("btn-vue-personnel").addEventListener("click", () => changerVue("personnel"));
+document.getElementById("btn-vue-stocks").addEventListener("click", () => changerVue("stocks"));
+document.getElementById("btn-vue-materiel").addEventListener("click", () => changerVue("materiel"));
 document.getElementById("btn-vue-vehicules").addEventListener("click", () => changerVue("vehicules"));
+document.getElementById("btn-vue-marges").addEventListener("click", () => changerVue("marges"));
+
+/* ================= Sauvegarde : export / import JSON ================= */
+
+function exporterJSON() {
+  const contenu = JSON.stringify(donnees, null, 1);
+  const blob = new Blob([contenu], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `nettoyage-sauvegarde-${versInputDate(new Date())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+document.getElementById("btn-sauvegarde").addEventListener("click", () => {
+  const choix = prompt(
+    "Sauvegarde des données :\n" +
+    "  1 — Exporter (télécharger un fichier de sauvegarde)\n" +
+    "  2 — Importer (restaurer depuis un fichier)\n\n" +
+    "Tapez 1 ou 2 :", "1");
+  if (choix === "1") exporterJSON();
+  else if (choix === "2") document.getElementById("fichier-import").click();
+});
+
+document.getElementById("fichier-import").addEventListener("change", (e) => {
+  const fichier = e.target.files[0];
+  e.target.value = ""; // permet de réimporter le même fichier plus tard
+  if (!fichier) return;
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    let d;
+    try {
+      d = JSON.parse(lecteur.result);
+    } catch (err) {
+      alert("Ce fichier n'est pas une sauvegarde valide (JSON illisible).");
+      return;
+    }
+    if (!d || typeof d !== "object" || typeof d.semaines !== "object" || !Array.isArray(d.employes)) {
+      alert("Ce fichier ne ressemble pas à une sauvegarde de cette application.");
+      return;
+    }
+    d = migrer(d);
+    const resume = `${d.employes.length} salarié(s), ${d.clients.length} client(s), ` +
+      `${d.vehicules.length} véhicule(s), ${Object.keys(d.semaines).length} semaine(s) de planning`;
+    if (!confirm(`Importer cette sauvegarde ?\n\n${resume}\n\n⚠️ Les données actuelles seront REMPLACÉES.`)) return;
+    donnees = d;
+    vue = VUES.includes(donnees.vue) ? donnees.vue : "semaine";
+    sauvegarder();
+    rendre();
+    alert("Sauvegarde importée avec succès ✅");
+  };
+  lecteur.readAsText(fichier);
+});
 
 document.getElementById("nom-societe").addEventListener("input", (e) => {
   donnees.societe = e.target.value;
