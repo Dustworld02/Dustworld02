@@ -471,6 +471,83 @@
     -webkit-print-color-adjust: exact;
   }
 
+  /* ---------- Accueil (tableau de bord) ---------- */
+  .cartes-kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    border: 1px solid var(--gris-bord);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fff;
+  }
+  .kpi .valeur { font-size: 1.45rem; font-weight: 800; color: #111827; }
+  .kpi .valeur.positif { color: #166534; }
+  .kpi .valeur.negatif { color: #b91c1c; }
+  .kpi .libelle { font-size: 0.78rem; color: #6b7280; margin-top: 2px; }
+  .liste-alertes { margin-top: 6px; }
+  .alerte-ligne {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    font-size: 0.88rem;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border: 1px solid #fde68a;
+    background: #fffbeb;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .alerte-ligne:hover { background: #fef3c7; }
+  .alerte-ligne.grave { border-color: #fecaca; background: #fef2f2; }
+  .alerte-ligne.grave:hover { background: #fee2e2; }
+  .alerte-ligne .fleche { margin-left: auto; color: #9ca3af; }
+  .titre-section-accueil {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bleu);
+    margin: 18px 0 8px;
+  }
+
+  /* ---------- Signature manuscrite ---------- */
+  #canvas-signature {
+    width: 100%;
+    height: 170px;
+    border: 1px dashed var(--gris-bord);
+    border-radius: 8px;
+    background: #fff;
+    touch-action: none;
+    cursor: crosshair;
+    display: block;
+  }
+  .apercu-signature {
+    max-height: 54px;
+    max-width: 180px;
+    border: 1px solid #f3f4f6;
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  /* ---------- Contrôles qualité ---------- */
+  .choix-resultat button {
+    font-size: 0.78rem;
+    padding: 3px 9px;
+  }
+  .choix-resultat button.res-c.actif { background: #dcfce7; border-color: #86efac; color: #166534; font-weight: 700; }
+  .choix-resultat button.res-nc.actif { background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-weight: 700; }
+  .choix-resultat button.res-nv.actif { background: #e5e7eb; font-weight: 700; }
+
+  /* ---------- Priorités des tickets ---------- */
+  .badge.prio-haute { background: #fee2e2; color: #991b1b; }
+  .badge.prio-normale { background: #e0e7ff; color: #3730a3; }
+  .badge.prio-basse { background: #f3f4f6; color: #374151; }
+
   /* ---------- Documents imprimables dédiés ---------- */
   #zone-impression { display: none; }
   .doc h1 { font-size: 1.3rem; margin-bottom: 2px; }
@@ -531,7 +608,7 @@
   <div class="rangee-onglets">
     <h1>🧽 Gestion Nettoyage</h1>
     <span class="onglets">
-      <button class="onglet" id="btn-vue-planning">📅 Planning</button><button class="onglet" id="btn-vue-clients">🧑‍💼 Clients</button><button class="onglet" id="btn-vue-personnel">👥 Personnel</button><button class="onglet" id="btn-vue-stocks">📦 Stocks</button><button class="onglet" id="btn-vue-materiel">🧰 Matériel</button><button class="onglet" id="btn-vue-vehicules">🚙 Véhicules</button><button class="onglet" id="btn-vue-marges">📊 Marges</button>
+      <button class="onglet" id="btn-vue-accueil">🏠 Accueil</button><button class="onglet" id="btn-vue-planning">📅 Planning</button><button class="onglet" id="btn-vue-interventions">📋 Interventions</button><button class="onglet" id="btn-vue-clients">🧑‍💼 Clients</button><button class="onglet" id="btn-vue-personnel">👥 Personnel</button><button class="onglet" id="btn-vue-stocks">📦 Stocks</button><button class="onglet" id="btn-vue-materiel">🧰 Matériel</button><button class="onglet" id="btn-vue-vehicules">🚙 Véhicules</button><button class="onglet" id="btn-vue-marges">📊 Marges</button><button class="onglet" id="btn-vue-rapports">📈 Rapports</button>
     </span>
     <span style="flex:1"></span>
     <button id="btn-sauvegarde">💾 Sauvegarde</button>
@@ -540,6 +617,12 @@
   <div class="sous-barre" id="sous-barre">
     <span class="bascule-vue action-planning">
       <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button>
+    </span>
+    <span class="bascule-vue action-interventions">
+      <button id="btn-vue-bons">📝 Bons</button><button id="btn-vue-controles">🔍 Contrôles qualité</button><button id="btn-vue-tickets">🎫 Tickets</button><button id="btn-vue-pointage">⏱️ Pointage</button>
+    </span>
+    <span class="bascule-vue action-rapports">
+      <button id="btn-vue-rapport-client">🧑‍💼 Rapport client</button><button id="btn-vue-feuilles-temps">⏱️ Feuilles de temps</button><button id="btn-vue-export-facturation">🧾 Export facturation</button>
     </span>
     <button id="btn-sem-prec" class="action-navig" title="Période précédente">◀</button>
     <input type="date" id="date-semaine" class="action-navig">
@@ -572,6 +655,24 @@
 
 <!-- Documents imprimables dédiés (fiche client, check-list…) -->
 <div id="zone-impression"></div>
+
+<!-- Modale de signature manuscrite (bons d'intervention) -->
+<dialog id="modale-signature">
+  <h2>✍️ Signature du client</h2>
+  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:10px">
+    Faites signer le client au doigt, au stylet ou à la souris dans le cadre ci-dessous.
+  </p>
+  <canvas id="canvas-signature" width="500" height="170"></canvas>
+  <div class="champ" style="margin-top:12px">
+    <label for="signature-nom">Nom du signataire</label>
+    <input type="text" id="signature-nom" placeholder="ex. : Mme Dupont" style="width:100%">
+  </div>
+  <div class="actions-modale">
+    <button id="btn-effacer-signature">Effacer</button>
+    <button id="btn-annuler-signature">Annuler</button>
+    <button class="primaire" id="btn-valider-signature">Valider la signature</button>
+  </div>
+</dialog>
 
 <!-- Modale copie d'une semaine passée vers la semaine affichée -->
 <dialog id="modale-copier">
@@ -644,6 +745,2309 @@
 </dialog>
 
 <script>
+/* Bibliothèque QR Code embarquée : qrcode-generator 1.5.0 (MIT)
+   Copyright (c) 2009 Kazuhiko Arase — https://github.com/kazuhikoarase/qrcode-generator */
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+
+<script>
 "use strict";
 
 /* ================= Données et persistance ================= */
@@ -663,8 +3067,9 @@ const ETIQUETTES = { repos: "REPOS", conge: "CONGÉ", ferie: "FÉRIÉ" };
 
 let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
-const VUES = ["semaine", "mois", "clients", "personnel", "stocks", "materiel", "vehicules", "marges"];
-let vue = VUES.includes(donnees.vue) ? donnees.vue : "semaine";
+const VUES = ["accueil", "semaine", "mois", "clients", "personnel", "stocks", "materiel", "vehicules", "marges",
+  "bons", "controles", "tickets", "pointage", "rapport-client", "feuilles-temps", "export-facturation"];
+let vue = VUES.includes(donnees.vue) ? donnees.vue : "accueil";
 let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
 let celluleEnCours = null; // { employeId, indexJour, cle }
 
@@ -677,9 +3082,40 @@ function migrer(d) {
   if (typeof d.semaines !== "object" || d.semaines === null) d.semaines = {};
   if (!Array.isArray(d.vehicules)) d.vehicules = [];
   if (!Array.isArray(d.clients)) d.clients = [];
-  if (!Array.isArray(d.produits)) d.produits = [];   // consommables en stock
-  if (!Array.isArray(d.materiels)) d.materiels = []; // inventaire matériel
+  if (!Array.isArray(d.produits)) d.produits = [];       // consommables en stock
+  if (!Array.isArray(d.materiels)) d.materiels = [];     // inventaire matériel
+  if (!Array.isArray(d.interventions)) d.interventions = []; // bons d'intervention
+  if (!Array.isArray(d.controles)) d.controles = [];     // contrôles qualité
+  if (!Array.isArray(d.tickets)) d.tickets = [];         // ordres de travail / réclamations
+  if (!Array.isArray(d.pointages)) d.pointages = [];     // heures réelles
+  if (typeof d.parametres !== "object" || d.parametres === null) d.parametres = {};
+  if (typeof d.parametres.prefixeBon !== "string") d.parametres.prefixeBon = "BI";
+  if (typeof d.parametres.numerotation !== "object" || d.parametres.numerotation === null) {
+    d.parametres.numerotation = {};
+  }
+  if (typeof d.parametres.numerotation.bons !== "object" || d.parametres.numerotation.bons === null) {
+    d.parametres.numerotation.bons = { annee: new Date().getFullYear(), prochain: 1 };
+  }
   return d;
+}
+
+// Numérotation annuelle séquentielle (BI-2026-001…), avec rattrapage sur le
+// maximum déjà attribué pour rester cohérent après un import de sauvegarde
+function attribuerNumero(type) {
+  const annee = new Date().getFullYear();
+  const cpt = donnees.parametres.numerotation[type];
+  if (cpt.annee !== annee) { cpt.annee = annee; cpt.prochain = 1; }
+  const prefixe = { bons: donnees.parametres.prefixeBon }[type] || type.toUpperCase();
+  const collection = { bons: donnees.interventions }[type] || [];
+  const re = new RegExp("^" + prefixe + "-" + annee + "-(\\d+)$");
+  let max = 0;
+  for (const x of collection) {
+    const m = re.exec(x.numero || "");
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  const n = Math.max(cpt.prochain, max + 1);
+  cpt.prochain = n + 1;
+  return `${prefixe}-${annee}-${String(n).padStart(3, "0")}`;
 }
 
 function chargerDonnees() {
@@ -718,10 +3154,24 @@ function formatPourcent(p) {
   return (Math.round(p * 10) / 10).toLocaleString("fr-FR") + " %";
 }
 
+let alerteQuotaFaite = false;
 function sauvegarder() {
   try {
     localStorage.setItem(CLE_STOCKAGE, JSON.stringify(donnees));
-  } catch (e) { /* stockage indisponible : l'appli reste utilisable sans sauvegarde */ }
+  } catch (e) {
+    // stockage plein ou indisponible : prévenir une seule fois par session
+    if (!alerteQuotaFaite) {
+      alerteQuotaFaite = true;
+      alert("⚠️ Le stockage du navigateur est plein ou indisponible : les dernières " +
+        "modifications ne sont pas enregistrées.\nExportez une sauvegarde (💾 Sauvegarde) " +
+        "et supprimez d'anciens bons signés pour libérer de la place.");
+    }
+  }
+}
+
+// Échappement pour les ATTRIBUTS HTML (echapper() ne couvre pas les guillemets)
+function echapperAttr(s) {
+  return echapper(s).replace(/"/g, "&quot;");
 }
 
 /* ================= Dates ================= */
@@ -925,7 +3375,7 @@ function remplirCelluleTd(td, cellule) {
 // Format d'impression : la vue semaine s'imprime en paysage, la vue mois
 // en portrait (paysage au-delà de 4 employés pour garder des colonnes lisibles)
 function majStylePage() {
-  const paysage = vue === "semaine" || vue === "marges" ||
+  const paysage = vue === "semaine" || vue === "marges" || vue === "export-facturation" ||
     (vue === "mois" && donnees.employes.length > 4);
   document.getElementById("style-page").textContent =
     `@page { size: A4 ${paysage ? "landscape" : "portrait"}; margin: 10mm; }`;
@@ -942,12 +3392,20 @@ function rendre() {
   const zone = document.getElementById("zone-planning");
 
   switch (vue) {
+    case "accueil": rendreAccueil(zone); return;
     case "vehicules": rendreVehicules(zone); return;
     case "clients": rendreClients(zone); return;
     case "personnel": rendrePersonnel(zone); return;
     case "stocks": rendreStocks(zone); return;
     case "materiel": rendreMateriel(zone); return;
     case "marges": rendreMarges(zone); return;
+    case "bons": rendreBons(zone); return;
+    case "controles": rendreControles(zone); return;
+    case "tickets": rendreTickets(zone); return;
+    case "pointage": rendrePointage(zone); return;
+    case "rapport-client": rendreRapportClient(zone); return;
+    case "feuilles-temps": rendreFeuillesTemps(zone); return;
+    case "export-facturation": rendreExportFacturation(zone); return;
   }
 
   if (donnees.employes.length === 0) {
@@ -963,23 +3421,40 @@ function rendre() {
 }
 
 // Onglets, sous-barre contextuelle et légende selon la vue active
+const VUES_INTERVENTIONS = ["bons", "controles", "tickets", "pointage"];
+const VUES_RAPPORTS = ["rapport-client", "feuilles-temps", "export-facturation"];
+
 function majBarres() {
   const estPlanning = vue === "semaine" || vue === "mois";
+  const estInterventions = VUES_INTERVENTIONS.includes(vue);
+  const estRapports = VUES_RAPPORTS.includes(vue);
   const actifs = {
+    "btn-vue-accueil": vue === "accueil",
     "btn-vue-planning": estPlanning,
+    "btn-vue-interventions": estInterventions,
     "btn-vue-clients": vue === "clients",
     "btn-vue-personnel": vue === "personnel",
     "btn-vue-stocks": vue === "stocks",
     "btn-vue-materiel": vue === "materiel",
     "btn-vue-vehicules": vue === "vehicules",
     "btn-vue-marges": vue === "marges",
+    "btn-vue-rapports": estRapports,
+    "btn-vue-semaine": vue === "semaine",
+    "btn-vue-mois": vue === "mois",
+    "btn-vue-bons": vue === "bons",
+    "btn-vue-controles": vue === "controles",
+    "btn-vue-tickets": vue === "tickets",
+    "btn-vue-pointage": vue === "pointage",
+    "btn-vue-rapport-client": vue === "rapport-client",
+    "btn-vue-feuilles-temps": vue === "feuilles-temps",
+    "btn-vue-export-facturation": vue === "export-facturation",
   };
   for (const id in actifs) document.getElementById(id).classList.toggle("actif", actifs[id]);
-  document.getElementById("btn-vue-semaine").classList.toggle("actif", vue === "semaine");
-  document.getElementById("btn-vue-mois").classList.toggle("actif", vue === "mois");
 
   const visibilites = [
     [".action-planning", estPlanning],
+    [".action-interventions", estInterventions],
+    [".action-rapports", estRapports],
     [".action-navig", estPlanning || vue === "marges"],
     [".action-semaine", vue === "semaine"],
     [".action-clients", vue === "clients"],
@@ -1606,56 +4081,91 @@ function contratPourMois(client, annee, mois) {
 // par client (rapprochement des noms insensible à la casse/accents),
 // interventions = jours distincts (une équipe de 2 le même jour = 1),
 // heures non affectées (trajets et créneaux sans client) à part.
-function statsClientsMois(annee, mois) {
+// Avec avecReel=true : pour chaque (salarié, jour) ayant au moins un
+// pointage, les heures réelles pointées REMPLACENT les créneaux planifiés
+// (les trajets restent comptés à part) ; minutesPlan garde toujours le
+// planifié pur pour comparaison.
+function statsClientsMois(annee, mois, avecReel = false) {
   const mapNoms = {};
   for (const cli of donnees.clients) mapNoms[normaliserNom(cli.nom)] = cli.id;
+
+  const pointes = new Map(); // "empId|date" -> [pointages du jour]
+  if (avecReel) {
+    for (const p of donnees.pointages) {
+      if (!p.date || !p.debut || !p.fin) continue;
+      const d = new Date(p.date + "T00:00:00");
+      if (d.getFullYear() !== annee || d.getMonth() !== mois) continue;
+      const clePtg = p.empId + "|" + p.date;
+      if (!pointes.has(clePtg)) pointes.set(clePtg, []);
+      pointes.get(clePtg).push(p);
+    }
+  }
+
   const nbJours = new Date(annee, mois + 1, 0).getDate();
   const bruts = {};
   const nonAffecte = { minutes: 0, coutMO: 0 };
   const sansCout = new Set();
+  const entree = (cle, nom) => bruts[cle] ||
+    (bruts[cle] = { minutes: 0, minutesPlan: 0, coutMO: 0, jours: new Set(), nom });
+
+  const affecter = (client, mins, emp, dateCle, reel) => {
+    const cout = (mins / 60) * (emp.coutHoraire || 0);
+    if (!(emp.coutHoraire > 0)) sansCout.add(emp.nom);
+    const nomNorme = normaliserNom(client);
+    if (!nomNorme) {
+      if (reel !== "planSeul") { nonAffecte.minutes += mins; nonAffecte.coutMO += cout; }
+      return;
+    }
+    const cle = mapNoms[nomNorme] || ("?" + nomNorme);
+    const s = entree(cle, client.trim());
+    if (reel !== "reel") s.minutesPlan += mins;      // planifié pur
+    if (reel !== "planSeul") {                       // heures retenues (effectives)
+      s.minutes += mins;
+      s.coutMO += cout;
+      s.jours.add(dateCle);
+    }
+  };
 
   for (let j = 1; j <= nbJours; j++) {
     const date = new Date(annee, mois, j);
     const dateCle = versInputDate(date);
     for (const emp of donnees.employes) {
+      const pointagesDuJour = avecReel ? pointes.get(emp.id + "|" + dateCle) : null;
       const cellule = celluleDeDate(emp.id, date);
-      if (!cellule || cellule.type !== "travail" || !cellule.creneaux) continue;
-      for (const c of cellule.creneaux) {
-        if (c.type === "trajet") {
-          const mins = c.duree > 0 ? c.duree : (c.debut && c.fin ? dureeEntre(c.debut, c.fin) : 0);
-          if (mins > 0) {
-            nonAffecte.minutes += mins;
-            nonAffecte.coutMO += (mins / 60) * (emp.coutHoraire || 0);
-            if (!(emp.coutHoraire > 0)) sansCout.add(emp.nom);
+      if (cellule && cellule.type === "travail" && cellule.creneaux) {
+        for (const c of cellule.creneaux) {
+          if (c.type === "trajet") {
+            const mins = c.duree > 0 ? c.duree : (c.debut && c.fin ? dureeEntre(c.debut, c.fin) : 0);
+            if (mins > 0) {
+              nonAffecte.minutes += mins;
+              nonAffecte.coutMO += (mins / 60) * (emp.coutHoraire || 0);
+              if (!(emp.coutHoraire > 0)) sansCout.add(emp.nom);
+            }
+            continue;
           }
-          continue;
+          if (!c.debut || !c.fin) continue;
+          // jour pointé : le planifié n'alimente que minutesPlan
+          affecter(c.client || "", dureeEntre(c.debut, c.fin), emp, dateCle,
+            pointagesDuJour ? "planSeul" : "planEtRetenu");
         }
-        if (!c.debut || !c.fin) continue;
-        const mins = dureeEntre(c.debut, c.fin);
-        const cout = (mins / 60) * (emp.coutHoraire || 0);
-        if (!(emp.coutHoraire > 0)) sansCout.add(emp.nom);
-        const nomNorme = normaliserNom(c.client);
-        if (!nomNorme) {
-          nonAffecte.minutes += mins;
-          nonAffecte.coutMO += cout;
-          continue;
+      }
+      if (pointagesDuJour) {
+        for (const p of pointagesDuJour) {
+          affecter(p.client || "", dureeEntre(p.debut, p.fin), emp, dateCle, "reel");
         }
-        const cle = mapNoms[nomNorme] || ("?" + nomNorme);
-        const s = bruts[cle] || (bruts[cle] = { minutes: 0, coutMO: 0, jours: new Set(), nom: c.client.trim() });
-        s.minutes += mins;
-        s.coutMO += cout;
-        s.jours.add(dateCle);
       }
     }
   }
 
-  const resultat = { parClient: {}, nonRepertories: [], nonAffecte, sansCout: [...sansCout] };
+  const resultat = { parClient: {}, nonRepertories: [], nonAffecte,
+    sansCout: [...sansCout], reelExiste: pointes.size > 0 };
   for (const cle in bruts) {
     const s = bruts[cle];
-    const entree = { heures: s.minutes / 60, minutes: s.minutes, coutMO: s.coutMO,
-      interventions: s.jours.size, nom: s.nom };
-    if (cle.startsWith("?")) resultat.nonRepertories.push(entree);
-    else resultat.parClient[cle] = entree;
+    const e = { heures: s.minutes / 60, minutes: s.minutes,
+      heuresPlan: s.minutesPlan / 60, minutesPlan: s.minutesPlan,
+      coutMO: s.coutMO, interventions: s.jours.size, nom: s.nom };
+    if (cle.startsWith("?")) resultat.nonRepertories.push(e);
+    else resultat.parClient[cle] = e;
   }
   return resultat;
 }
@@ -2315,6 +4825,58 @@ document.getElementById("recherche-clients").addEventListener("input", () => {
 
 /* ================= Onglet Marges ================= */
 
+// Calcul pur des marges d'un mois (heures réelles substituées au planifié
+// quand des pointages existent). Utilisé par l'onglet Marges, l'Accueil
+// et l'export facturation.
+function calculerMargesMois(annee, mois) {
+  const stats = statsClientsMois(annee, mois, true);
+  const totaux = { heures: 0, heuresPlan: 0, interventions: 0, ca: 0, coutMO: 0, coutConso: 0, marge: 0 };
+  const lignes = [];
+
+  for (const cli of donnees.clients) {
+    const s = stats.parClient[cli.id] ||
+      { heures: 0, minutes: 0, heuresPlan: 0, minutesPlan: 0, coutMO: 0, interventions: 0 };
+    const ct = contratPourMois(cli, annee, mois);
+    let ca = 0;
+    let modeCA = "sans-contrat"; // sans-contrat | forfait | horaire | horaire-estime
+    let heuresFacturees = 0;
+    if (ct && ct.type === "forfait") {
+      ca = ct.forfaitMensuel || 0;
+      modeCA = "forfait";
+    } else if (ct) {
+      heuresFacturees = ct.heuresFacturees > 0 ? ct.heuresFacturees : s.heures;
+      ca = heuresFacturees * (ct.tauxHoraire || 0);
+      modeCA = ct.heuresFacturees > 0 ? "horaire" : "horaire-estime";
+    }
+    const conso = coutConsommablesParIntervention(cli);
+    const coutConso = conso.cout * s.interventions;
+    const marge = ca - s.coutMO - coutConso;
+    const depassement = ct && ct.type === "horaire" && ct.heuresFacturees > 0 && s.heures > ct.heuresFacturees;
+
+    totaux.heures += s.heures;
+    totaux.heuresPlan += s.heuresPlan;
+    totaux.interventions += s.interventions;
+    totaux.ca += ca;
+    totaux.coutMO += s.coutMO;
+    totaux.coutConso += coutConso;
+    totaux.marge += marge;
+
+    lignes.push({ cli, s, ct, ca, modeCA, heuresFacturees, coutConso,
+      manquePrix: conso.manquePrix, marge, pct: ca > 0 ? (marge / ca) * 100 : null, depassement });
+  }
+
+  for (const nr of stats.nonRepertories) {
+    totaux.heures += nr.heures;
+    totaux.heuresPlan += nr.heuresPlan;
+    totaux.interventions += nr.interventions;
+    totaux.coutMO += nr.coutMO;
+    totaux.marge -= nr.coutMO;
+  }
+
+  totaux.pct = totaux.ca > 0 ? (totaux.marge / totaux.ca) * 100 : null;
+  return { lignes, totaux, stats };
+}
+
 function rendreMarges(zone) {
   document.getElementById("date-semaine").value = versInputDate(moisCourant);
   const libelleMois = moisCourant.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
@@ -2323,7 +4885,8 @@ function rendreMarges(zone) {
 
   const annee = moisCourant.getFullYear();
   const mois = moisCourant.getMonth();
-  const stats = statsClientsMois(annee, mois);
+  const calc = calculerMargesMois(annee, mois);
+  const stats = calc.stats;
 
   if (donnees.clients.length === 0 && stats.nonRepertories.length === 0) {
     zone.innerHTML = `<div class="vide">Aucun client pour le moment.<br>
@@ -2332,45 +4895,22 @@ function rendreMarges(zone) {
     return;
   }
 
-  const totaux = { heures: 0, interventions: 0, ca: 0, coutMO: 0, coutConso: 0, marge: 0 };
+  const reel = stats.reelExiste; // au moins un pointage ce mois → colonne dédiée
   const lignes = [];
 
-  for (const cli of donnees.clients) {
-    const s = stats.parClient[cli.id] || { heures: 0, minutes: 0, coutMO: 0, interventions: 0 };
-    const ct = contratPourMois(cli, annee, mois);
-    let ca = 0;
+  for (const l of calc.lignes) {
+    const { cli, s, ca, modeCA, coutConso, marge, pct } = l;
     let libelleCA = "";
-    if (!ct) {
-      libelleCA = `<span class="badge attention">sans contrat</span>`;
-    } else if (ct.type === "forfait") {
-      ca = ct.forfaitMensuel || 0;
-      libelleCA = "forfait";
-    } else {
-      const heuresFacturees = ct.heuresFacturees > 0 ? ct.heuresFacturees : s.heures;
-      ca = heuresFacturees * (ct.tauxHoraire || 0);
-      libelleCA = ct.heuresFacturees > 0
-        ? `${formatKm(ct.heuresFacturees)} h × ${formatEuros(ct.tauxHoraire || 0)}`
-        : `<span title="heures facturées non renseignées : estimation sur les heures planifiées">${formatKm(Math.round(s.heures * 10) / 10)} h (estimé) × ${formatEuros(ct.tauxHoraire || 0)}</span>`;
-    }
-    const conso = coutConsommablesParIntervention(cli);
-    const coutConso = conso.cout * s.interventions;
-    const marge = ca - s.coutMO - coutConso;
-    const pct = ca > 0 ? (marge / ca) * 100 : null;
-
-    // dépassement : plus d'heures planifiées que facturées (contrat horaire)
-    const depassement = ct && ct.type === "horaire" && ct.heuresFacturees > 0 && s.heures > ct.heuresFacturees;
-
-    totaux.heures += s.heures;
-    totaux.interventions += s.interventions;
-    totaux.ca += ca;
-    totaux.coutMO += s.coutMO;
-    totaux.coutConso += coutConso;
-    totaux.marge += marge;
+    if (modeCA === "sans-contrat") libelleCA = `<span class="badge attention">sans contrat</span>`;
+    else if (modeCA === "forfait") libelleCA = "forfait";
+    else if (modeCA === "horaire") libelleCA = `${formatKm(l.ct.heuresFacturees)} h × ${formatEuros(l.ct.tauxHoraire || 0)}`;
+    else libelleCA = `<span title="heures facturées non renseignées : estimation sur les heures retenues">${formatKm(Math.round(s.heures * 10) / 10)} h (estimé) × ${formatEuros(l.ct.tauxHoraire || 0)}</span>`;
 
     lignes.push(`
     <tr>
-      <td><strong>${echapper(cli.nom)}</strong>${conso.manquePrix ? ` <span class="badge attention" title="certains consommables n'ont pas de prix unitaire">prix manquant</span>` : ""}</td>
-      <td class="num">${s.heures > 0 ? formatHeures(Math.round(s.minutes)) : "—"}${depassement ? ` <span class="badge alerte" title="heures planifiées supérieures aux heures facturées">dépassement</span>` : ""}</td>
+      <td><strong>${echapper(cli.nom)}</strong>${l.manquePrix ? ` <span class="badge attention" title="certains consommables n'ont pas de prix unitaire">prix manquant</span>` : ""}</td>
+      <td class="num">${s.minutesPlan > 0 ? formatHeures(Math.round(s.minutesPlan)) : "—"}${l.depassement ? ` <span class="badge alerte" title="heures retenues supérieures aux heures facturées">dépassement</span>` : ""}</td>
+      ${reel ? `<td class="num">${s.minutes !== s.minutesPlan ? `<strong>${formatHeures(Math.round(s.minutes))}</strong>` : (s.minutes > 0 ? formatHeures(Math.round(s.minutes)) : "—")}</td>` : ""}
       <td class="num">${s.interventions || "—"}</td>
       <td>${libelleCA}</td>
       <td class="num">${ca > 0 ? formatEuros(ca) : "—"}</td>
@@ -2383,15 +4923,12 @@ function rendreMarges(zone) {
 
   // Clients présents au planning mais sans fiche
   for (const nr of stats.nonRepertories) {
-    totaux.heures += nr.heures;
-    totaux.interventions += nr.interventions;
-    totaux.coutMO += nr.coutMO;
-    totaux.marge -= nr.coutMO;
     lignes.push(`
     <tr class="ligne-alerte">
       <td>❓ ${echapper(nr.nom)} <span class="badge alerte">non répertorié</span>
-        <button class="no-print" data-gaction="creer-fiche" data-nom="${echapper(nr.nom)}" style="font-size:0.76rem; padding:2px 8px">Créer la fiche</button></td>
-      <td class="num">${formatHeures(Math.round(nr.minutes))}</td>
+        <button class="no-print" data-gaction="creer-fiche" data-nom="${echapperAttr(nr.nom)}" style="font-size:0.76rem; padding:2px 8px">Créer la fiche</button></td>
+      <td class="num">${formatHeures(Math.round(nr.minutesPlan))}</td>
+      ${reel ? `<td class="num">${formatHeures(Math.round(nr.minutes))}</td>` : ""}
       <td class="num">${nr.interventions}</td>
       <td><span class="badge attention">sans fiche → CA 0</span></td>
       <td class="num">—</td>
@@ -2402,42 +4939,40 @@ function rendreMarges(zone) {
     </tr>`);
   }
 
-  const pctTotal = totaux.ca > 0 ? (totaux.marge / totaux.ca) * 100 : null;
+  const totaux = calc.totaux;
   const na = stats.nonAffecte;
+  const nbCol = reel ? 10 : 9;
 
   let html = `
   <div style="overflow-x:auto">
   <table class="tableau-gestion">
     <thead><tr>
-      <th>Client</th><th class="num" style="width:105px">Heures plan.</th><th class="num" style="width:70px">Interv.</th>
-      <th style="width:150px">Facturation</th><th class="num" style="width:95px">CA</th>
-      <th class="num" style="width:95px">Coût MO</th><th class="num" style="width:95px">Conso.</th>
-      <th class="num" style="width:100px">Marge €</th><th class="num" style="width:85px">Marge %</th>
+      <th>Client</th><th class="num" style="width:100px">Heures plan.</th>
+      ${reel ? `<th class="num" style="width:100px">H. retenues*</th>` : ""}
+      <th class="num" style="width:70px">Interv.</th>
+      <th style="width:145px">Facturation</th><th class="num" style="width:90px">CA</th>
+      <th class="num" style="width:90px">Coût MO</th><th class="num" style="width:90px">Conso.</th>
+      <th class="num" style="width:95px">Marge €</th><th class="num" style="width:80px">Marge %</th>
     </tr></thead>
     <tbody>
       ${lignes.join("")}
       <tr class="ligne-totaux">
         <td>TOTAL</td>
-        <td class="num">${formatHeures(Math.round(totaux.heures * 60))}</td>
+        <td class="num">${formatHeures(Math.round(totaux.heuresPlan * 60))}</td>
+        ${reel ? `<td class="num">${formatHeures(Math.round(totaux.heures * 60))}</td>` : ""}
         <td class="num">${totaux.interventions}</td>
         <td></td>
         <td class="num">${formatEuros(totaux.ca)}</td>
         <td class="num">${formatEuros(totaux.coutMO)}</td>
         <td class="num">${formatEuros(totaux.coutConso)}</td>
         <td class="num ${totaux.marge >= 0 ? "marge-positive" : "marge-negative"}">${formatEuros(totaux.marge)}</td>
-        <td class="num ${totaux.marge >= 0 ? "marge-positive" : "marge-negative"}">${pctTotal === null ? "—" : formatPourcent(pctTotal)}</td>
+        <td class="num ${totaux.marge >= 0 ? "marge-positive" : "marge-negative"}">${totaux.pct === null ? "—" : formatPourcent(totaux.pct)}</td>
       </tr>
       ${na.minutes > 0 ? `
       <tr>
-        <td style="color:#6b7280">🚗 Heures non affectées (trajets, créneaux sans client) — hors totaux</td>
-        <td class="num" style="color:#6b7280">${formatHeures(Math.round(na.minutes))}</td>
-        <td class="num" style="color:#6b7280">—</td>
-        <td></td>
-        <td class="num" style="color:#6b7280">—</td>
-        <td class="num" style="color:#6b7280">${na.coutMO > 0 ? formatEuros(na.coutMO) : "—"}</td>
-        <td class="num" style="color:#6b7280">—</td>
-        <td class="num" style="color:#6b7280">—</td>
-        <td class="num" style="color:#6b7280">—</td>
+        <td colspan="${nbCol - 5}" style="color:#6b7280">🚗 Heures non affectées (trajets, créneaux sans client) — hors totaux :
+          ${formatHeures(Math.round(na.minutes))}${na.coutMO > 0 ? ` · ${formatEuros(na.coutMO)} de main-d'œuvre` : ""}</td>
+        <td colspan="5"></td>
       </tr>` : ""}
     </tbody>
   </table>
@@ -2452,10 +4987,11 @@ function rendreMarges(zone) {
     html += `<div class="avertissements">` +
       avertissements.map(a => `<div class="avert">${a}</div>`).join("") + `</div>`;
   }
-  html += `<div class="note-onglet">Heures planifiées et interventions proviennent du planning
-    (rapprochement par nom de client, insensible aux majuscules et accents). Coût MO = heures de chaque
-    salarié × son coût horaire chargé. Conso. = consommables prévus par intervention × interventions.
-    Les trajets ne sont pas affectés aux clients.</div>`;
+  html += `<div class="note-onglet">${reel ? "* Heures retenues : heures réellement pointées quand elles existent " +
+    "(⏱️ Pointage), heures planifiées sinon — le coût de main-d'œuvre est calculé sur ces heures. " : ""}Heures et
+    interventions proviennent du planning (rapprochement par nom de client, insensible aux majuscules et accents).
+    Coût MO = heures de chaque salarié × son coût horaire chargé. Conso. = consommables prévus par intervention ×
+    interventions. Les trajets ne sont pas affectés aux clients.</div>`;
 
   zone.innerHTML = html;
 }
@@ -2493,9 +5029,15 @@ function imprimerDocument(html, paysage = false) {
 }
 
 function enTeteDoc(titre, cli) {
+  const qr = qrDataUrl(`GN|CLIENT|${cli.id}|${cli.nom}`);
   return `
-    <h1>${echapper(donnees.societe || "")}</h1>
-    <div class="doc-sous-titre">${titre}</div>
+    <div style="display:flex; gap:14px; align-items:flex-start">
+      <div style="flex:1">
+        <h1>${echapper(donnees.societe || "")}</h1>
+        <div class="doc-sous-titre">${titre}</div>
+      </div>
+      ${qr ? `<img src="${qr}" alt="QR site" style="width:88px; height:88px">` : ""}
+    </div>
     <h2>Client</h2>
     <div class="doc-ligne"><strong>${echapper(cli.nom)}</strong>${cli.adresse ? ` — ${echapper(cli.adresse)}` : ""}</div>
     ${cli.contact || cli.tel ? `<div class="doc-ligne">${[cli.contact, cli.tel].filter(Boolean).map(echapper).join(" — ")}</div>` : ""}
@@ -2569,6 +5111,1417 @@ function docFicheClient(cli) {
     ${besoins ? `<h2>Consommables par intervention</h2>${besoins}` : ""}
     ${materiels ? `<h2>Matériel nécessaire</h2>${materiels}` : ""}
     <div class="doc-sous-titre" style="margin-top:16px">Fiche éditée le ${formatDateLongue(auj)}</div>`;
+}
+
+/* ================= Pointage des heures réelles ================= */
+
+let datePointage = versInputDate(new Date());
+
+// Créneaux de travail planifiés d'un jour (hors trajets), avec leur index
+function creneauxTravailDuJour(dateStr) {
+  const date = new Date(dateStr + "T00:00:00");
+  const lignes = [];
+  for (const emp of donnees.employes) {
+    const cellule = celluleDeDate(emp.id, date);
+    if (!cellule || cellule.type !== "travail" || !cellule.creneaux) continue;
+    cellule.creneaux.forEach((c, idx) => {
+      if (c.type === "trajet" || !c.debut || !c.fin) return;
+      lignes.push({ emp, idx, creneau: c });
+    });
+  }
+  return lignes;
+}
+
+function pointageDe(dateStr, empId, idx) {
+  return donnees.pointages.find(p =>
+    p.date === dateStr && p.empId === empId && String(p.idx) === String(idx));
+}
+
+// Enregistre ou met à jour un pointage (idempotent sur date+salarié+index)
+function enregistrerPointage(dateStr, empId, idx, client, debut, fin) {
+  if (!debut || !fin) return false;
+  const existant = pointageDe(dateStr, empId, idx);
+  if (existant) {
+    existant.client = client;
+    existant.debut = debut;
+    existant.fin = fin;
+  } else {
+    donnees.pointages.push({ id: nouvelId("ptg"), date: dateStr, empId, idx, client, debut, fin });
+  }
+  return true;
+}
+
+function rendrePointage(zone) {
+  const dateAffichee = new Date(datePointage + "T00:00:00");
+  document.getElementById("libelle-periode").textContent =
+    `Pointage — ${JOURS[(dateAffichee.getDay() + 6) % 7]} ${formatDateLongue(dateAffichee)}`;
+  majListeClients();
+
+  const lignesPlanifiees = creneauxTravailDuJour(datePointage);
+  const pointagesLibres = donnees.pointages.filter(p =>
+    p.date === datePointage && String(p.idx).startsWith("L"));
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <button data-iaction="ptg-prec" title="Jour précédent">◀</button>
+      <input type="date" data-ichange="ptg-date" value="${datePointage}">
+      <button data-iaction="ptg-suiv" title="Jour suivant">▶</button>
+      <span style="flex:1"></span>
+      ${lignesPlanifiees.length ? `<button class="primaire" data-iaction="ptg-tout-conforme">✓ Tout pointer conforme au planning</button>` : ""}
+    </div>`;
+
+  if (lignesPlanifiees.length === 0 && pointagesLibres.length === 0) {
+    html += `<div class="vide">Aucun créneau de travail planifié ce jour-là.<br>
+      Vous pouvez tout de même ajouter un pointage libre ci-dessous.</div>`;
+  } else {
+    const lignes = lignesPlanifiees.map(({ emp, idx, creneau }) => {
+      const ptg = pointageDe(datePointage, emp.id, idx);
+      const debut = ptg ? ptg.debut : creneau.debut;
+      const fin = ptg ? ptg.fin : creneau.fin;
+      const duree = ptg ? dureeEntre(ptg.debut, ptg.fin) : null;
+      return `
+      <tr data-eid="${emp.id}" data-idx="${idx}">
+        <td><strong>${echapper(emp.nom)}</strong></td>
+        <td>${echapper(creneau.client || "—")}</td>
+        <td class="num">${creneau.debut} – ${creneau.fin} <small style="color:#6b7280">(${formatHeures(dureeEntre(creneau.debut, creneau.fin))})</small></td>
+        <td><input type="time" class="ptg-debut" value="${debut}" style="width:100px"></td>
+        <td><input type="time" class="ptg-fin" value="${fin}" style="width:100px"></td>
+        <td class="num">${ptg ? `<strong>${formatHeures(duree)}</strong>` : "—"}</td>
+        <td class="no-print" style="white-space:nowrap">
+          <button data-iaction="ptg-valider" data-eid="${emp.id}" data-idx="${idx}" data-client="${echapperAttr(creneau.client || "")}" class="${ptg ? "" : "primaire"}">${ptg ? "Modifier" : "Pointer"}</button>
+          <button data-iaction="ptg-conforme" data-eid="${emp.id}" data-idx="${idx}" data-client="${echapperAttr(creneau.client || "")}" title="Reprendre les horaires planifiés">= planning</button>
+          ${ptg ? `<button data-iaction="ptg-supprimer" data-pid="${ptg.id}" title="Supprimer ce pointage">✕</button>` : ""}
+        </td>
+        <td>${ptg ? `<span class="badge ok">pointé</span>` : `<span class="badge attention">à pointer</span>`}</td>
+      </tr>`;
+    }).join("");
+
+    const lignesLibres = pointagesLibres.map(p => {
+      const emp = donnees.employes.find(x => x.id === p.empId);
+      return `
+      <tr>
+        <td><strong>${echapper(emp ? emp.nom : "?")}</strong></td>
+        <td>${echapper(p.client || "—")} <small style="color:#6b7280">(hors planning)</small></td>
+        <td class="num">—</td>
+        <td class="num">${p.debut}</td>
+        <td class="num">${p.fin}</td>
+        <td class="num"><strong>${formatHeures(dureeEntre(p.debut, p.fin))}</strong></td>
+        <td class="no-print"><button data-iaction="ptg-supprimer" data-pid="${p.id}" title="Supprimer">✕</button></td>
+        <td><span class="badge ok">pointé</span></td>
+      </tr>`;
+    }).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th style="width:130px">Salarié</th><th>Client</th><th class="num" style="width:150px">Planifié</th>
+        <th style="width:110px">Réel début</th><th style="width:110px">Réel fin</th>
+        <th class="num" style="width:80px">Durée</th><th class="no-print" style="width:220px"></th><th style="width:90px">Statut</th>
+      </tr></thead>
+      <tbody>${lignes}${lignesLibres}</tbody>
+    </table>
+    </div>`;
+  }
+
+  html += `
+    <div class="mini-form no-print" style="margin-top:12px">
+      <strong style="align-self:center; font-size:0.85rem">+ Pointage hors planning :</strong>
+      <select class="ptg-libre-emp">${donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("")}</select>
+      <input type="text" class="ptg-libre-client" list="liste-clients" placeholder="Client" style="min-width:140px">
+      <input type="time" class="ptg-libre-debut" title="Début">
+      <input type="time" class="ptg-libre-fin" title="Fin">
+      <button data-iaction="ptg-ajouter">Ajouter</button>
+    </div>
+    <div class="note-onglet">Les heures pointées remplacent les heures planifiées dans les 📊 Marges,
+      les ⏱️ Feuilles de temps et l'🧾 Export facturation (jour par jour et salarié par salarié).
+      Pointage déclaratif conforme aux recommandations CNIL (pas de géolocalisation).</div>`;
+
+  zone.innerHTML = html;
+}
+
+/* ================= Bons d'intervention ================= */
+
+function rendreBons(zone) {
+  document.getElementById("libelle-periode").textContent = "Bons d'intervention";
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      ${donnees.clients.length
+        ? `<select id="bon-nouveau-client" style="flex:1; min-width:180px">${donnees.clients.map(c =>
+            `<option value="${c.id}">${echapper(c.nom)}</option>`).join("")}</select>
+           <input type="date" id="bon-nouvelle-date" value="${versInputDate(new Date())}">
+           <button class="primaire" data-iaction="bon-creer">+ Créer un bon d'intervention</button>`
+        : `<span style="font-size:0.85rem; color:#6b7280">Créez d'abord vos clients dans l'onglet 🧑‍💼 Clients.</span>`}
+    </div>`;
+
+  if (donnees.interventions.length === 0) {
+    html += `<div class="vide">Aucun bon d'intervention.<br>
+      Le bon reprend la check-list et les consommables du client : l'équipe coche sur place,
+      fait signer le client au doigt, et le stock se décrémente en un clic.</div>`;
+  } else {
+    const tries = [...donnees.interventions].sort((a, b) =>
+      (b.date || "").localeCompare(a.date || "") || (b.numero || "").localeCompare(a.numero || ""));
+    const affiches = tries.slice(0, 30);
+    html += `<div class="cartes-clients">` + affiches.map(carteBon).join("") + `</div>`;
+    if (tries.length > 30) {
+      html += `<div class="note-onglet">${tries.length - 30} bon(s) plus ancien(s) non affiché(s) —
+        retrouvez-les dans les 📈 Rapports client mensuels.</div>`;
+    }
+  }
+  zone.innerHTML = html;
+}
+
+function carteBon(bon) {
+  const nbFaits = (bon.checklist || []).filter(t => t.fait).length;
+  const nbTotal = (bon.checklist || []).length;
+
+  const lignesChecklist = (bon.checklist || []).map((t, i) => `
+    <div class="ligne-item">
+      <input type="checkbox" data-ichange="bon-check" data-bid="${bon.id}" data-idx="${i}"${t.fait ? " checked" : ""}>
+      <span class="texte${t.fait ? "" : ""}">${echapper(t.texte)}</span>
+    </div>`).join("");
+
+  const lignesConso = (bon.consommables || []).map((c, i) => `
+    <div class="ligne-item">
+      <span class="texte">${echapper(c.nom)}</span>
+      <input type="number" min="0" step="0.1" data-ichange="bon-conso" data-bid="${bon.id}" data-idx="${i}"
+        value="${c.qte || 0}" style="width:70px"${bon.stockDecremente ? " disabled" : ""}>
+    </div>`).join("");
+
+  const equipe = donnees.employes.map(e => `
+    <label style="display:inline-flex; align-items:center; gap:4px; margin-right:10px; font-size:0.85rem">
+      <input type="checkbox" data-ichange="bon-equipe" data-bid="${bon.id}" data-eid="${e.id}"${(bon.equipe || []).includes(e.id) ? " checked" : ""}>
+      ${echapper(e.nom)}</label>`).join("");
+
+  return `
+  <div class="carte-vehicule carte-client">
+    <div style="display:flex; align-items:flex-start; gap:8px">
+      <div style="flex:1">
+        <h3>📝 ${echapper(bon.numero)} — ${echapper(bon.clientNom)}
+          ${bon.anomalie ? `<span class="badge alerte">anomalie</span>` : ""}
+          ${bon.signature ? `<span class="badge ok">signé</span>` : ""}
+          ${bon.stockDecremente ? `<span class="badge ok">stock décrémenté</span>` : ""}</h3>
+        <div class="attribution">Intervention du
+          <input type="date" data-ichange="bon-date" data-bid="${bon.id}" value="${bon.date || ""}" class="no-print" style="padding:3px 6px">
+          — <input type="time" data-ichange="bon-debut" data-bid="${bon.id}" value="${bon.debut || ""}" class="no-print" style="padding:3px 6px" title="Heure de début">
+          → <input type="time" data-ichange="bon-fin" data-bid="${bon.id}" value="${bon.fin || ""}" class="no-print" style="padding:3px 6px" title="Heure de fin">
+          ${bon.debut && bon.fin ? `<strong>(${formatHeures(dureeEntre(bon.debut, bon.fin))})</strong>` : ""}</div>
+      </div>
+      <button class="no-print" data-iaction="bon-imprimer" data-bid="${bon.id}" title="Imprimer le bon">🖨️ Imprimer</button>
+      <button class="no-print" data-iaction="bon-supprimer" data-bid="${bon.id}" title="Supprimer">✕</button>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>Équipe</h4>
+      ${equipe || `<div class="stat-vehicule" style="color:#6b7280">Aucun salarié.</div>`}
+    </div>
+
+    <div class="section-vehicule">
+      <h4>✅ Check-list ${nbTotal ? `<span class="badge ${nbFaits === nbTotal ? "ok" : "attention"}">${nbFaits} / ${nbTotal}</span>` : ""}</h4>
+      ${lignesChecklist || `<div class="stat-vehicule" style="color:#6b7280">Pas de check-list sur la fiche client.</div>`}
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🧴 Consommables utilisés</h4>
+      ${lignesConso || `<div class="stat-vehicule" style="color:#6b7280">Aucun consommable prévu.</div>`}
+      ${(bon.consommables || []).length ? `
+      <div class="mini-form no-print">
+        <button data-iaction="bon-decrementer" data-bid="${bon.id}"${bon.stockDecremente ? " disabled" : ""}>
+          ${bon.stockDecremente
+            ? `📦 Stock déjà décrémenté le ${bon.stockDecrementeLe ? formatDateCourte(new Date(bon.stockDecrementeLe + "T00:00:00")) : ""}`
+            : "📦 Décrémenter le stock"}</button>
+      </div>` : ""}
+    </div>
+
+    <div class="section-vehicule">
+      <h4>Observations</h4>
+      <div class="ligne-item">
+        <input type="text" data-ichange="bon-obs" data-bid="${bon.id}" value="${echapperAttr(bon.observations || "")}"
+          placeholder="remarques, incidents, demandes du client…" style="flex:1">
+      </div>
+      <div class="ligne-item">
+        <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem">
+          <input type="checkbox" data-ichange="bon-anomalie" data-bid="${bon.id}"${bon.anomalie ? " checked" : ""}>
+          ⚠️ Anomalie à signaler</label>
+      </div>
+    </div>
+
+    <div class="section-vehicule">
+      <h4>✍️ Signature du client</h4>
+      <div class="ligne-item">
+        ${bon.signature ? `<img class="apercu-signature" src="${bon.signature}" alt="signature">` : ""}
+        <span class="texte">${bon.signataire ? echapper(bon.signataire) : `<span style="color:#6b7280">Non signé</span>`}</span>
+        <button class="no-print" data-iaction="bon-signer" data-bid="${bon.id}">${bon.signature ? "Re-signer" : "✍️ Faire signer"}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Création d'un bon : reprend la check-list, les besoins et l'équipe
+// planifiée du client ce jour-là
+function creerBon(clientId, dateStr) {
+  const cli = clientParId(clientId);
+  if (!cli) return null;
+  const bon = {
+    id: nouvelId("bon"),
+    numero: attribuerNumero("bons"),
+    date: dateStr,
+    clientId: cli.id,
+    clientNom: cli.nom,
+    equipe: [],
+    debut: "", fin: "",
+    checklist: (cli.checklist || []).map(t => ({ texte: t.texte, fait: false })),
+    consommables: (cli.besoins || []).map(b => {
+      const p = produitParId(b.produitId);
+      return { produitId: b.produitId, nom: p ? p.nom : "(produit supprimé)", qte: b.qte || 0 };
+    }),
+    stockDecremente: false,
+    observations: "", anomalie: false,
+    signataire: "", signature: null,
+    syncState: "local",
+  };
+  // équipe et horaires pré-remplis depuis le planning du jour
+  const nomNorme = normaliserNom(cli.nom);
+  for (const { emp, creneau } of creneauxTravailDuJour(dateStr)) {
+    if (normaliserNom(creneau.client) !== nomNorme) continue;
+    if (!bon.equipe.includes(emp.id)) bon.equipe.push(emp.id);
+    if (!bon.debut || creneau.debut < bon.debut) bon.debut = creneau.debut;
+    if (!bon.fin || creneau.fin > bon.fin) bon.fin = creneau.fin;
+  }
+  donnees.interventions.push(bon);
+  return bon;
+}
+
+// Actions (clics) : bons + pointage
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-iaction]");
+  if (!btn) return;
+  const action = btn.dataset.iaction;
+
+  // --- Pointage ---
+  if (action.startsWith("ptg-")) {
+    if (action === "ptg-prec" || action === "ptg-suiv") {
+      const d = new Date(datePointage + "T00:00:00");
+      d.setDate(d.getDate() + (action === "ptg-suiv" ? 1 : -1));
+      datePointage = versInputDate(d);
+    } else if (action === "ptg-valider" || action === "ptg-conforme") {
+      const tr = btn.closest("tr");
+      let debut, fin;
+      if (action === "ptg-conforme") {
+        const lignes = creneauxTravailDuJour(datePointage);
+        const l = lignes.find(x => x.emp.id === btn.dataset.eid && String(x.idx) === btn.dataset.idx);
+        if (!l) return;
+        debut = l.creneau.debut;
+        fin = l.creneau.fin;
+      } else {
+        debut = tr.querySelector(".ptg-debut").value;
+        fin = tr.querySelector(".ptg-fin").value;
+      }
+      if (!enregistrerPointage(datePointage, btn.dataset.eid, btn.dataset.idx, btn.dataset.client || "", debut, fin)) return;
+    } else if (action === "ptg-tout-conforme") {
+      for (const { emp, idx, creneau } of creneauxTravailDuJour(datePointage)) {
+        if (!pointageDe(datePointage, emp.id, idx)) {
+          enregistrerPointage(datePointage, emp.id, idx, creneau.client || "", creneau.debut, creneau.fin);
+        }
+      }
+    } else if (action === "ptg-supprimer") {
+      donnees.pointages = donnees.pointages.filter(p => p.id !== btn.dataset.pid);
+    } else if (action === "ptg-ajouter") {
+      const form = btn.closest(".mini-form");
+      const empId = form.querySelector(".ptg-libre-emp").value;
+      const client = form.querySelector(".ptg-libre-client").value.trim();
+      const debut = form.querySelector(".ptg-libre-debut").value;
+      const fin = form.querySelector(".ptg-libre-fin").value;
+      if (!empId || !debut || !fin) return;
+      donnees.pointages.push({ id: nouvelId("ptg"), date: datePointage, empId,
+        idx: "L" + Date.now().toString(36), client, debut, fin });
+    } else {
+      return;
+    }
+    sauvegarder();
+    rendre();
+    return;
+  }
+
+  // --- Bons d'intervention ---
+  const bon = donnees.interventions.find(b => b.id === btn.dataset.bid);
+  switch (action) {
+    case "bon-creer": {
+      const clientId = document.getElementById("bon-nouveau-client").value;
+      const dateStr = document.getElementById("bon-nouvelle-date").value || versInputDate(new Date());
+      if (!creerBon(clientId, dateStr)) return;
+      break;
+    }
+    case "bon-supprimer":
+      if (!bon) return;
+      if (!confirm(`Supprimer le bon ${bon.numero} (${bon.clientNom}) ?`)) return;
+      donnees.interventions = donnees.interventions.filter(b => b !== bon);
+      break;
+    case "bon-imprimer":
+      if (bon) imprimerDocument(docBonIntervention(bon));
+      return;
+    case "bon-signer":
+      if (bon) ouvrirSignature(bon);
+      return;
+    case "bon-decrementer": {
+      if (!bon || bon.stockDecremente) return; // verrou d'idempotence
+      const dateMvt = versInputDate(new Date());
+      for (const c of (bon.consommables || [])) {
+        if (!(c.qte > 0)) continue;
+        const p = produitParId(c.produitId);
+        if (!p) continue;
+        p.quantite = Math.max(0, (p.quantite || 0) - c.qte);
+        p.mouvements = p.mouvements || [];
+        p.mouvements.unshift({ date: dateMvt, delta: -c.qte, ref: bon.numero });
+        p.mouvements = p.mouvements.slice(0, 50);
+      }
+      bon.stockDecremente = true;
+      bon.stockDecrementeLe = dateMvt;
+      break;
+    }
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+// Saisies (champs) : bons + pointage
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-ichange]");
+  if (!el) return;
+  const prop = el.dataset.ichange;
+
+  if (prop === "ptg-date") {
+    if (el.value) datePointage = el.value;
+    rendre();
+    return;
+  }
+
+  const bon = donnees.interventions.find(b => b.id === el.dataset.bid);
+  if (!bon) return;
+  const idx = el.dataset.idx !== undefined ? Number(el.dataset.idx) : -1;
+
+  if (prop === "bon-check") {
+    const t = (bon.checklist || [])[idx];
+    if (t) t.fait = el.checked;
+  } else if (prop === "bon-conso") {
+    const c = (bon.consommables || [])[idx];
+    if (c) c.qte = Math.max(0, lireNombre(el.value));
+  } else if (prop === "bon-equipe") {
+    bon.equipe = bon.equipe || [];
+    if (el.checked) {
+      if (!bon.equipe.includes(el.dataset.eid)) bon.equipe.push(el.dataset.eid);
+    } else {
+      bon.equipe = bon.equipe.filter(id => id !== el.dataset.eid);
+    }
+  } else if (prop === "bon-date") {
+    if (el.value) bon.date = el.value;
+  } else if (prop === "bon-debut" || prop === "bon-fin") {
+    bon[prop === "bon-debut" ? "debut" : "fin"] = el.value;
+  } else if (prop === "bon-obs") {
+    bon.observations = el.value.trim();
+  } else if (prop === "bon-anomalie") {
+    bon.anomalie = el.checked;
+  } else {
+    return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+/* ---------- Modale de signature manuscrite ---------- */
+
+let signatureBonId = null;
+let signatureEnCours = false;
+let signatureTracee = false;
+
+(function initSignature() {
+  const cv = document.getElementById("canvas-signature");
+  const ctx = cv.getContext("2d");
+  const pos = (e) => {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (cv.width / r.width),
+             y: (e.clientY - r.top) * (cv.height / r.height) };
+  };
+  cv.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    cv.setPointerCapture(e.pointerId);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#111827";
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + 0.01, p.y + 0.01); // un simple point compte aussi
+    ctx.stroke();
+    signatureEnCours = true;
+    signatureTracee = true;
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!signatureEnCours) return;
+    const p = pos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  });
+  cv.addEventListener("pointerup", () => { signatureEnCours = false; });
+  cv.addEventListener("pointercancel", () => { signatureEnCours = false; });
+
+  document.getElementById("btn-effacer-signature").addEventListener("click", () => {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    signatureTracee = false;
+  });
+  document.getElementById("btn-annuler-signature").addEventListener("click", () => {
+    document.getElementById("modale-signature").close();
+  });
+  document.getElementById("btn-valider-signature").addEventListener("click", () => {
+    const bon = donnees.interventions.find(b => b.id === signatureBonId);
+    if (bon) {
+      bon.signature = signatureTracee ? cv.toDataURL("image/png") : null;
+      bon.signataire = document.getElementById("signature-nom").value.trim();
+      sauvegarder();
+      rendre();
+    }
+    document.getElementById("modale-signature").close();
+  });
+})();
+
+function ouvrirSignature(bon) {
+  signatureBonId = bon.id;
+  const cv = document.getElementById("canvas-signature");
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  signatureTracee = false;
+  document.getElementById("signature-nom").value = bon.signataire || "";
+  if (bon.signature) {
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img, 0, 0); signatureTracee = true; };
+    img.src = bon.signature;
+  }
+  document.getElementById("modale-signature").showModal();
+}
+
+// Document imprimable : bon d'intervention
+function docBonIntervention(bon) {
+  const cli = clientParId(bon.clientId);
+  const equipe = (bon.equipe || [])
+    .map(id => { const e = donnees.employes.find(x => x.id === id); return e ? e.nom : null; })
+    .filter(Boolean).join(", ");
+  const checklist = (bon.checklist || []).map(t =>
+    `<div class="doc-case">${t.fait ? "☑" : "☐"}&nbsp; ${echapper(t.texte)}</div>`).join("");
+  const conso = (bon.consommables || []).filter(c => c.qte > 0).map(c =>
+    `<div class="doc-ligne">• ${formatKm(c.qte)} — ${echapper(c.nom)}</div>`).join("");
+  const qr = qrDataUrl(`GN|CLIENT|${bon.clientId || ""}|${bon.clientNom}`);
+
+  return `
+    <div style="display:flex; gap:14px; align-items:flex-start">
+      <div style="flex:1">
+        <h1>${echapper(donnees.societe || "")}</h1>
+        <div class="doc-sous-titre">Bon d'intervention <strong>${echapper(bon.numero)}</strong></div>
+      </div>
+      ${qr ? `<img src="${qr}" alt="QR site" style="width:88px; height:88px">` : ""}
+    </div>
+    <h2>Client</h2>
+    <div class="doc-ligne"><strong>${echapper(bon.clientNom)}</strong>${cli && cli.adresse ? ` — ${echapper(cli.adresse)}` : ""}</div>
+    <div class="doc-ligne">Date : <strong>${bon.date ? formatDateLongue(new Date(bon.date + "T00:00:00")) : "—"}</strong>
+      ${bon.debut && bon.fin ? ` — de ${bon.debut} à ${bon.fin} (${formatHeures(dureeEntre(bon.debut, bon.fin))})` : ""}</div>
+    ${equipe ? `<div class="doc-ligne">Intervenant(s) : ${echapper(equipe)}</div>` : ""}
+    ${checklist ? `<h2>Travaux réalisés (check-list)</h2>${checklist}` : ""}
+    ${conso ? `<h2>Consommables utilisés</h2>${conso}` : ""}
+    ${bon.observations || bon.anomalie ? `<h2>Observations</h2>
+      ${bon.anomalie ? `<div class="doc-ligne">⚠️ <strong>Anomalie signalée</strong></div>` : ""}
+      ${bon.observations ? `<div class="doc-ligne">${echapper(bon.observations)}</div>` : ""}` : ""}
+    <div class="doc-signatures">
+      <div>Pour l'entreprise</div>
+      <div>${bon.signature ? `<img src="${bon.signature}" style="max-height:60px; display:block; margin-bottom:4px">` : ""}
+        Signature du client${bon.signataire ? ` — ${echapper(bon.signataire)}` : ""}</div>
+    </div>`;
+}
+
+/* ================= Contrôles qualité ================= */
+
+function tauxConformite(controle) {
+  let c = 0, nc = 0;
+  for (const p of (controle.points || [])) {
+    if (p.resultat === "c") c++;
+    else if (p.resultat === "nc") nc++;
+  }
+  return { c, nc, total: c + nc, taux: (c + nc) > 0 ? (c / (c + nc)) * 100 : null };
+}
+
+function rendreControles(zone) {
+  document.getElementById("libelle-periode").textContent = "Contrôles qualité";
+
+  const clientsAvecChecklist = donnees.clients.filter(c => (c.checklist || []).length > 0);
+  let html = `
+    <div class="ajout-vehicule no-print">
+      ${clientsAvecChecklist.length
+        ? `<select id="ctrl-nouveau-client" style="flex:1; min-width:180px">${clientsAvecChecklist.map(c =>
+            `<option value="${c.id}">${echapper(c.nom)}</option>`).join("")}</select>
+           <input type="date" id="ctrl-nouvelle-date" value="${versInputDate(new Date())}">
+           <input type="text" id="ctrl-controleur" placeholder="Contrôleur (votre nom)" style="min-width:150px">
+           <button class="primaire" data-qaction="creer">+ Nouveau contrôle</button>`
+        : `<span style="font-size:0.85rem; color:#6b7280">Ajoutez d'abord une check-list aux fiches 🧑‍💼 Clients :
+           elle sert de grille de contrôle.</span>`}
+    </div>`;
+
+  if (donnees.controles.length === 0) {
+    html += `<div class="vide">Aucun contrôle qualité.<br>
+      Le contrôle reprend la check-list du client : notez chaque point Conforme / Non conforme,
+      le taux de conformité est calculé automatiquement — la preuve qualité à présenter à vos clients.</div>`;
+  } else {
+    const tries = [...donnees.controles].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    html += `<div class="cartes-clients">` + tries.slice(0, 20).map(carteControle).join("") + `</div>`;
+    if (tries.length > 20) html += `<div class="note-onglet">${tries.length - 20} contrôle(s) plus ancien(s) non affiché(s).</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+function carteControle(ctrl) {
+  const cli = clientParId(ctrl.clientId);
+  const t = tauxConformite(ctrl);
+  const badgeTaux = t.taux === null
+    ? `<span class="badge attention">non noté</span>`
+    : `<span class="badge ${t.taux >= 90 ? "ok" : t.taux >= 70 ? "attention" : "alerte"}">${formatPourcent(t.taux)} conforme</span>`;
+
+  // historique du client : derniers taux pour la tendance
+  const historique = donnees.controles
+    .filter(x => x.clientId === ctrl.clientId && x.id !== ctrl.id && tauxConformite(x).taux !== null)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .slice(0, 4)
+    .map(x => `${x.date ? formatDateCourte(new Date(x.date + "T00:00:00")) : "?"} : ${formatPourcent(tauxConformite(x).taux)}`)
+    .join(" · ");
+
+  const lignes = (ctrl.points || []).map((p, i) => `
+    <div class="ligne-item">
+      <span class="texte">${echapper(p.texte)}</span>
+      <span class="choix-resultat" style="display:inline-flex; gap:4px">
+        <button class="res-c${p.resultat === "c" ? " actif" : ""}" data-qaction="noter" data-qid="${ctrl.id}" data-idx="${i}" data-res="c" title="Conforme">✔ C</button>
+        <button class="res-nc${p.resultat === "nc" ? " actif" : ""}" data-qaction="noter" data-qid="${ctrl.id}" data-idx="${i}" data-res="nc" title="Non conforme">✘ NC</button>
+        <button class="res-nv${(!p.resultat || p.resultat === "nv") ? " actif" : ""}" data-qaction="noter" data-qid="${ctrl.id}" data-idx="${i}" data-res="nv" title="Non contrôlé">—</button>
+      </span>
+      ${p.resultat === "nc" ? `<button class="no-print" data-qaction="ticket" data-qid="${ctrl.id}" data-idx="${i}" title="Créer un ticket correctif" style="font-size:0.76rem">→ 🎫 Ticket</button>` : ""}
+    </div>`).join("");
+
+  return `
+  <div class="carte-vehicule carte-client">
+    <div style="display:flex; align-items:flex-start; gap:8px">
+      <div style="flex:1">
+        <h3>🔍 ${echapper(cli ? cli.nom : "(client supprimé)")} ${badgeTaux}</h3>
+        <div class="attribution">Contrôle du ${ctrl.date ? formatDateLongue(new Date(ctrl.date + "T00:00:00")) : "—"}
+          ${ctrl.controleur ? ` — par ${echapper(ctrl.controleur)}` : ""}
+          ${historique ? `<br>Précédents : ${historique}` : ""}</div>
+      </div>
+      <button class="no-print" data-qaction="imprimer" data-qid="${ctrl.id}" title="Imprimer le rapport">🖨️ Imprimer</button>
+      <button class="no-print" data-qaction="supprimer" data-qid="${ctrl.id}" title="Supprimer">✕</button>
+    </div>
+    <div class="section-vehicule">
+      ${lignes || `<div class="stat-vehicule" style="color:#6b7280">Aucun point de contrôle.</div>`}
+    </div>
+    <div class="section-vehicule">
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 110px">Commentaire</span>
+        <input type="text" data-qchange="commentaire" data-qid="${ctrl.id}" value="${echapperAttr(ctrl.commentaire || "")}" style="flex:1">
+      </div>
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 110px">Signataire client</span>
+        <input type="text" data-qchange="signataire" data-qid="${ctrl.id}" value="${echapperAttr(ctrl.signataire || "")}" placeholder="contrôle contradictoire (optionnel)" style="flex:1">
+      </div>
+    </div>
+  </div>`;
+}
+
+function docRapportControle(ctrl) {
+  const cli = clientParId(ctrl.clientId);
+  const t = tauxConformite(ctrl);
+  const lignes = (ctrl.points || []).map(p => `
+    <div class="doc-case">${p.resultat === "c" ? "✔ Conforme" : p.resultat === "nc" ? "✘ NON CONFORME" : "— Non contrôlé"}
+      &nbsp;·&nbsp; ${echapper(p.texte)}</div>`).join("");
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">Rapport de contrôle qualité</div>
+    <h2>Site contrôlé</h2>
+    <div class="doc-ligne"><strong>${echapper(cli ? cli.nom : "")}</strong>${cli && cli.adresse ? ` — ${echapper(cli.adresse)}` : ""}</div>
+    <div class="doc-ligne">Date : ${ctrl.date ? formatDateLongue(new Date(ctrl.date + "T00:00:00")) : "—"}
+      ${ctrl.controleur ? ` — Contrôleur : ${echapper(ctrl.controleur)}` : ""}</div>
+    <h2>Résultat</h2>
+    <div class="doc-ligne" style="font-size:1.15rem"><strong>Taux de conformité :
+      ${t.taux === null ? "non noté" : formatPourcent(t.taux)}</strong>
+      (${t.c} conforme(s), ${t.nc} non conforme(s) sur ${t.total} point(s) contrôlé(s))</div>
+    <h2>Détail des points</h2>
+    ${lignes}
+    ${ctrl.commentaire ? `<h2>Commentaire</h2><div class="doc-ligne">${echapper(ctrl.commentaire)}</div>` : ""}
+    <div class="doc-signatures">
+      <div>Le contrôleur${ctrl.controleur ? ` — ${echapper(ctrl.controleur)}` : ""}</div>
+      <div>Le client${ctrl.signataire ? ` — ${echapper(ctrl.signataire)}` : ""}</div>
+    </div>`;
+}
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-qaction]");
+  if (!btn) return;
+  const ctrl = donnees.controles.find(x => x.id === btn.dataset.qid);
+  const idx = btn.dataset.idx !== undefined ? Number(btn.dataset.idx) : -1;
+
+  switch (btn.dataset.qaction) {
+    case "creer": {
+      const cli = clientParId(document.getElementById("ctrl-nouveau-client").value);
+      if (!cli) return;
+      donnees.controles.push({
+        id: nouvelId("ctl"),
+        date: document.getElementById("ctrl-nouvelle-date").value || versInputDate(new Date()),
+        clientId: cli.id,
+        points: (cli.checklist || []).map(t => ({ texte: t.texte, resultat: "nv" })),
+        commentaire: "",
+        controleur: document.getElementById("ctrl-controleur").value.trim(),
+        signataire: "",
+        ticketsCrees: [],
+      });
+      break;
+    }
+    case "noter": {
+      const p = ctrl && (ctrl.points || [])[idx];
+      if (!p) return;
+      p.resultat = btn.dataset.res;
+      break;
+    }
+    case "ticket": {
+      const p = ctrl && (ctrl.points || [])[idx];
+      if (!p) return;
+      const cli = clientParId(ctrl.clientId);
+      const ticket = {
+        id: nouvelId("tick"),
+        date: versInputDate(new Date()),
+        clientId: ctrl.clientId,
+        clientNom: cli ? cli.nom : "",
+        objet: `Non-conformité : ${p.texte}`,
+        detail: `Constatée lors du contrôle qualité du ${ctrl.date ? formatDateLongue(new Date(ctrl.date + "T00:00:00")) : "?"}.`,
+        priorite: "haute",
+        statut: "ouvert",
+        origine: "controle",
+        controleId: ctrl.id,
+      };
+      donnees.tickets.push(ticket);
+      ctrl.ticketsCrees = ctrl.ticketsCrees || [];
+      ctrl.ticketsCrees.push(ticket.id);
+      sauvegarder();
+      changerVue("tickets");
+      return;
+    }
+    case "imprimer":
+      if (ctrl) imprimerDocument(docRapportControle(ctrl));
+      return;
+    case "supprimer":
+      if (!ctrl) return;
+      if (!confirm("Supprimer ce contrôle qualité ?")) return;
+      donnees.controles = donnees.controles.filter(x => x !== ctrl);
+      break;
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-qchange]");
+  if (!el) return;
+  const ctrl = donnees.controles.find(x => x.id === el.dataset.qid);
+  if (!ctrl) return;
+  if (el.dataset.qchange === "commentaire") ctrl.commentaire = el.value.trim();
+  else if (el.dataset.qchange === "signataire") ctrl.signataire = el.value.trim();
+  sauvegarder();
+  rendre();
+});
+
+/* ================= Tickets / ordres de travail ================= */
+
+function rendreTickets(zone) {
+  document.getElementById("libelle-periode").textContent = "Tickets & ordres de travail";
+  majListeClients();
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="tick-client" list="liste-clients" placeholder="Client" style="min-width:160px">
+      <input type="text" id="tick-objet" placeholder="Objet (ex. : réclamation vitres, demande ponctuelle…)" style="flex:2; min-width:200px">
+      <select id="tick-priorite">
+        <option value="basse">Priorité basse</option>
+        <option value="normale" selected>Priorité normale</option>
+        <option value="haute">Priorité haute</option>
+      </select>
+      <button class="primaire" data-taction="creer">+ Ticket</button>
+    </div>`;
+
+  if (donnees.tickets.length === 0) {
+    html += `<div class="vide">Aucun ticket.<br>
+      Notez ici les réclamations, oublis et demandes ponctuelles des clients — et suivez-les
+      jusqu'à leur clôture. Les points non conformes des contrôles qualité créent aussi des tickets.</div>`;
+  } else {
+    const poids = { ouvert: 0, encours: 1, clos: 2 };
+    const prios = { haute: 0, normale: 1, basse: 2 };
+    const tries = [...donnees.tickets].sort((a, b) =>
+      (poids[a.statut] ?? 1) - (poids[b.statut] ?? 1) ||
+      (prios[a.priorite] ?? 1) - (prios[b.priorite] ?? 1) ||
+      (b.date || "").localeCompare(a.date || ""));
+
+    const lignes = tries.map(t => `
+      <tr class="${t.statut === "clos" ? "" : (t.priorite === "haute" ? "ligne-alerte" : "")}">
+        <td class="num" style="width:90px">${t.date ? formatDateCourte(new Date(t.date + "T00:00:00")) : "—"}</td>
+        <td style="width:160px"><strong>${echapper(t.clientNom || "—")}</strong></td>
+        <td>${echapper(t.objet)}${t.detail ? `<div style="font-size:0.78rem;color:#6b7280">${echapper(t.detail)}</div>` : ""}
+          ${t.origine === "controle" ? ` <span class="badge attention">contrôle qualité</span>` : ""}</td>
+        <td style="width:110px"><span class="badge prio-${t.priorite || "normale"}">${t.priorite || "normale"}</span></td>
+        <td style="width:130px">
+          <select data-tchange="statut" data-tid="${t.id}">
+            <option value="ouvert"${t.statut === "ouvert" ? " selected" : ""}>🔴 Ouvert</option>
+            <option value="encours"${t.statut === "encours" ? " selected" : ""}>🟠 En cours</option>
+            <option value="clos"${t.statut === "clos" ? " selected" : ""}>🟢 Clos</option>
+          </select>
+          ${t.statut === "clos" && t.dateCloture ? `<div style="font-size:0.72rem;color:#6b7280">le ${formatDateCourte(new Date(t.dateCloture + "T00:00:00"))}</div>` : ""}</td>
+        <td class="no-print" style="width:40px"><button data-taction="supprimer" data-tid="${t.id}" title="Supprimer">✕</button></td>
+      </tr>`).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr><th>Date</th><th>Client</th><th>Objet</th><th>Priorité</th><th>Statut</th><th class="no-print"></th></tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>
+    </div>`;
+  }
+  zone.innerHTML = html;
+}
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-taction]");
+  if (!btn) return;
+
+  switch (btn.dataset.taction) {
+    case "creer": {
+      const champObjet = document.getElementById("tick-objet");
+      const objet = champObjet.value.trim();
+      if (!objet) { champObjet.focus(); return; }
+      const clientNom = document.getElementById("tick-client").value.trim();
+      const cli = donnees.clients.find(c => normaliserNom(c.nom) === normaliserNom(clientNom));
+      donnees.tickets.push({
+        id: nouvelId("tick"),
+        date: versInputDate(new Date()),
+        clientId: cli ? cli.id : null,
+        clientNom,
+        objet,
+        detail: "",
+        priorite: document.getElementById("tick-priorite").value,
+        statut: "ouvert",
+        origine: "manuel",
+      });
+      break;
+    }
+    case "supprimer": {
+      const t = donnees.tickets.find(x => x.id === btn.dataset.tid);
+      if (!t) return;
+      if (!confirm(`Supprimer le ticket « ${t.objet} » ?`)) return;
+      donnees.tickets = donnees.tickets.filter(x => x !== t);
+      break;
+    }
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-tchange]");
+  if (!el) return;
+  const t = donnees.tickets.find(x => x.id === el.dataset.tid);
+  if (!t) return;
+  if (el.dataset.tchange === "statut") {
+    t.statut = el.value;
+    if (t.statut === "clos") t.dateCloture = versInputDate(new Date());
+    else delete t.dateCloture;
+  }
+  sauvegarder();
+  rendre();
+});
+
+/* ================= Rapports ================= */
+
+let moisRapport = versInputDate(new Date()).slice(0, 7); // "AAAA-MM"
+let rapportClientId = null;
+let feuilleEmpId = null;
+
+function anneesMoisDe(moisStr) {
+  const [a, m] = (moisStr || "").split("-").map(Number);
+  const auj = new Date();
+  return { annee: a || auj.getFullYear(), mois: (m || auj.getMonth() + 1) - 1 };
+}
+
+function libelleMoisLong(annee, mois) {
+  const s = new Date(annee, mois, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function telechargerFichier(nomFichier, contenu, type) {
+  const blob = new Blob([contenu], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* ---------- Rapport client mensuel ---------- */
+
+function bonsDuMois(clientId, annee, mois) {
+  const prefixe = `${annee}-${String(mois + 1).padStart(2, "0")}`;
+  return donnees.interventions
+    .filter(b => b.clientId === clientId && (b.date || "").startsWith(prefixe))
+    .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+}
+
+function controlesDuMois(clientId, annee, mois) {
+  const prefixe = `${annee}-${String(mois + 1).padStart(2, "0")}`;
+  return donnees.controles
+    .filter(c => c.clientId === clientId && (c.date || "").startsWith(prefixe))
+    .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+}
+
+function docRapportClientMensuel(cli, annee, mois) {
+  const stats = statsClientsMois(annee, mois, true);
+  const s = stats.parClient[cli.id] ||
+    { minutes: 0, minutesPlan: 0, interventions: 0 };
+  const bons = bonsDuMois(cli.id, annee, mois);
+  const controles = controlesDuMois(cli.id, annee, mois);
+
+  const lignesBons = bons.map(b => {
+    const equipe = (b.equipe || [])
+      .map(id => (donnees.employes.find(x => x.id === id) || {}).nom).filter(Boolean).join(", ");
+    const faits = (b.checklist || []).filter(t => t.fait).length;
+    return `<div class="doc-ligne">• ${b.date ? formatDateCourte(new Date(b.date + "T00:00:00")) : "?"} —
+      ${b.debut && b.fin ? `${b.debut}-${b.fin} (${formatHeures(dureeEntre(b.debut, b.fin))})` : ""}
+      ${equipe ? ` — ${echapper(equipe)}` : ""}
+      ${(b.checklist || []).length ? ` — check-list ${faits}/${b.checklist.length}` : ""}
+      ${b.anomalie ? " — ⚠️ anomalie" : ""}${b.signature ? " — signé ✔" : ""}</div>`;
+  }).join("");
+
+  const tauxListe = controles.map(tauxConformite).filter(t => t.taux !== null);
+  const tauxMoyen = tauxListe.length
+    ? tauxListe.reduce((somme, t) => somme + t.taux, 0) / tauxListe.length : null;
+  const lignesControles = controles.map(c => {
+    const t = tauxConformite(c);
+    return `<div class="doc-ligne">• ${c.date ? formatDateCourte(new Date(c.date + "T00:00:00")) : "?"} —
+      conformité ${t.taux === null ? "non notée" : formatPourcent(t.taux)}
+      ${c.commentaire ? ` — ${echapper(c.commentaire)}` : ""}</div>`;
+  }).join("");
+
+  // consommables réellement passés sur les bons du mois
+  const consoTotale = {};
+  for (const b of bons) {
+    for (const c of (b.consommables || [])) {
+      if (c.qte > 0) consoTotale[c.nom] = (consoTotale[c.nom] || 0) + c.qte;
+    }
+  }
+  const lignesConso = Object.keys(consoTotale).sort()
+    .map(nom => `<div class="doc-ligne">• ${formatKm(consoTotale[nom])} — ${echapper(nom)}</div>`).join("");
+
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">Rapport d'activité mensuel — ${libelleMoisLong(annee, mois)}</div>
+    <h2>Client</h2>
+    <div class="doc-ligne"><strong>${echapper(cli.nom)}</strong>${cli.adresse ? ` — ${echapper(cli.adresse)}` : ""}</div>
+    <h2>Synthèse du mois</h2>
+    <div class="doc-ligne">Interventions planifiées : <strong>${s.interventions}</strong>
+      — Bons d'intervention émis : <strong>${bons.length}</strong></div>
+    <div class="doc-ligne">Heures planifiées : <strong>${formatHeures(Math.round(s.minutesPlan))}</strong>
+      ${stats.reelExiste ? ` — Heures effectuées (pointées) : <strong>${formatHeures(Math.round(s.minutes))}</strong>` : ""}</div>
+    ${tauxMoyen !== null ? `<div class="doc-ligne">Taux de conformité qualité moyen :
+      <strong>${formatPourcent(tauxMoyen)}</strong> (${controles.length} contrôle(s))</div>` : ""}
+    ${lignesBons ? `<h2>Interventions réalisées</h2>${lignesBons}` : ""}
+    ${lignesControles ? `<h2>Contrôles qualité</h2>${lignesControles}` : ""}
+    ${lignesConso ? `<h2>Consommables utilisés</h2>${lignesConso}` : ""}
+    <div class="doc-sous-titre" style="margin-top:16px">Rapport édité le ${formatDateLongue(new Date())} —
+      document remis à titre d'information.</div>`;
+}
+
+function rendreRapportClient(zone) {
+  document.getElementById("libelle-periode").textContent = "Rapport client mensuel";
+  if (!rapportClientId || !clientParId(rapportClientId)) {
+    rapportClientId = donnees.clients.length ? donnees.clients[0].id : null;
+  }
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      ${donnees.clients.length
+        ? `<select data-rchange="rapport-client" style="flex:1; min-width:180px">${donnees.clients.map(c =>
+            `<option value="${c.id}"${c.id === rapportClientId ? " selected" : ""}>${echapper(c.nom)}</option>`).join("")}</select>
+           <input type="month" data-rchange="mois" value="${moisRapport}">
+           <button class="primaire" data-raction="imprimer-rapport-client">🖨️ Imprimer le rapport</button>`
+        : `<span style="font-size:0.85rem; color:#6b7280">Créez d'abord vos clients dans l'onglet 🧑‍💼 Clients.</span>`}
+    </div>`;
+
+  const cli = clientParId(rapportClientId);
+  if (!cli) {
+    html += `<div class="vide">Aucun client.</div>`;
+  } else {
+    const { annee, mois } = anneesMoisDe(moisRapport);
+    html += `<div class="carte-vehicule"><div class="doc">${docRapportClientMensuel(cli, annee, mois)}</div></div>
+      <div class="note-onglet">Ce rapport remplace le « portail client » des logiciels en ligne :
+      imprimez-le ou enregistrez-le en PDF et remettez-le à votre client chaque mois.</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+/* ---------- Feuilles de temps + export prépaie ---------- */
+
+function feuilleTempsEmploye(emp, annee, mois) {
+  const nbJours = new Date(annee, mois + 1, 0).getDate();
+  const jours = [];
+  const totaux = { plan: 0, reel: 0, retenu: 0, cp: 0, ferie: 0, repos: 0, joursNonPointes: 0, joursPointes: 0 };
+  for (let j = 1; j <= nbJours; j++) {
+    const date = new Date(annee, mois, j);
+    const dateStr = versInputDate(date);
+    const cellule = celluleDeDate(emp.id, date);
+    let planMin = 0;
+    let type = cellule ? cellule.type : null;
+    if (cellule && cellule.type === "travail" && cellule.creneaux) {
+      for (const c of cellule.creneaux) {
+        if (c.type !== "trajet" && c.debut && c.fin) planMin += dureeEntre(c.debut, c.fin);
+      }
+    }
+    const pointages = donnees.pointages.filter(p => p.empId === emp.id && p.date === dateStr && p.debut && p.fin);
+    const reelMin = pointages.length ? pointages.reduce((somme, p) => somme + dureeEntre(p.debut, p.fin), 0) : null;
+    const retenuMin = reelMin !== null ? reelMin : planMin;
+
+    totaux.plan += planMin;
+    if (reelMin !== null) { totaux.reel += reelMin; totaux.joursPointes++; }
+    totaux.retenu += retenuMin;
+    if (type === "conge") totaux.cp++;
+    if (type === "ferie") totaux.ferie++;
+    if (type === "repos") totaux.repos++;
+    if (planMin > 0 && reelMin === null && dateStr <= versInputDate(new Date())) totaux.joursNonPointes++;
+
+    jours.push({ date, dateStr, type, planMin, reelMin, retenuMin });
+  }
+  return { jours, totaux };
+}
+
+function docFeuilleTemps(emp, annee, mois) {
+  const f = feuilleTempsEmploye(emp, annee, mois);
+  const lignes = f.jours
+    .filter(j => j.planMin > 0 || j.reelMin !== null || ["conge", "ferie", "repos"].includes(j.type))
+    .map(j => `<div class="doc-ligne">${JOURS_COURTS[(j.date.getDay() + 6) % 7]} ${String(j.date.getDate()).padStart(2, "0")} —
+      ${j.type === "conge" ? "Congé" : j.type === "ferie" ? "Férié" : j.type === "repos" ? "Repos" :
+        `planifié ${formatHeures(j.planMin)}${j.reelMin !== null ? ` · réel <strong>${formatHeures(j.reelMin)}</strong>` : " · non pointé"}`}</div>`)
+    .join("");
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">Feuille de temps — ${echapper(emp.nom)} — ${libelleMoisLong(annee, mois)}</div>
+    <h2>Totaux du mois</h2>
+    <div class="doc-ligne">Heures retenues (réelles, planifiées à défaut) : <strong>${formatHeures(f.totaux.retenu)}</strong></div>
+    <div class="doc-ligne">Heures planifiées : ${formatHeures(f.totaux.plan)} — Heures pointées : ${formatHeures(f.totaux.reel)}
+      (${f.totaux.joursPointes} jour(s) pointé(s)${f.totaux.joursNonPointes ? `, ${f.totaux.joursNonPointes} non pointé(s)` : ""})</div>
+    <div class="doc-ligne">Congés : ${f.totaux.cp} j — Fériés : ${f.totaux.ferie} j — Repos : ${f.totaux.repos} j</div>
+    <h2>Détail</h2>
+    ${lignes || `<div class="doc-ligne">Aucune activité ce mois-ci.</div>`}
+    <div class="doc-signatures">
+      <div>Le salarié</div>
+      <div>L'employeur</div>
+    </div>`;
+}
+
+function exporterCSVPrepaie(annee, mois) {
+  const lignes = ["Salarié;Heures retenues;Heures réelles;Heures planifiées;Jours CP;Jours fériés;Jours non pointés"];
+  const h = (min) => (min / 60).toFixed(2).replace(".", ",");
+  for (const emp of donnees.employes) {
+    const f = feuilleTempsEmploye(emp, annee, mois);
+    lignes.push([emp.nom.replace(/;/g, ","), h(f.totaux.retenu), h(f.totaux.reel), h(f.totaux.plan),
+      f.totaux.cp, f.totaux.ferie, f.totaux.joursNonPointes].join(";"));
+  }
+  telechargerFichier(`prepaie-${annee}-${String(mois + 1).padStart(2, "0")}.csv`,
+    "﻿" + lignes.join("\r\n"), "text/csv;charset=utf-8");
+}
+
+function rendreFeuillesTemps(zone) {
+  document.getElementById("libelle-periode").textContent = "Feuilles de temps";
+  if (!feuilleEmpId || !donnees.employes.some(e => e.id === feuilleEmpId)) {
+    feuilleEmpId = donnees.employes.length ? donnees.employes[0].id : null;
+  }
+  const { annee, mois } = anneesMoisDe(moisRapport);
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      ${donnees.employes.length
+        ? `<select data-rchange="feuille-emp" style="min-width:160px">${donnees.employes.map(e =>
+            `<option value="${e.id}"${e.id === feuilleEmpId ? " selected" : ""}>${echapper(e.nom)}</option>`).join("")}</select>
+           <input type="month" data-rchange="mois" value="${moisRapport}">
+           <button data-raction="imprimer-feuille">🖨️ Imprimer la feuille</button>
+           <span style="flex:1"></span>
+           <button class="primaire" data-raction="csv-prepaie">💾 Export CSV prépaie (tous les salariés)</button>`
+        : `<span style="font-size:0.85rem; color:#6b7280">Ajoutez d'abord vos salariés dans l'onglet 👥 Personnel.</span>`}
+    </div>`;
+
+  const emp = donnees.employes.find(e => e.id === feuilleEmpId);
+  if (!emp) {
+    html += `<div class="vide">Aucun salarié.</div>`;
+  } else {
+    const f = feuilleTempsEmploye(emp, annee, mois);
+    const lignes = f.jours.map(j => {
+      const week = (j.date.getDay() + 6) % 7 >= 5;
+      const vide = j.planMin === 0 && j.reelMin === null && !["conge", "ferie", "repos"].includes(j.type);
+      return `
+      <tr${week ? ` style="background:#f9fafb"` : ""}>
+        <td>${JOURS_COURTS[(j.date.getDay() + 6) % 7]} ${String(j.date.getDate()).padStart(2, "0")}</td>
+        <td>${j.type === "conge" ? `<span class="badge attention">Congé</span>` :
+             j.type === "ferie" ? `<span class="badge prio-normale">Férié</span>` :
+             j.type === "repos" ? `<span class="badge prio-basse">Repos</span>` : vide ? "—" : "Travail"}</td>
+        <td class="num">${j.planMin > 0 ? formatHeures(j.planMin) : "—"}</td>
+        <td class="num">${j.reelMin !== null ? `<strong>${formatHeures(j.reelMin)}</strong>` :
+             (j.planMin > 0 && j.dateStr <= versInputDate(new Date()) ? `<span style="color:#b45309">non pointé</span>` : "—")}</td>
+        <td class="num">${j.reelMin !== null && j.planMin > 0
+             ? (j.reelMin === j.planMin ? "=" : `<span class="${j.reelMin > j.planMin ? "marge-negative" : "marge-positive"}">${j.reelMin > j.planMin ? "+" : "−"}${formatHeures(Math.abs(j.reelMin - j.planMin))}</span>`)
+             : "—"}</td>
+      </tr>`;
+    }).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr><th style="width:90px">Jour</th><th style="width:110px">Type</th>
+        <th class="num" style="width:110px">Planifié</th><th class="num" style="width:110px">Réel pointé</th>
+        <th class="num" style="width:100px">Écart</th></tr></thead>
+      <tbody>
+        ${lignes}
+        <tr class="ligne-totaux">
+          <td colspan="2">TOTAL — retenu : ${formatHeures(f.totaux.retenu)}
+            <small style="font-weight:400">(CP : ${f.totaux.cp} j · fériés : ${f.totaux.ferie} j)</small></td>
+          <td class="num">${formatHeures(f.totaux.plan)}</td>
+          <td class="num">${formatHeures(f.totaux.reel)}</td>
+          <td class="num">${f.totaux.joursNonPointes ? `${f.totaux.joursNonPointes} j non pointés` : "—"}</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note-onglet">« Heures retenues » = heures pointées quand elles existent, heures planifiées sinon.
+      L'export CSV prépaie (tous les salariés du mois) s'ouvre directement dans Excel — à transmettre à
+      votre expert-comptable.</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+/* ---------- Export facturation ---------- */
+
+function lignesFacturationMois(annee, mois) {
+  const calc = calculerMargesMois(annee, mois);
+  const lignes = [];
+  for (const l of calc.lignes) {
+    let quantite = 0, unite = "", pu = 0, montant = 0;
+    if (l.modeCA === "forfait") {
+      quantite = 1; unite = "forfait"; pu = l.ct.forfaitMensuel || 0; montant = l.ca;
+    } else if (l.modeCA === "horaire" || l.modeCA === "horaire-estime") {
+      quantite = Math.round(l.heuresFacturees * 100) / 100; unite = "heure";
+      pu = l.ct.tauxHoraire || 0; montant = l.ca;
+    }
+    lignes.push({
+      clientId: l.cli.id, client: l.cli.nom, mode: l.modeCA,
+      interventions: l.s.interventions,
+      heuresPlanifiees: Math.round(l.s.heuresPlan * 100) / 100,
+      heuresRetenues: Math.round(l.s.heures * 100) / 100,
+      quantite, unite, prixUnitaireHT: pu, montantHT: Math.round(montant * 100) / 100,
+    });
+  }
+  return { lignes, stats: calc.stats, totalHT: lignes.reduce((somme, l) => somme + l.montantHT, 0) };
+}
+
+function rendreExportFacturation(zone) {
+  document.getElementById("libelle-periode").textContent = "Export facturation";
+  const { annee, mois } = anneesMoisDe(moisRapport);
+  const donneesFact = lignesFacturationMois(annee, mois);
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <input type="month" data-rchange="mois" value="${moisRapport}">
+      <span style="flex:1"></span>
+      <button data-raction="fact-json">💾 Export JSON (pour connexion API)</button>
+      <button class="primaire" data-raction="fact-csv">💾 Export CSV (logiciel de facturation)</button>
+    </div>`;
+
+  if (donneesFact.lignes.length === 0) {
+    html += `<div class="vide">Aucun client. Créez vos clients (avec leur contrat) dans l'onglet 🧑‍💼 Clients.</div>`;
+  } else {
+    const modes = { forfait: "Forfait", horaire: "Horaire", "horaire-estime": "Horaire (estimé)", "sans-contrat": "—" };
+    const lignes = donneesFact.lignes.map(l => `
+      <tr${l.mode === "sans-contrat" ? ` class="ligne-alerte"` : ""}>
+        <td><strong>${echapper(l.client)}</strong></td>
+        <td>${modes[l.mode]}${l.mode === "sans-contrat" ? ` <span class="badge attention">sans contrat</span>` : ""}</td>
+        <td class="num">${l.interventions || "—"}</td>
+        <td class="num">${l.heuresPlanifiees > 0 ? formatKm(l.heuresPlanifiees) + " h" : "—"}</td>
+        <td class="num">${l.heuresRetenues > 0 ? formatKm(l.heuresRetenues) + " h" : "—"}</td>
+        <td class="num">${l.quantite > 0 ? `${formatKm(l.quantite)} ${l.unite}` : "—"}</td>
+        <td class="num">${l.prixUnitaireHT > 0 ? formatEuros(l.prixUnitaireHT) : "—"}</td>
+        <td class="num"><strong>${l.montantHT > 0 ? formatEuros(l.montantHT) : "—"}</strong></td>
+      </tr>`).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th>Client</th><th style="width:130px">Mode</th><th class="num" style="width:75px">Interv.</th>
+        <th class="num" style="width:100px">H. planifiées</th><th class="num" style="width:100px">H. retenues</th>
+        <th class="num" style="width:110px">Qté facturable</th><th class="num" style="width:95px">PU HT</th>
+        <th class="num" style="width:110px">Montant HT</th>
+      </tr></thead>
+      <tbody>
+        ${lignes}
+        <tr class="ligne-totaux"><td colspan="7">TOTAL HT à facturer — ${libelleMoisLong(annee, mois)}</td>
+          <td class="num">${formatEuros(donneesFact.totalHT)}</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note-onglet">Montants HT calculés depuis les contrats (forfait mensuel, ou taux × heures
+      facturées — à défaut les heures retenues du planning/pointage). Importez le CSV dans votre logiciel
+      de facturation ; le JSON a la même structure et servira de format d'échange pour la future
+      connexion par API.</div>`;
+  }
+  zone.innerHTML = html;
+}
+
+function exporterFacturation(format) {
+  const { annee, mois } = anneesMoisDe(moisRapport);
+  const donneesFact = lignesFacturationMois(annee, mois);
+  const periode = `${annee}-${String(mois + 1).padStart(2, "0")}`;
+  if (format === "csv") {
+    const lignes = ["Client;Mode;Interventions;Heures planifiees;Heures retenues;Quantite;Unite;Prix unitaire HT;Montant HT"];
+    const num = (n) => n.toFixed(2).replace(".", ",");
+    for (const l of donneesFact.lignes) {
+      lignes.push([l.client.replace(/;/g, ","), l.mode, l.interventions, num(l.heuresPlanifiees),
+        num(l.heuresRetenues), num(l.quantite), l.unite, num(l.prixUnitaireHT), num(l.montantHT)].join(";"));
+    }
+    telechargerFichier(`facturation-${periode}.csv`, "﻿" + lignes.join("\r\n"), "text/csv;charset=utf-8");
+  } else {
+    const contenu = {
+      logiciel: "gestion-nettoyage",
+      version: 1,
+      periode,
+      genereLe: versInputDate(new Date()),
+      societe: donnees.societe || "",
+      lignes: donneesFact.lignes,
+      totalHT: Math.round(donneesFact.totalHT * 100) / 100,
+    };
+    telechargerFichier(`facturation-${periode}.json`, JSON.stringify(contenu, null, 1), "application/json");
+  }
+}
+
+// Actions et saisies de l'onglet Rapports
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-raction]");
+  if (!btn) return;
+  switch (btn.dataset.raction) {
+    case "imprimer-rapport-client": {
+      const cli = clientParId(rapportClientId);
+      if (!cli) return;
+      const { annee, mois } = anneesMoisDe(moisRapport);
+      imprimerDocument(docRapportClientMensuel(cli, annee, mois));
+      return;
+    }
+    case "imprimer-feuille": {
+      const emp = donnees.employes.find(x => x.id === feuilleEmpId);
+      if (!emp) return;
+      const { annee, mois } = anneesMoisDe(moisRapport);
+      imprimerDocument(docFeuilleTemps(emp, annee, mois));
+      return;
+    }
+    case "csv-prepaie": {
+      const { annee, mois } = anneesMoisDe(moisRapport);
+      exporterCSVPrepaie(annee, mois);
+      return;
+    }
+    case "fact-csv": exporterFacturation("csv"); return;
+    case "fact-json": exporterFacturation("json"); return;
+  }
+});
+
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-rchange]");
+  if (!el) return;
+  if (el.dataset.rchange === "mois") { if (el.value) moisRapport = el.value; }
+  else if (el.dataset.rchange === "rapport-client") rapportClientId = el.value;
+  else if (el.dataset.rchange === "feuille-emp") feuilleEmpId = el.value;
+  else return;
+  rendre();
+});
+
+/* ================= Accueil (tableau de bord) ================= */
+
+function calculerAlertes() {
+  const alertes = [];
+  const auj = new Date();
+  auj.setHours(0, 0, 0, 0);
+  const aujStr = versInputDate(auj);
+
+  // Véhicules : contrôle technique et révisions
+  for (const v of donnees.vehicules) {
+    if (v.ctDate) {
+      const jours = Math.round((new Date(v.ctDate + "T00:00:00") - auj) / 86400000);
+      if (jours < 0) alertes.push({ texte: `🚙 Contrôle technique de ${v.nom} dépassé de ${-jours} j`, cible: "vehicules", grave: true });
+      else if (jours <= 45) alertes.push({ texte: `🚙 Contrôle technique de ${v.nom} dans ${jours} j`, cible: "vehicules" });
+    }
+    for (const r of (v.revisions || [])) {
+      if (r.fait) continue;
+      const enRetard = (r.echeanceDate && r.echeanceDate < aujStr) ||
+        (r.echeanceKm > 0 && v.compteurKm > 0 && v.compteurKm >= r.echeanceKm);
+      if (enRetard) alertes.push({ texte: `🔧 Révision en retard sur ${v.nom} : ${r.texte}`, cible: "vehicules", grave: true });
+    }
+  }
+
+  // Stocks sous seuil
+  const sousSeuil = donnees.produits.filter(p => p.seuil > 0 && p.quantite <= p.seuil);
+  if (sousSeuil.length) {
+    alertes.push({ texte: `📦 ${sousSeuil.length} produit(s) sous le seuil d'alerte : ${sousSeuil.slice(0, 3).map(p => p.nom).join(", ")}${sousSeuil.length > 3 ? "…" : ""}`, cible: "stocks" });
+  }
+
+  // Tickets ouverts
+  const ouverts = donnees.tickets.filter(t => t.statut !== "clos");
+  if (ouverts.length) {
+    alertes.push({ texte: `🎫 ${ouverts.length} ticket(s) à traiter`, cible: "tickets",
+      grave: ouverts.some(t => t.priorite === "haute") });
+  }
+
+  // Anomalies signalées sur les bons des 30 derniers jours
+  const il30j = versInputDate(ajouterJours(auj, -30));
+  const anomalies = donnees.interventions.filter(b => b.anomalie && (b.date || "") >= il30j);
+  if (anomalies.length) {
+    alertes.push({ texte: `⚠️ ${anomalies.length} anomalie(s) signalée(s) sur les bons d'intervention (30 j)`, cible: "bons", grave: true });
+  }
+
+  // Marges du mois : clients sans fiche, coûts manquants
+  const stats = statsClientsMois(auj.getFullYear(), auj.getMonth(), true);
+  if (stats.nonRepertories.length) {
+    alertes.push({ texte: `❓ ${stats.nonRepertories.length} client(s) du planning sans fiche : ${stats.nonRepertories.slice(0, 3).map(n => n.nom).join(", ")}${stats.nonRepertories.length > 3 ? "…" : ""}`, cible: "marges" });
+  }
+  if (stats.sansCout.length) {
+    alertes.push({ texte: `💶 Coût horaire manquant pour ${stats.sansCout.join(", ")}`, cible: "personnel" });
+  }
+
+  // Jours de travail passés non pointés ce mois-ci
+  let nonPointes = 0;
+  for (const emp of donnees.employes) {
+    const f = feuilleTempsEmploye(emp, auj.getFullYear(), auj.getMonth());
+    nonPointes += f.totaux.joursNonPointes;
+  }
+  if (nonPointes > 0) {
+    alertes.push({ texte: `⏱️ ${nonPointes} journée(s) travaillée(s) non pointée(s) ce mois-ci`, cible: "pointage" });
+  }
+
+  return alertes;
+}
+
+function rendreAccueil(zone) {
+  const auj = new Date();
+  const annee = auj.getFullYear();
+  const mois = auj.getMonth();
+  document.getElementById("libelle-periode").textContent =
+    "Tableau de bord — " + libelleMoisLong(annee, mois);
+
+  const calc = calculerMargesMois(annee, mois);
+  const totaux = calc.totaux;
+  const stats = calc.stats;
+
+  // taux de conformité moyen du mois
+  const prefixeMois = `${annee}-${String(mois + 1).padStart(2, "0")}`;
+  const controlesMois = donnees.controles.filter(c => (c.date || "").startsWith(prefixeMois));
+  const tauxListe = controlesMois.map(tauxConformite).filter(t => t.taux !== null);
+  const tauxMoyen = tauxListe.length ? tauxListe.reduce((somme, t) => somme + t.taux, 0) / tauxListe.length : null;
+
+  const kpi = (valeur, libelle, classe = "") =>
+    `<div class="kpi"><div class="valeur ${classe}">${valeur}</div><div class="libelle">${libelle}</div></div>`;
+
+  let html = `<div class="cartes-kpi">
+    ${kpi(formatEuros(totaux.ca), "CA du mois (contrats)")}
+    ${kpi(formatEuros(totaux.coutMO + totaux.coutConso), "Coûts (MO + consommables)")}
+    ${kpi(formatEuros(totaux.marge), "Marge estimée" + (totaux.pct !== null ? ` (${formatPourcent(totaux.pct)})` : ""), totaux.marge >= 0 ? "positif" : "negatif")}
+    ${kpi(formatHeures(Math.round(totaux.heuresPlan * 60)), "Heures planifiées")}
+    ${stats.reelExiste ? kpi(formatHeures(Math.round(totaux.heures * 60)), "Heures retenues (avec pointages)") : ""}
+    ${kpi(String(totaux.interventions), "Interventions")}
+    ${tauxMoyen !== null ? kpi(formatPourcent(tauxMoyen), "Conformité qualité", tauxMoyen >= 90 ? "positif" : tauxMoyen < 70 ? "negatif" : "") : ""}
+  </div>`;
+
+  // Alertes
+  const alertes = calculerAlertes();
+  html += `<div class="titre-section-accueil">🔔 Alertes (${alertes.length})</div>`;
+  if (alertes.length === 0) {
+    html += `<div class="note-onglet">Rien à signaler — tout est en ordre ✅</div>`;
+  } else {
+    html += `<div class="liste-alertes">` + alertes.map(a =>
+      `<button class="alerte-ligne${a.grave ? " grave" : ""}" data-aaction="aller" data-cible="${a.cible}">
+        ${a.texte}<span class="fleche">→</span></button>`).join("") + `</div>`;
+  }
+
+  // Planning du jour
+  const indexJour = (auj.getDay() + 6) % 7;
+  html += `<div class="titre-section-accueil">📅 Aujourd'hui — ${JOURS[indexJour]} ${formatDateLongue(auj)}</div>`;
+  if (donnees.employes.length === 0) {
+    html += `<div class="note-onglet">Ajoutez vos salariés dans l'onglet 👥 Personnel pour commencer.</div>`;
+  } else {
+    const lignes = donnees.employes.map(emp => {
+      const cellule = celluleDeDate(emp.id, auj);
+      let contenu = `<span style="color:#9ca3af">—</span>`;
+      if (cellule) {
+        if (cellule.type !== "travail") {
+          contenu = `<span class="badge ${cellule.type === "conge" ? "attention" : "prio-basse"}">${ETIQUETTES[cellule.type] || ""}</span>`;
+        } else if (cellule.creneaux && cellule.creneaux.length) {
+          contenu = cellule.creneaux.filter(c => c.type !== "trajet" && c.debut && c.fin)
+            .map(c => `${c.debut}-${c.fin}${c.client ? ` <strong>${echapper(c.client)}</strong>` : ""}`)
+            .join(" · ") || `<span style="color:#9ca3af">—</span>`;
+        }
+      }
+      return `<tr><td style="width:170px"><strong>${echapper(emp.nom)}</strong></td><td>${contenu}</td></tr>`;
+    }).join("");
+    html += `<div style="overflow-x:auto"><table class="tableau-gestion"><tbody>${lignes}</tbody></table></div>`;
+  }
+
+  html += `<div class="note-onglet" style="margin-top:14px">💡 Pensez à exporter régulièrement votre
+    sauvegarde (💾 Sauvegarde) : c'est votre filet de sécurité.</div>`;
+
+  zone.innerHTML = html;
+}
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-aaction]");
+  if (!btn) return;
+  if (btn.dataset.aaction === "aller") changerVue(btn.dataset.cible);
+});
+
+/* ================= QR code (préparation version connectée) ================= */
+
+// Repli propre si la bibliothèque n'est pas embarquée : retourne ""
+function qrDataUrl(texte) {
+  try {
+    if (typeof qrcode !== "function") return "";
+    const qr = qrcode(0, "M");
+    qr.addData(texte);
+    qr.make();
+    const nbModules = qr.getModuleCount();
+    const echelle = 4, marge = 8;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = nbModules * echelle + marge * 2;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = "#000000";
+    for (let l = 0; l < nbModules; l++) {
+      for (let c = 0; c < nbModules; c++) {
+        if (qr.isDark(l, c)) ctx.fillRect(marge + c * echelle, marge + l * echelle, echelle, echelle);
+      }
+    }
+    return cv.toDataURL("image/png");
+  } catch (e) {
+    return "";
+  }
 }
 
 /* ================= Modale cellule ================= */
@@ -2864,18 +6817,25 @@ document.getElementById("date-semaine").addEventListener("change", (e) => {
 });
 
 let sousVuePlanning = vue === "mois" ? "mois" : "semaine"; // dernière sous-vue du planning
+let sousVueInterventions = VUES_INTERVENTIONS.includes(vue) ? vue : "bons";
+let sousVueRapports = VUES_RAPPORTS.includes(vue) ? vue : "rapport-client";
 
 function changerVue(nouvelleVue) {
   vue = nouvelleVue;
   donnees.vue = vue;
   if (vue === "semaine" || vue === "mois") sousVuePlanning = vue;
+  if (VUES_INTERVENTIONS.includes(vue)) sousVueInterventions = vue;
+  if (VUES_RAPPORTS.includes(vue)) sousVueRapports = vue;
   if (vue === "mois" || vue === "marges") {
     moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
   }
   sauvegarder();
   rendre();
 }
+document.getElementById("btn-vue-accueil").addEventListener("click", () => changerVue("accueil"));
 document.getElementById("btn-vue-planning").addEventListener("click", () => changerVue(sousVuePlanning));
+document.getElementById("btn-vue-interventions").addEventListener("click", () => changerVue(sousVueInterventions));
+document.getElementById("btn-vue-rapports").addEventListener("click", () => changerVue(sousVueRapports));
 document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
 document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
 document.getElementById("btn-vue-clients").addEventListener("click", () => changerVue("clients"));
@@ -2884,6 +6844,9 @@ document.getElementById("btn-vue-stocks").addEventListener("click", () => change
 document.getElementById("btn-vue-materiel").addEventListener("click", () => changerVue("materiel"));
 document.getElementById("btn-vue-vehicules").addEventListener("click", () => changerVue("vehicules"));
 document.getElementById("btn-vue-marges").addEventListener("click", () => changerVue("marges"));
+for (const sv of [...VUES_INTERVENTIONS, ...VUES_RAPPORTS]) {
+  document.getElementById("btn-vue-" + sv).addEventListener("click", () => changerVue(sv));
+}
 
 /* ================= Sauvegarde : export / import JSON ================= */
 

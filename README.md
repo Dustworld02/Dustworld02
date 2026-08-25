@@ -4,6 +4,9 @@ Logiciel de gestion complet pour entreprise de nettoyage, dans **un seul fichier
 
 ## Les onglets
 
+### 🏠 Accueil
+Le tableau de bord : chiffres clés du mois en cours (CA des contrats, coûts, **marge estimée**, heures planifiées et retenues, interventions, taux de conformité qualité) + **centre d'alertes cliquables** (contrôles techniques, révisions en retard, stocks sous seuil, tickets à traiter, anomalies, coûts horaires manquants, journées non pointées) + le planning du jour.
+
 ### 📅 Planning
 Planning des salariés en vue **Semaine** ou **Mois** :
 - créneaux de travail (horaires, **client**, description du travail) et **trajets 🚗** (durée, km, lieu de départ → arrivée) ;
@@ -11,6 +14,13 @@ Planning des salariés en vue **Semaine** ou **Mois** :
 - totaux d'heures par salarié et par jour, kilomètres comptés **une seule fois par véhicule partagé** (équipes) ;
 - **📋 Copier une semaine…** (jusqu'à 8 semaines en arrière — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ») et **👤➜👤 Dupliquer salarié** ;
 - impression A4 paysage (semaine) ou portrait (mois).
+
+### 📋 Interventions
+Quatre sous-onglets pour le suivi terrain :
+- **📝 Bons d'intervention** (numérotés BI-AAAA-NNN) : créés en un clic pour un client et une date, ils reprennent la check-list du client (cochable), les consommables prévus (quantités ajustables) avec **décrément du stock en un clic** (une seule fois, tracé dans les mouvements), l'équipe et les horaires pré-remplis du planning, observations et anomalies, **signature du client au doigt** (ou à la souris), impression A4 avec **QR code du site**.
+- **🔍 Contrôles qualité** : grille dérivée de la check-list du client, notation Conforme / Non conforme point par point, **taux de conformité calculé**, historique et tendance par client, rapport imprimable à présenter au client, création d'un ticket correctif depuis un point non conforme.
+- **🎫 Tickets** : réclamations, oublis et demandes ponctuelles, avec priorité et statut (ouvert → en cours → clos).
+- **⏱️ Pointage** : les **heures réelles** jour par jour, pré-remplies depuis le planning (bouton « conforme au planning »), pointages hors planning possibles. Les heures pointées remplacent les heures planifiées dans les marges, les feuilles de temps et l'export facturation.
 
 ### 🧑‍💼 Clients
 Une fiche par client :
@@ -42,7 +52,12 @@ Tableau de bord mensuel par client, calculé automatiquement à partir du planni
 - **coût des consommables** (besoins par intervention × interventions) ;
 - **marge en € et en %**, totaux, et alertes : client du planning sans fiche (bouton « Créer la fiche »), contrat manquant, coût horaire non renseigné, dépassement d'heures.
 
-Le rapprochement planning ↔ clients se fait par le nom, sans tenir compte des majuscules ni des accents.
+Le rapprochement planning ↔ clients se fait par le nom, sans tenir compte des majuscules ni des accents. Quand des pointages existent, une colonne « **Heures retenues** » apparaît : le coût de main-d'œuvre est alors calculé sur les heures réelles.
+
+### 📈 Rapports
+- **🧑‍💼 Rapport client mensuel** : le document à remettre chaque mois à vos clients — interventions réalisées (bons, anomalies, signatures), heures planifiées/effectuées, taux de conformité qualité, consommables utilisés.
+- **⏱️ Feuilles de temps** : par salarié et par mois, planifié vs réel jour par jour, congés/fériés comptés, imprimable, et **export CSV prépaie** de tous les salariés (s'ouvre dans Excel, à transmettre à l'expert-comptable).
+- **🧾 Export facturation** : le tableau mensuel de ce qu'il y a à facturer par client (forfait ou heures × taux, sur les heures retenues), exporté en **CSV** pour votre logiciel de facturation et en **JSON** — le format qui servira à la future connexion par API.
 
 ## 💾 Sauvegarde
 
@@ -56,6 +71,16 @@ Les données sont enregistrées automatiquement dans le navigateur (localStorage
 
 Le bouton **🖨️ Imprimer / PDF** imprime l'onglet affiché (choisissez « Enregistrer au format PDF » comme destination). Le format s'adapte tout seul (paysage/portrait). Activez « Graphiques d'arrière-plan » si les couleurs manquent.
 
+## 🗺️ Feuille de route « version connectée » (pointage QR, mobiles, API)
+
+L'application actuelle fonctionne sans serveur : c'est sa force (gratuite, hors ligne, aucune donnée chez un tiers) et sa limite (un seul appareil). Pour le pointage par QR chez les clients, les rapports mobiles des agents et la connexion au logiciel de facturation, il faudra une version hébergée :
+
+1. **Héberger la même application en HTTPS** (PWA installable) — débloque l'appareil photo et le scan de QR depuis un téléphone.
+2. **Petit serveur de synchronisation** (par ex. Supabase) : comptes agents, pointage en scannant le **QR déjà imprimé sur les feuilles d'intervention** (horodatage par le serveur), rapports d'intervention mobiles avec photos, synchronisation des enregistrements (chaque bon porte déjà un champ `syncState` prévu pour cela), **connexion API du logiciel de facturation** (l'export JSON actuel en définit le format).
+3. **Anti-fraude du pointage** : plutôt qu'un QR « dynamique » (qui exigerait un écran chez chaque client), privilégier des **tags NFC** (~0,50 € pièce) ou la capture d'une position GPS ponctuelle au moment du scan.
+
+⚠️ **Géolocalisation en continu des salariés : déconseillée.** En France (CNIL), elle n'est licite pour le suivi du temps de travail que si aucun autre moyen n'existe — or le pointage déclaratif de cette application existe précisément. Toute mise en place exigerait analyse d'impact, information écrite préalable des salariés, désactivation hors temps de travail et conservation limitée.
+
 ## 🛠️ Technique
 
-Un seul fichier `index.html` (HTML + CSS + JavaScript), sans dépendance. Données en localStorage, migration automatique des anciennes versions, export/import JSON.
+Un seul fichier `index.html` (HTML + CSS + JavaScript), sans dépendance externe (bibliothèque de QR codes MIT embarquée). Données en localStorage, migration automatique des anciennes versions, export/import JSON, exports CSV (prépaie, facturation).
