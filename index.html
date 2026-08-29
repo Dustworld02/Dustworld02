@@ -619,6 +619,7 @@
     .carte-vehicule, .carte-client { break-inside: avoid; }
     body.impression-doc .toolbar, body.impression-doc .feuille { display: none !important; }
     body.impression-doc #zone-impression { display: block; }
+    .doc .saut-page { break-before: page; }
   }
 </style>
 </head>
@@ -651,6 +652,7 @@
     <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
     <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
     <button id="btn-jour" class="action-planning">📆 Dupliquer un jour…</button>
+    <button id="btn-planning-salarie" class="action-planning">👤 Planning salarié…</button>
     <input type="text" id="recherche-clients" class="action-clients" placeholder="🔍 Rechercher un client…" style="min-width:220px">
   </div>
 </div>
@@ -710,6 +712,27 @@
   <div class="actions-modale">
     <button id="btn-annuler-copier">Annuler</button>
     <button class="primaire" id="btn-valider-copier">Copier</button>
+  </div>
+</dialog>
+
+<!-- Modale planning individuel par salarié -->
+<dialog id="modale-planning-salarie">
+  <h2>👤 Planning individuel</h2>
+  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:14px">
+    Imprimez (ou enregistrez en PDF) la fiche de planning hebdomadaire d'un salarié :
+    horaires, clients, tâches, trajets et total de la semaine — à remettre à chacun.
+  </p>
+  <div class="champ">
+    <label for="ps-salarie">Salarié</label>
+    <select id="ps-salarie" style="width:100%"></select>
+  </div>
+  <div class="champ">
+    <label for="ps-semaine">Semaine (choisissez n'importe quel jour de la semaine voulue)</label>
+    <input type="date" id="ps-semaine" style="width:100%">
+  </div>
+  <div class="actions-modale">
+    <button id="btn-fermer-ps">Fermer</button>
+    <button class="primaire" id="btn-imprimer-ps">🖨️ Imprimer / PDF</button>
   </div>
 </dialog>
 
@@ -7201,6 +7224,117 @@ document.getElementById("btn-valider-dupliquer").addEventListener("click", () =>
   sauvegarder();
   rendre();
   document.getElementById("modale-dupliquer").close();
+});
+
+/* ---------- Planning individuel par salarié (impression) ---------- */
+
+function docPlanningSalarie(emp, lundi) {
+  const dimanche = ajouterJours(lundi, 6);
+  const totalSemaine = { travail: 0, trajet: 0, km: 0 };
+  const rangs = [];
+
+  for (let j = 0; j < 7; j++) {
+    const date = ajouterJours(lundi, j);
+    const cellule = celluleDeDate(emp.id, date);
+    const durees = dureesCellule(cellule);
+    totalSemaine.travail += durees.travail;
+    totalSemaine.trajet += durees.trajet;
+    totalSemaine.km += durees.km;
+
+    let contenu = `<span style="color:#9ca3af">—</span>`;
+    if (cellule) {
+      if (cellule.type !== "travail") {
+        contenu = `<strong>${ETIQUETTES[cellule.type] || ""}</strong>`;
+      } else {
+        const morceaux = [];
+        for (const c of (cellule.creneaux || [])) {
+          if (c.type === "trajet") {
+            const infos = [];
+            if (c.duree > 0) infos.push(formatDuree(c.duree));
+            else if (c.debut && c.fin) infos.push(`${c.debut} – ${c.fin}`);
+            if (c.km > 0) infos.push(formatKm(c.km) + " km");
+            const lieux = [c.depart, c.arrivee || c.client].filter(Boolean).map(echapper).join(" → ");
+            morceaux.push(`<div class="doc-ligne">🚗 ${infos.join(" · ") || "trajet"}${lieux ? " — " + lieux : ""}</div>`);
+          } else if (c.debut && c.fin) {
+            let blocTravail = `<div class="doc-ligne"><strong>${c.debut} – ${c.fin}</strong>${c.client ? ` — ${echapper(c.client)}` : ""}</div>`;
+            const taches = Array.isArray(c.taches) ? c.taches : [];
+            for (const t of taches) {
+              const texte = typeof t === "string" ? t : (t.texte || "");
+              const min = typeof t === "object" && t.min > 0 ? ` (${formatDuree(Math.round(t.min))})` : "";
+              blocTravail += `<div class="doc-ligne" style="padding-left:16px">• ${echapper(texte)}${min}</div>`;
+            }
+            if (!taches.length && c.desc) {
+              blocTravail += `<div class="doc-ligne" style="padding-left:16px">• ${echapper(c.desc)}</div>`;
+            }
+            morceaux.push(blocTravail);
+          }
+        }
+        if (cellule.note) morceaux.push(`<div class="doc-ligne" style="color:#6b7280">📝 ${echapper(cellule.note)}</div>`);
+        if (morceaux.length) contenu = morceaux.join("");
+      }
+    }
+
+    const totalJour = durees.travail + durees.trajet;
+    rangs.push(`
+    <tr>
+      <td style="width:110px; vertical-align:top; padding:6px 9px; border:1px solid #d1d5db; background:#f3f4f6">
+        <strong>${JOURS[j]}</strong><br><span style="color:#6b7280; font-size:0.85em">${formatDateCourte(date)}</span>
+        ${totalJour > 0 ? `<br><span style="font-size:0.85em"><strong>${formatHeures(totalJour)}</strong></span>` : ""}
+      </td>
+      <td style="vertical-align:top; padding:6px 9px; border:1px solid #d1d5db">${contenu}</td>
+    </tr>`);
+  }
+
+  const detailTrajet = [];
+  if (totalSemaine.trajet > 0) detailTrajet.push(`${formatHeures(totalSemaine.trajet)} de trajet`);
+  if (totalSemaine.km > 0) detailTrajet.push(`${formatKm(totalSemaine.km)} km`);
+
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">Planning individuel — Semaine ${numeroSemaineISO(lundi)},
+      du ${formatDateLongue(lundi)} au ${formatDateLongue(dimanche)}</div>
+    <div class="doc-ligne" style="font-size:1.05em"><strong>${echapper(emp.nom)}</strong>${emp.role ? ` — ${echapper(emp.role)}` : ""}</div>
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.93em">
+      <tbody>${rangs.join("")}</tbody>
+    </table>
+    <div class="doc-ligne" style="margin-top:12px; font-size:1.08em">
+      <strong>Total de la semaine : ${formatHeures(totalSemaine.travail + totalSemaine.trajet)}</strong>
+      ${detailTrajet.length ? ` <span style="color:#6b7280">(dont ${detailTrajet.join(" · ")})</span>` : ""}
+    </div>
+    <div class="doc-signatures">
+      <div>Le salarié</div>
+      <div>L'employeur</div>
+    </div>`;
+}
+
+document.getElementById("btn-planning-salarie").addEventListener("click", () => {
+  if (donnees.employes.length === 0) {
+    alert("Ajoutez d'abord vos salariés dans l'onglet 👥 Personnel.");
+    return;
+  }
+  const sel = document.getElementById("ps-salarie");
+  sel.innerHTML = donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("") +
+    `<option value="">👥 Tous les salariés (une page chacun)</option>`;
+  document.getElementById("ps-semaine").value = versInputDate(lundiCourant);
+  document.getElementById("modale-planning-salarie").showModal();
+});
+
+document.getElementById("btn-fermer-ps").addEventListener("click", () => {
+  document.getElementById("modale-planning-salarie").close();
+});
+
+document.getElementById("btn-imprimer-ps").addEventListener("click", () => {
+  const valeurDate = document.getElementById("ps-semaine").value;
+  const lundi = lundiDeLaSemaine(valeurDate ? new Date(valeurDate + "T00:00:00") : lundiCourant);
+  const choix = document.getElementById("ps-salarie").value;
+  const concernes = choix ? donnees.employes.filter(e => e.id === choix) : donnees.employes;
+  if (concernes.length === 0) return;
+  const docs = concernes.map((emp, i) => {
+    const doc = docPlanningSalarie(emp, lundi);
+    return i === 0 ? doc : `<div class="saut-page">${doc}</div>`;
+  });
+  document.getElementById("modale-planning-salarie").close();
+  imprimerDocument(docs.join(""));
 });
 
 /* ---------- Duplication d'un jour vers un autre ---------- */
