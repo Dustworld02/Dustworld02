@@ -177,6 +177,13 @@
     text-align: left;
     padding-left: 4px;
   }
+  .bloc-type-intervention {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+  }
   .taches-travail { margin-top: 2px; }
   .total-taches { font-size: 0.8rem; color: #374151; margin: 2px 0 2px 4px; }
   .taches-travail .ligne-tache { margin-bottom: 4px; }
@@ -4185,6 +4192,11 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
 /* ================= Clients : accès et statistiques ================= */
 
 function clientParId(id) { return donnees.clients.find(c => c.id === id); }
+// Retrouve une fiche client depuis un nom saisi (casse et accents ignorés)
+function clientParNom(nom) {
+  const n = normaliserNom(nom);
+  return n ? donnees.clients.find(c => normaliserNom(c.nom) === n) : undefined;
+}
 function produitParId(id) { return donnees.produits.find(p => p.id === id); }
 function materielParId(id) { return donnees.materiels.find(m => m.id === id); }
 
@@ -4676,6 +4688,42 @@ function carteClient(cli) {
     </div>`;
   }).join("");
 
+  // --- Types d'intervention (modèles de tâches réutilisables) ---
+  const lignesTypes = (cli.typesIntervention || []).map((ti, i) => {
+    const totalMin = (ti.taches || []).reduce((somme, t) => somme + (t.min > 0 ? t.min : 0), 0);
+    const infos = [];
+    if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)));
+    if (ti.nbPersonnes > 0) infos.push(`${ti.nbPersonnes} pers.`);
+    const lignesTachesTi = (ti.taches || []).map((t, j) => `
+      <div class="ligne-item">
+        <span style="color:#6b7280">•</span>
+        <input type="text" data-cchange="ti-tache-texte" data-cid="${cli.id}" data-idx="${i}" data-jdx="${j}"
+          value="${echapperAttr(t.texte || "")}" style="flex:1; min-width:0">
+        <input type="number" min="0" step="5" data-cchange="ti-tache-min" data-cid="${cli.id}" data-idx="${i}" data-jdx="${j}"
+          value="${t.min > 0 ? t.min : ""}" placeholder="min" style="width:70px">
+        <small style="color:#6b7280">min</small>
+        <button class="no-print" data-caction="supprimer-ti-tache" data-cid="${cli.id}" data-idx="${i}" data-jdx="${j}" title="Retirer">✕</button>
+      </div>`).join("");
+    return `
+    <div class="bloc-type-intervention">
+      <div class="ligne-item">
+        <input type="text" data-cchange="ti-nom" data-cid="${cli.id}" data-idx="${i}"
+          value="${echapperAttr(ti.nom || "")}" style="flex:1; min-width:0; font-weight:600">
+        <input type="number" min="1" step="1" data-cchange="ti-pers" data-cid="${cli.id}" data-idx="${i}"
+          value="${ti.nbPersonnes > 0 ? ti.nbPersonnes : ""}" placeholder="pers." title="Nombre de personnes" style="width:70px">
+        <small style="color:#6b7280">pers.</small>
+        ${infos.length ? `<span class="badge ok">Σ ${infos.join(" · ")}</span>` : ""}
+        <button class="no-print" data-caction="supprimer-ti" data-cid="${cli.id}" data-idx="${i}" title="Supprimer ce type">✕</button>
+      </div>
+      ${lignesTachesTi}
+      <div class="mini-form no-print">
+        <input type="text" class="ti-tache-nouvelle" placeholder="Tâche (ex. : lavage des sols)" style="flex:2; min-width:140px">
+        <input type="number" min="0" step="5" class="ti-tache-nouvelle-min" placeholder="min" style="max-width:70px">
+        <button data-caction="ajouter-ti-tache" data-cid="${cli.id}" data-idx="${i}">+ Tâche</button>
+      </div>
+    </div>`;
+  }).join("");
+
   const heuresTheoriques = (cli.dureeInterventionMin > 0 && cli.frequenceParMois > 0)
     ? formatHeures(Math.round(cli.dureeInterventionMin * cli.frequenceParMois)) + " / mois"
     : null;
@@ -4712,6 +4760,17 @@ function carteClient(cli) {
         <input type="number" min="0" step="0.5" data-cchange="frequenceParMois" data-cid="${cli.id}" value="${cli.frequenceParMois > 0 ? cli.frequenceParMois : ""}" placeholder="ex. : 8" style="width:90px"> interventions / mois
       </div>
       ${heuresTheoriques ? `<div class="stat-vehicule">Temps théorique : <strong>${heuresTheoriques}</strong></div>` : ""}
+    </div>
+
+    <div class="section-vehicule">
+      <h4>🧽 Types d'intervention</h4>
+      ${lignesTypes || `<div class="stat-vehicule" style="color:#6b7280">Aucun type défini
+        (ex. : « Salle blanche », « Bureau »…).</div>`}
+      <div class="mini-form no-print">
+        <input type="text" class="ti-nouveau-nom" placeholder="Nouveau type (ex. : Salle blanche)" style="flex:2; min-width:150px">
+        <input type="number" min="1" step="1" class="ti-nouveau-pers" placeholder="pers." title="Nombre de personnes" style="max-width:70px">
+        <button data-caction="ajouter-ti" data-cid="${cli.id}">+ Type</button>
+      </div>
     </div>
 
     <div class="section-vehicule">
@@ -4903,6 +4962,44 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
       if (!cli || !cli.materielRequis) return;
       cli.materielRequis.splice(idx, 1);
       break;
+    case "ajouter-ti": {
+      if (!cli || !carte) return;
+      const champ = carte.querySelector(".ti-nouveau-nom");
+      const nom = champ.value.trim();
+      if (!nom) { champ.focus(); return; }
+      const ti = { id: nouvelId("ti"), nom, taches: [] };
+      const pers = parseInt(carte.querySelector(".ti-nouveau-pers").value, 10);
+      if (pers > 0) ti.nbPersonnes = pers;
+      cli.typesIntervention = cli.typesIntervention || [];
+      cli.typesIntervention.push(ti);
+      break;
+    }
+    case "supprimer-ti": {
+      const ti = (cli && cli.typesIntervention || [])[idx];
+      if (!ti) return;
+      if (!confirm(`Supprimer le type d'intervention « ${ti.nom} » ?`)) return;
+      cli.typesIntervention.splice(idx, 1);
+      break;
+    }
+    case "ajouter-ti-tache": {
+      const ti = (cli && cli.typesIntervention || [])[idx];
+      if (!ti) return;
+      const bloc = btn.closest(".bloc-type-intervention");
+      const champ = bloc.querySelector(".ti-tache-nouvelle");
+      const texte = champ.value.trim();
+      if (!texte) { champ.focus(); return; }
+      const min = lireNombre(bloc.querySelector(".ti-tache-nouvelle-min").value);
+      ti.taches = ti.taches || [];
+      ti.taches.push(min > 0 ? { texte, min } : { texte });
+      break;
+    }
+    case "supprimer-ti-tache": {
+      const ti = (cli && cli.typesIntervention || [])[idx];
+      const jdx = Number(btn.dataset.jdx);
+      if (!ti || !ti.taches) return;
+      ti.taches.splice(jdx, 1);
+      break;
+    }
     default:
       return;
   }
@@ -4936,6 +5033,24 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
   } else if (prop === "ct-debut") {
     const c = (cli.contrats || [])[idx];
     if (c) { if (el.value) c.debut = el.value; else delete c.debut; }
+  } else if (prop === "ti-nom") {
+    const ti = (cli.typesIntervention || [])[idx];
+    if (ti && valeur) ti.nom = valeur;
+  } else if (prop === "ti-pers") {
+    const ti = (cli.typesIntervention || [])[idx];
+    if (!ti) return;
+    const n = Math.round(lireNombre(valeur));
+    if (n > 0) ti.nbPersonnes = n; else delete ti.nbPersonnes;
+  } else if (prop === "ti-tache-texte" || prop === "ti-tache-min") {
+    const ti = (cli.typesIntervention || [])[idx];
+    const t = ti && (ti.taches || [])[Number(el.dataset.jdx)];
+    if (!t) return;
+    if (prop === "ti-tache-texte") {
+      if (valeur) t.texte = valeur;
+    } else {
+      const n = lireNombre(valeur);
+      if (n > 0) t.min = n; else delete t.min;
+    }
   }
   sauvegarder();
   rendre();
@@ -5229,6 +5344,15 @@ function docFicheClient(cli) {
       <div class="doc-ligne">${cli.dureeInterventionMin > 0 ? `Durée prévue : ${formatDuree(cli.dureeInterventionMin)}` : ""}
         ${cli.frequenceParMois > 0 ? ` — ${formatKm(cli.frequenceParMois)} interventions / mois` : ""}</div>` : ""}
     ${contrats ? `<h2>Contrat</h2>${contrats}` : ""}
+    ${(cli.typesIntervention || []).length ? `<h2>Types d'intervention</h2>` +
+      cli.typesIntervention.map(ti => {
+        const totalMin = (ti.taches || []).reduce((s, t) => s + (t.min > 0 ? t.min : 0), 0);
+        const infos = [];
+        if (ti.nbPersonnes > 0) infos.push(`${ti.nbPersonnes} personne(s)`);
+        if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)));
+        return `<div class="doc-ligne"><strong>${echapper(ti.nom)}</strong>${infos.length ? ` — ${infos.join(" · ")}` : ""}</div>` +
+          (ti.taches || []).map(t => `<div class="doc-ligne" style="padding-left:16px">• ${echapper(t.texte)}${t.min > 0 ? ` (${formatDuree(Math.round(t.min))})` : ""}</div>`).join("");
+      }).join("") : ""}
     ${procedure ? `<h2>Protocole / procédure</h2>${procedure}` : ""}
     ${checklist ? `<h2>Check-list</h2>${checklist}` : ""}
     ${besoins ? `<h2>Consommables par intervention</h2>${besoins}` : ""}
@@ -6700,6 +6824,7 @@ function ajouterLigneCreneau(c = {}) {
     </div>
     <div class="ligne-details details-travail">
       <input type="text" class="client" list="liste-clients" placeholder="Client">
+      <select class="choix-type-intervention" title="Appliquer un type d'intervention du client" style="display:none; flex:1; min-width:0"></select>
     </div>
     <div class="taches-travail">
       <div class="liste-taches"></div>
@@ -6747,6 +6872,39 @@ function ajouterLigneCreneau(c = {}) {
     if (e.target.matches(".tache-min, .debut, .fin")) majTotalTaches(bloc);
   });
   majTotalTaches(bloc);
+
+  // Types d'intervention du client (modèles de tâches définis sur sa fiche)
+  const champClient = bloc.querySelector(".client");
+  const selTypes = bloc.querySelector(".choix-type-intervention");
+  const majTypesIntervention = () => {
+    const cli = clientParNom(champClient.value);
+    const types = (cli && cli.typesIntervention) || [];
+    if (!types.length) {
+      selTypes.style.display = "none";
+      selTypes.innerHTML = "";
+      return;
+    }
+    selTypes.style.display = "";
+    selTypes.innerHTML = `<option value="">🧽 Appliquer un type d'intervention…</option>` +
+      types.map((ti, i) => {
+        const totalMin = (ti.taches || []).reduce((s, t) => s + (t.min > 0 ? t.min : 0), 0);
+        const infos = [];
+        if (ti.nbPersonnes > 0) infos.push(`${ti.nbPersonnes} pers.`);
+        if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)));
+        return `<option value="${i}">${echapper(ti.nom)}${infos.length ? ` — ${infos.join(" · ")}` : ""}</option>`;
+      }).join("");
+  };
+  champClient.addEventListener("input", majTypesIntervention);
+  champClient.addEventListener("change", majTypesIntervention);
+  selTypes.addEventListener("change", () => {
+    const cli = clientParNom(champClient.value);
+    const ti = cli && (cli.typesIntervention || [])[Number(selTypes.value)];
+    selTypes.value = "";
+    if (!ti) return;
+    for (const t of (ti.taches || [])) ajouterLigneTache(bloc, t);
+    majTotalTaches(bloc);
+  });
+  majTypesIntervention();
   // Durée du trajet : champ direct, sinon calculée depuis les horaires de l'ancien format
   let duree = c.duree;
   if (duree == null && c.type === "trajet" && c.debut && c.fin) duree = dureeEntre(c.debut, c.fin);
