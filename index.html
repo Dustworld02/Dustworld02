@@ -599,6 +599,42 @@
     border-bottom: 1px dotted #d1d5db;
     height: 26px;
   }
+  /* Fiche planning individuel : vignettes colorées (comme à l'écran) */
+  .doc .chip-travail {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 4px 9px;
+    margin: 3px 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .doc .chip-travail .heures { color: #1e3a8a; font-weight: 700; }
+  .doc .chip-trajet {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px 9px;
+    margin: 3px 0;
+    color: #374151;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .doc td.etiquette-repos { background: #fef3c7; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .doc td.etiquette-repos strong { color: #92400e; }
+  .doc td.etiquette-conge { background: #fee2e2; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .doc td.etiquette-conge strong { color: #991b1b; }
+  .doc td.etiquette-ferie { background: #e0e7ff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .doc td.etiquette-ferie strong { color: #3730a3; }
+  .doc .total-bande {
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 9px 14px;
+    margin-top: 12px;
+    color: #1e3a8a;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 
   /* ---------- Impression ---------- */
   @media print {
@@ -7242,9 +7278,11 @@ function docPlanningSalarie(emp, lundi) {
     totalSemaine.km += durees.km;
 
     let contenu = `<span style="color:#9ca3af">—</span>`;
+    let classeContenu = "";
     if (cellule) {
       if (cellule.type !== "travail") {
         contenu = `<strong>${ETIQUETTES[cellule.type] || ""}</strong>`;
+        classeContenu = ` class="etiquette-${cellule.type}"`;
       } else {
         const morceaux = [];
         for (const c of (cellule.creneaux || [])) {
@@ -7254,19 +7292,19 @@ function docPlanningSalarie(emp, lundi) {
             else if (c.debut && c.fin) infos.push(`${c.debut} – ${c.fin}`);
             if (c.km > 0) infos.push(formatKm(c.km) + " km");
             const lieux = [c.depart, c.arrivee || c.client].filter(Boolean).map(echapper).join(" → ");
-            morceaux.push(`<div class="doc-ligne">🚗 ${infos.join(" · ") || "trajet"}${lieux ? " — " + lieux : ""}</div>`);
+            morceaux.push(`<div class="chip-trajet">🚗 ${infos.join(" · ") || "trajet"}${lieux ? " — " + lieux : ""}</div>`);
           } else if (c.debut && c.fin) {
-            let blocTravail = `<div class="doc-ligne"><strong>${c.debut} – ${c.fin}</strong>${c.client ? ` — ${echapper(c.client)}` : ""}</div>`;
+            let blocTravail = `<div class="chip-travail"><span class="heures">${c.debut} – ${c.fin}</span>${c.client ? ` — <strong>${echapper(c.client)}</strong>` : ""}`;
             const taches = Array.isArray(c.taches) ? c.taches : [];
             for (const t of taches) {
               const texte = typeof t === "string" ? t : (t.texte || "");
-              const min = typeof t === "object" && t.min > 0 ? ` (${formatDuree(Math.round(t.min))})` : "";
-              blocTravail += `<div class="doc-ligne" style="padding-left:16px">• ${echapper(texte)}${min}</div>`;
+              const min = typeof t === "object" && t.min > 0 ? ` <span style="color:#6b7280">(${formatDuree(Math.round(t.min))})</span>` : "";
+              blocTravail += `<div style="padding-left:14px; font-size:0.94em">• ${echapper(texte)}${min}</div>`;
             }
             if (!taches.length && c.desc) {
-              blocTravail += `<div class="doc-ligne" style="padding-left:16px">• ${echapper(c.desc)}</div>`;
+              blocTravail += `<div style="padding-left:14px; font-size:0.94em">• ${echapper(c.desc)}</div>`;
             }
-            morceaux.push(blocTravail);
+            morceaux.push(blocTravail + `</div>`);
           }
         }
         if (cellule.note) morceaux.push(`<div class="doc-ligne" style="color:#6b7280">📝 ${echapper(cellule.note)}</div>`);
@@ -7275,13 +7313,14 @@ function docPlanningSalarie(emp, lundi) {
     }
 
     const totalJour = durees.travail + durees.trajet;
+    const couleurEmp = emp.couleur || "#1d4ed8";
     rangs.push(`
     <tr>
-      <td style="width:110px; vertical-align:top; padding:6px 9px; border:1px solid #d1d5db; background:#f3f4f6">
+      <td style="width:110px; vertical-align:top; padding:6px 9px; border:1px solid #d1d5db; border-left:4px solid ${couleurEmp}; background:#f3f4f6; print-color-adjust:exact; -webkit-print-color-adjust:exact">
         <strong>${JOURS[j]}</strong><br><span style="color:#6b7280; font-size:0.85em">${formatDateCourte(date)}</span>
-        ${totalJour > 0 ? `<br><span style="font-size:0.85em"><strong>${formatHeures(totalJour)}</strong></span>` : ""}
+        ${totalJour > 0 ? `<br><span style="font-size:0.85em; color:#1e3a8a"><strong>${formatHeures(totalJour)}</strong></span>` : ""}
       </td>
-      <td style="vertical-align:top; padding:6px 9px; border:1px solid #d1d5db">${contenu}</td>
+      <td${classeContenu} style="vertical-align:top; padding:6px 9px; border:1px solid #d1d5db">${contenu}</td>
     </tr>`);
   }
 
@@ -7289,15 +7328,18 @@ function docPlanningSalarie(emp, lundi) {
   if (totalSemaine.trajet > 0) detailTrajet.push(`${formatHeures(totalSemaine.trajet)} de trajet`);
   if (totalSemaine.km > 0) detailTrajet.push(`${formatKm(totalSemaine.km)} km`);
 
+  const couleurEmp = emp.couleur || "#1d4ed8";
   return `
     <h1>${echapper(donnees.societe || "")}</h1>
     <div class="doc-sous-titre">Planning individuel — Semaine ${numeroSemaineISO(lundi)},
       du ${formatDateLongue(lundi)} au ${formatDateLongue(dimanche)}</div>
-    <div class="doc-ligne" style="font-size:1.05em"><strong>${echapper(emp.nom)}</strong>${emp.role ? ` — ${echapper(emp.role)}` : ""}</div>
+    <div class="doc-ligne" style="font-size:1.12em">
+      <span style="display:inline-block; width:13px; height:13px; border-radius:4px; background:${couleurEmp}; margin-right:7px; vertical-align:baseline; print-color-adjust:exact; -webkit-print-color-adjust:exact"></span>
+      <strong>${echapper(emp.nom)}</strong>${emp.role ? ` — <span style="color:#6b7280">${echapper(emp.role)}</span>` : ""}</div>
     <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.93em">
       <tbody>${rangs.join("")}</tbody>
     </table>
-    <div class="doc-ligne" style="margin-top:12px; font-size:1.08em">
+    <div class="total-bande" style="font-size:1.08em">
       <strong>Total de la semaine : ${formatHeures(totalSemaine.travail + totalSemaine.trajet)}</strong>
       ${detailTrajet.length ? ` <span style="color:#6b7280">(dont ${detailTrajet.join(" · ")})</span>` : ""}
     </div>
