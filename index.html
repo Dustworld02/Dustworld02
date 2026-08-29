@@ -767,6 +767,7 @@
     <div id="liste-creneaux"></div>
     <button id="btn-ajouter-creneau" style="font-size:0.85rem">+ Ajouter un créneau</button>
     <button id="btn-ajouter-trajet" style="font-size:0.85rem">+ Ajouter un trajet 🚗</button>
+    <button id="btn-coller-creneau" style="font-size:0.85rem; display:none" title="Coller le créneau copié dans cette journée"></button>
   </div>
   <datalist id="liste-clients"></datalist>
   <datalist id="liste-lieux"></datalist>
@@ -6593,6 +6594,7 @@ function ouvrirModaleCellule(employeId, indexJour, lundi = lundiCourant) {
 
   majListeClients();
   majVisibiliteCreneaux();
+  majBoutonColler();
   document.getElementById("modale-cellule").showModal();
 }
 
@@ -6616,6 +6618,7 @@ function ajouterLigneCreneau(c = {}) {
         <input type="number" class="duree" min="0" step="5" placeholder="Temps"><small>min</small>
         <input type="number" class="km" min="0" step="0.1" placeholder="Dist."><small>km</small>
       </span>
+      <button type="button" class="copier" title="Copier ce créneau (pour le coller sur un autre jour)">📋</button>
       <button type="button" class="retirer" title="Retirer ce créneau">✕</button>
     </div>
     <div class="ligne-details details-travail">
@@ -6687,8 +6690,87 @@ function ajouterLigneCreneau(c = {}) {
   majChamps();
 
   bloc.querySelector(".retirer").addEventListener("click", () => bloc.remove());
+  bloc.querySelector(".copier").addEventListener("click", () => {
+    const creneau = lireCreneauDepuisBloc(bloc);
+    if (!creneau) {
+      alert("Renseignez d'abord le créneau (horaires ou trajet) avant de le copier.");
+      return;
+    }
+    creneauCopie = creneau;
+    majBoutonColler();
+    const btnCopier = bloc.querySelector(".copier");
+    btnCopier.textContent = "✔";
+    setTimeout(() => { btnCopier.textContent = "📋"; }, 900);
+  });
   activerGlisser(bloc);
   liste.appendChild(bloc);
+}
+
+// Lit un créneau depuis les champs actuels d'un bloc de la modale
+// (retourne null si le bloc est vide) — utilisé par la validation
+// de la case ET par la copie de créneau
+function lireCreneauDepuisBloc(bloc) {
+  if (bloc.querySelector(".type").value === "trajet") {
+    const duree = parseInt(bloc.querySelector(".duree").value, 10);
+    const km = parseFloat((bloc.querySelector(".km").value || "").replace(",", "."));
+    const depart = bloc.querySelector(".depart").value.trim();
+    const arrivee = bloc.querySelector(".arrivee").value.trim();
+    if (!(duree > 0) && !(km > 0) && !depart && !arrivee) return null;
+    const c = { type: "trajet" };
+    if (duree > 0) c.duree = duree;
+    if (km > 0) c.km = km;
+    if (depart) c.depart = depart;
+    if (arrivee) c.arrivee = arrivee;
+    return c;
+  }
+  const debut = bloc.querySelector(".debut").value;
+  const fin = bloc.querySelector(".fin").value;
+  if (!debut || !fin) return null;
+  const c = { debut, fin };
+  const client = bloc.querySelector(".client").value.trim();
+  if (client) c.client = client;
+  // Liste des tâches (y compris le texte restant dans la ligne d'ajout)
+  const taches = [];
+  for (const ligne of bloc.querySelectorAll(".ligne-tache")) {
+    const texte = ligne.querySelector(".tache-texte").value.trim();
+    if (!texte) continue;
+    const min = lireNombre(ligne.querySelector(".tache-min").value);
+    taches.push(min > 0 ? { texte, min } : { texte });
+  }
+  const restant = bloc.querySelector(".tache-nouvelle").value.trim();
+  if (restant) {
+    const minRestant = lireNombre(bloc.querySelector(".tache-nouvelle-min").value);
+    taches.push(minRestant > 0 ? { texte: restant, min: minRestant } : { texte: restant });
+  }
+  if (taches.length) c.taches = taches;
+  return c;
+}
+
+/* ---------- Presse-papier de créneau (copier → coller sur un autre jour) ---------- */
+
+let creneauCopie = null; // valable toute la session, tous jours et salariés confondus
+
+function resumeCreneau(c) {
+  if (!c) return "";
+  if (c.type === "trajet") {
+    const infos = [];
+    if (c.duree > 0) infos.push(formatDuree(c.duree));
+    if (c.km > 0) infos.push(formatKm(c.km) + " km");
+    const lieux = [c.depart, c.arrivee].filter(Boolean).join(" → ");
+    return "🚗 " + (infos.join(" · ") || "trajet") + (lieux ? " — " + lieux : "");
+  }
+  return `${c.debut}–${c.fin}${c.client ? " " + c.client : ""}` +
+    (Array.isArray(c.taches) && c.taches.length ? ` (${c.taches.length} tâche(s))` : "");
+}
+
+function majBoutonColler() {
+  const btn = document.getElementById("btn-coller-creneau");
+  if (!creneauCopie) {
+    btn.style.display = "none";
+    return;
+  }
+  btn.style.display = "";
+  btn.textContent = `📋 Coller : ${resumeCreneau(creneauCopie)}`;
 }
 
 // Une ligne de tâche (texte + minutes, modifiable, supprimable).
@@ -6815,6 +6897,10 @@ function majVisibiliteCreneaux() {
 document.getElementById("type-cellule").addEventListener("change", majVisibiliteCreneaux);
 document.getElementById("btn-ajouter-creneau").addEventListener("click", () => ajouterLigneCreneau());
 document.getElementById("btn-ajouter-trajet").addEventListener("click", () => ajouterLigneCreneau({ type: "trajet" }));
+document.getElementById("btn-coller-creneau").addEventListener("click", () => {
+  if (!creneauCopie) return;
+  ajouterLigneCreneau(JSON.parse(JSON.stringify(creneauCopie)));
+});
 
 // Boutons d'horaires rapides
 (function initRaccourcis() {
@@ -6848,41 +6934,8 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
   if (type === "travail") {
     const creneaux = [];
     for (const bloc of document.querySelectorAll("#liste-creneaux .bloc-creneau")) {
-      if (bloc.querySelector(".type").value === "trajet") {
-        const duree = parseInt(bloc.querySelector(".duree").value, 10);
-        const km = parseFloat((bloc.querySelector(".km").value || "").replace(",", "."));
-        const depart = bloc.querySelector(".depart").value.trim();
-        const arrivee = bloc.querySelector(".arrivee").value.trim();
-        if (!(duree > 0) && !(km > 0) && !depart && !arrivee) continue;
-        const c = { type: "trajet" };
-        if (duree > 0) c.duree = duree;
-        if (km > 0) c.km = km;
-        if (depart) c.depart = depart;
-        if (arrivee) c.arrivee = arrivee;
-        creneaux.push(c);
-      } else {
-        const debut = bloc.querySelector(".debut").value;
-        const fin = bloc.querySelector(".fin").value;
-        if (!debut || !fin) continue;
-        const c = { debut, fin };
-        const client = bloc.querySelector(".client").value.trim();
-        if (client) c.client = client;
-        // Liste des tâches (y compris le texte restant dans la ligne d'ajout)
-        const taches = [];
-        for (const ligne of bloc.querySelectorAll(".ligne-tache")) {
-          const texte = ligne.querySelector(".tache-texte").value.trim();
-          if (!texte) continue;
-          const min = lireNombre(ligne.querySelector(".tache-min").value);
-          taches.push(min > 0 ? { texte, min } : { texte });
-        }
-        const restant = bloc.querySelector(".tache-nouvelle").value.trim();
-        if (restant) {
-          const minRestant = lireNombre(bloc.querySelector(".tache-nouvelle-min").value);
-          taches.push(minRestant > 0 ? { texte: restant, min: minRestant } : { texte: restant });
-        }
-        if (taches.length) c.taches = taches;
-        creneaux.push(c);
-      }
+      const c = lireCreneauDepuisBloc(bloc);
+      if (c) creneaux.push(c);
     }
     cellule.creneaux = creneaux;
   }
