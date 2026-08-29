@@ -178,6 +178,7 @@
     padding-left: 4px;
   }
   .taches-travail { margin-top: 2px; }
+  .total-taches { font-size: 0.8rem; color: #374151; margin: 2px 0 2px 4px; }
   .taches-travail .ligne-tache { margin-bottom: 4px; }
   .taches-travail .ligne-tache input { flex: 1; min-width: 0; }
   .taches-travail .ligne-tache button, .taches-travail .ajout-tache button { padding: 6px 10px; }
@@ -639,6 +640,7 @@
     <button id="btn-copier" class="action-semaine">📋 Copier une semaine…</button>
     <button id="btn-dupliquer" class="action-semaine">👤➜👤 Dupliquer salarié</button>
     <button id="btn-effacer" class="action-semaine">🗑️ Vider la semaine</button>
+    <button id="btn-jour" class="action-planning">📆 Dupliquer un jour…</button>
     <input type="text" id="recherche-clients" class="action-clients" placeholder="🔍 Rechercher un client…" style="min-width:220px">
   </div>
 </div>
@@ -698,6 +700,32 @@
   <div class="actions-modale">
     <button id="btn-annuler-copier">Annuler</button>
     <button class="primaire" id="btn-valider-copier">Copier</button>
+  </div>
+</dialog>
+
+<!-- Modale duplication d'un jour vers un autre -->
+<dialog id="modale-jour">
+  <h2>📆 Dupliquer un jour</h2>
+  <p style="font-size:0.85rem; color:#6b7280; margin-bottom:14px">
+    Copie toute une journée (créneaux, tâches, trajets, repos…) vers un autre jour,
+    pour tous les salariés ou un seul. Répétez l'opération pour plusieurs jours.
+  </p>
+  <div class="champ">
+    <label for="jour-source">Jour à copier</label>
+    <input type="date" id="jour-source" style="width:100%">
+  </div>
+  <div class="champ">
+    <label for="jour-cible">Vers le jour</label>
+    <input type="date" id="jour-cible" style="width:100%">
+  </div>
+  <div class="champ">
+    <label for="jour-salarie">Salariés concernés</label>
+    <select id="jour-salarie" style="width:100%"></select>
+  </div>
+  <div id="jour-info" style="font-size:0.85rem; margin-bottom:6px"></div>
+  <div class="actions-modale">
+    <button id="btn-fermer-jour">Fermer</button>
+    <button class="primaire" id="btn-valider-jour">Dupliquer</button>
   </div>
 </dialog>
 
@@ -3365,7 +3393,11 @@ function htmlCreneau(c) {
   let html = `<span class="creneau">${c.debut} – ${c.fin}`;
   if (c.client) html += `<span class="client">${echapper(c.client)}</span>`;
   if (Array.isArray(c.taches) && c.taches.length) {
-    html += `<span class="desc liste-travaux">${c.taches.map(t => "• " + echapper(t)).join("<br>")}</span>`;
+    html += `<span class="desc liste-travaux">${c.taches.map(t => {
+      const texte = typeof t === "string" ? t : (t.texte || "");
+      const min = typeof t === "object" && t.min > 0 ? t.min : 0;
+      return "• " + echapper(texte) + (min ? ` <span style="color:#9ca3af">(${formatDuree(Math.round(min))})</span>` : "");
+    }).join("<br>")}</span>`;
   } else if (c.desc) {
     html += `<span class="desc">${echapper(c.desc)}</span>`;
   }
@@ -6593,8 +6625,10 @@ function ajouterLigneCreneau(c = {}) {
       <div class="liste-taches"></div>
       <div class="ligne-details ajout-tache">
         <input type="text" class="tache-nouvelle" placeholder="Travail à effectuer (une tâche par ligne)">
+        <input type="number" class="tache-nouvelle-min" min="0" step="5" placeholder="min" title="Temps prévu (minutes)" style="width:70px">
         <button type="button" class="btn-ajouter-tache" title="Ajouter la tâche à la liste">+</button>
       </div>
+      <div class="total-taches"></div>
     </div>
     <div class="ligne-details details-trajet">
       <input type="text" class="depart" list="liste-lieux" placeholder="Lieu de départ">
@@ -6613,17 +6647,26 @@ function ajouterLigneCreneau(c = {}) {
     : (c.desc ? [c.desc] : []);
   for (const t of tachesInitiales) ajouterLigneTache(bloc, t);
   const champNouvelleTache = bloc.querySelector(".tache-nouvelle");
+  const champNouvelleMin = bloc.querySelector(".tache-nouvelle-min");
   const validerNouvelleTache = () => {
     const texte = champNouvelleTache.value.trim();
     if (!texte) return;
-    ajouterLigneTache(bloc, texte);
+    const min = lireNombre(champNouvelleMin.value);
+    ajouterLigneTache(bloc, min > 0 ? { texte, min } : texte);
     champNouvelleTache.value = "";
+    champNouvelleMin.value = "";
     champNouvelleTache.focus();
+    majTotalTaches(bloc);
   };
   bloc.querySelector(".btn-ajouter-tache").addEventListener("click", validerNouvelleTache);
   champNouvelleTache.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); validerNouvelleTache(); }
   });
+  // Total des minutes des tâches, comparé à la durée du créneau
+  bloc.addEventListener("input", (e) => {
+    if (e.target.matches(".tache-min, .debut, .fin")) majTotalTaches(bloc);
+  });
+  majTotalTaches(bloc);
   // Durée du trajet : champ direct, sinon calculée depuis les horaires de l'ancien format
   let duree = c.duree;
   if (duree == null && c.type === "trajet" && c.debut && c.fin) duree = dureeEntre(c.debut, c.fin);
@@ -6648,19 +6691,45 @@ function ajouterLigneCreneau(c = {}) {
   liste.appendChild(bloc);
 }
 
-// Une ligne de tâche (modifiable, supprimable) dans la liste d'un créneau
-function ajouterLigneTache(bloc, texte = "") {
+// Une ligne de tâche (texte + minutes, modifiable, supprimable).
+// Accepte une chaîne (ancien format) ou un objet { texte, min }.
+function ajouterLigneTache(bloc, tache = "") {
+  const texte = typeof tache === "string" ? tache : (tache.texte || "");
+  const min = typeof tache === "object" && tache.min > 0 ? tache.min : "";
   const conteneur = bloc.querySelector(".liste-taches");
   const ligne = document.createElement("div");
   ligne.className = "ligne-details ligne-tache";
   ligne.innerHTML = `
     <span style="align-self:center; color:#6b7280">•</span>
     <input type="text" class="tache-texte">
+    <input type="number" class="tache-min" min="0" step="5" placeholder="min" title="Temps prévu (minutes)" style="width:70px">
+    <small style="align-self:center; color:#6b7280">min</small>
     <button type="button" class="retirer-tache" title="Retirer cette tâche">✕</button>`;
   ligne.querySelector(".tache-texte").value = texte;
-  ligne.querySelector(".retirer-tache").addEventListener("click", () => ligne.remove());
+  ligne.querySelector(".tache-min").value = min;
+  ligne.querySelector(".retirer-tache").addEventListener("click", () => {
+    ligne.remove();
+    majTotalTaches(bloc);
+  });
   conteneur.appendChild(ligne);
   return ligne;
+}
+
+// Affiche « Σ tâches : X » sous la liste, en alerte si le total dépasse
+// la durée du créneau
+function majTotalTaches(bloc) {
+  const zone = bloc.querySelector(".total-taches");
+  if (!zone) return;
+  let total = 0;
+  for (const champ of bloc.querySelectorAll(".tache-min")) total += lireNombre(champ.value);
+  if (!(total > 0)) { zone.innerHTML = ""; return; }
+  const debut = bloc.querySelector(".debut").value;
+  const fin = bloc.querySelector(".fin").value;
+  const dureeCreneau = debut && fin ? dureeEntre(debut, fin) : 0;
+  const depasse = dureeCreneau > 0 && total > dureeCreneau;
+  zone.innerHTML = `Σ tâches : <strong>${formatDuree(Math.round(total))}</strong>` +
+    (dureeCreneau > 0 ? ` / créneau ${formatDuree(dureeCreneau)}` : "") +
+    (depasse ? ` <span class="badge alerte">dépasse le créneau</span>` : "");
 }
 
 // Réorganisation des créneaux par glisser-déposer (souris et tactile)
@@ -6800,12 +6869,17 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
         if (client) c.client = client;
         // Liste des tâches (y compris le texte restant dans la ligne d'ajout)
         const taches = [];
-        for (const champ of bloc.querySelectorAll(".tache-texte")) {
-          const texte = champ.value.trim();
-          if (texte) taches.push(texte);
+        for (const ligne of bloc.querySelectorAll(".ligne-tache")) {
+          const texte = ligne.querySelector(".tache-texte").value.trim();
+          if (!texte) continue;
+          const min = lireNombre(ligne.querySelector(".tache-min").value);
+          taches.push(min > 0 ? { texte, min } : { texte });
         }
         const restant = bloc.querySelector(".tache-nouvelle").value.trim();
-        if (restant) taches.push(restant);
+        if (restant) {
+          const minRestant = lireNombre(bloc.querySelector(".tache-nouvelle-min").value);
+          taches.push(minRestant > 0 ? { texte: restant, min: minRestant } : { texte: restant });
+        }
         if (taches.length) c.taches = taches;
         creneaux.push(c);
       }
@@ -7062,6 +7136,72 @@ document.getElementById("btn-valider-dupliquer").addEventListener("click", () =>
   sauvegarder();
   rendre();
   document.getElementById("modale-dupliquer").close();
+});
+
+/* ---------- Duplication d'un jour vers un autre ---------- */
+
+// Écrit (ou efface) la cellule d'un salarié pour une date quelconque
+function ecrireCelluleDate(empId, dateStr, cellule) {
+  const date = new Date(dateStr + "T00:00:00");
+  const sem = semainePourCle(cleSemaine(lundiDeLaSemaine(date)));
+  if (!sem[empId]) sem[empId] = {};
+  const idx = (date.getDay() + 6) % 7;
+  if (cellule) sem[empId][idx] = cellule;
+  else delete sem[empId][idx];
+}
+
+document.getElementById("btn-jour").addEventListener("click", () => {
+  const sel = document.getElementById("jour-salarie");
+  sel.innerHTML = `<option value="">Tous les salariés</option>` +
+    donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("");
+  const auj = new Date();
+  document.getElementById("jour-source").value = versInputDate(auj);
+  document.getElementById("jour-cible").value = versInputDate(ajouterJours(auj, 1));
+  document.getElementById("jour-info").innerHTML = "";
+  document.getElementById("modale-jour").showModal();
+});
+
+document.getElementById("btn-fermer-jour").addEventListener("click", () => {
+  document.getElementById("modale-jour").close();
+});
+
+document.getElementById("btn-valider-jour").addEventListener("click", () => {
+  const info = document.getElementById("jour-info");
+  const source = document.getElementById("jour-source").value;
+  const cible = document.getElementById("jour-cible").value;
+  if (!source || !cible) return;
+  if (source === cible) {
+    info.innerHTML = `<span style="color:#b91c1c">Le jour source et le jour cible sont identiques.</span>`;
+    return;
+  }
+  const choix = document.getElementById("jour-salarie").value;
+  const concernes = choix ? donnees.employes.filter(e => e.id === choix) : donnees.employes;
+
+  const dateSource = new Date(source + "T00:00:00");
+  const dateCible = new Date(cible + "T00:00:00");
+  const copies = [];
+  for (const emp of concernes) {
+    const cellule = celluleDeDate(emp.id, dateSource);
+    if (cellule) copies.push({ emp, cellule });
+  }
+  if (copies.length === 0) {
+    info.innerHTML = `<span style="color:#b91c1c">Rien à copier le ${formatDateLongue(dateSource)} pour ${choix ? "ce salarié" : "ces salariés"}.</span>`;
+    return;
+  }
+  const ecrases = copies.filter(({ emp }) => celluleDeDate(emp.id, dateCible));
+  if (ecrases.length &&
+      !confirm(`Le ${formatDateLongue(dateCible)} contient déjà des horaires pour ` +
+        `${ecrases.map(x => x.emp.nom).join(", ")}.\nLes remplacer ?`)) {
+    return;
+  }
+  for (const { emp, cellule } of copies) {
+    ecrireCelluleDate(emp.id, cible, JSON.parse(JSON.stringify(cellule)));
+  }
+  sauvegarder();
+  rendre();
+  info.innerHTML = `<span style="color:#166534">✔ ${copies.length} salarié(s) copié(s) du ` +
+    `${formatDateCourte(dateSource)} vers le ${formatDateCourte(dateCible)}.</span> ` +
+    `Changez le jour cible pour dupliquer à nouveau.`;
 });
 
 document.getElementById("btn-effacer").addEventListener("click", () => {
