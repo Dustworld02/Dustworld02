@@ -7,21 +7,260 @@
 <style id="style-page">@page { size: A4 landscape; margin: 10mm; }</style>
 <style>
   :root {
-    --bleu: #1d4ed8;
-    --bleu-clair: #eff6ff;
-    --gris-bord: #d1d5db;
-    --gris-texte: #374151;
-    --fond: #f3f4f6;
-    --repos: #fef3c7;
-    --conge: #fee2e2;
-    --ferie: #e0e7ff;
+    /* Marque : bleu navy + orange cuivré */
+    --navy-900: #0A1830;
+    --navy-800: #0F2544;
+    --navy-700: #17355F;
+    --navy-600: #22497D;
+    --navy-050: #EEF3FA;
+    --cuivre-600: #A85C2C;
+    --cuivre-500: #C2703C;
+    --cuivre-400: #D98A56;
+    --cuivre-050: #FBF1E8;
+
+    /* Neutres */
+    --fond: #F5F7FA;
+    --surface: #FFFFFF;
+    --surface-2: #FAFBFD;
+    --bord: #E2E8F0;
+    --bord-fort: #CBD5E1;
+    --texte: #14213D;
+    --texte-2: #5A6B85;
+    --texte-3: #8A99AF;
+
+    /* Statuts */
+    --ok-bg: #E7F6EF; --ok-fg: #10704F; --ok-bord: #A9DFC8;
+    --warn-bg: #FDF3E3; --warn-fg: #9A6415; --warn-bord: #F3D9AC;
+    --alerte-bg: #FDECEC; --alerte-fg: #A32020; --alerte-bord: #F3BFBF;
+
+    /* Alias conservés (utilisés par les vues existantes) */
+    --bleu: var(--navy-700);
+    --bleu-clair: var(--navy-050);
+    --gris-bord: var(--bord);
+    --gris-texte: var(--texte);
+    --repos: #FDF3E3;
+    --conge: #FDECEC;
+    --ferie: #E8EEF8;
+
+    --ombre-1: 0 1px 2px rgba(16, 30, 54, .06);
+    --ombre-2: 0 4px 14px rgba(16, 30, 54, .08);
+    --rayon: 12px;
+    --rayon-sm: 8px;
+    --largeur-nav: 244px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--fond);
-    color: var(--gris-texte);
-    padding: 16px;
+    color: var(--texte);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ================= Coquille applicative ================= */
+  .app { display: flex; min-height: 100vh; }
+
+  /* ---------- Barre latérale ---------- */
+  .sidebar {
+    width: var(--largeur-nav);
+    flex: 0 0 var(--largeur-nav);
+    background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-800) 100%);
+    color: #DDE6F2;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    transition: width .18s ease, flex-basis .18s ease;
+  }
+  .marque {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 18px 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .monogramme {
+    width: 38px; height: 38px;
+    flex: 0 0 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--cuivre-500), var(--cuivre-400));
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.95rem; letter-spacing: .02em;
+    box-shadow: 0 2px 8px rgba(194,112,60,.45);
+  }
+  .marque .textes { min-width: 0; }
+  .marque .nom {
+    font-weight: 700; font-size: 0.95rem; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .marque .sous { font-size: 0.7rem; color: #94A9C6; letter-spacing: .06em; text-transform: uppercase; }
+
+  .nav { padding: 12px 10px 8px; flex: 1; }
+  .nav-groupe {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #7E93B4;
+    padding: 14px 10px 6px;
+    font-weight: 700;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    border: none;
+    border-radius: var(--rayon-sm);
+    background: transparent;
+    color: #C9D6E8;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+  }
+  .nav-item .ico { width: 18px; text-align: center; flex: 0 0 18px; font-size: 0.95rem; }
+  .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .nav-item.actif {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font-weight: 600;
+  }
+  .nav-item.actif::before {
+    content: "";
+    position: absolute; left: -10px; top: 6px; bottom: 6px;
+    width: 3px; border-radius: 0 3px 3px 0;
+    background: var(--cuivre-400);
+  }
+  .nav-pied {
+    padding: 12px 14px 16px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    font-size: 0.7rem;
+    color: #7E93B4;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .btn-replier {
+    background: transparent; border: 1px solid rgba(255,255,255,.18);
+    color: #C9D6E8; border-radius: 6px; padding: 3px 8px; font-size: 0.8rem; cursor: pointer;
+  }
+  .btn-replier:hover { background: rgba(255,255,255,.1); }
+
+  /* Mode replié */
+  body.nav-repliee { --largeur-nav: 68px; }
+  body.nav-repliee .marque .textes,
+  body.nav-repliee .nav-groupe,
+  body.nav-repliee .nav-item .libelle,
+  body.nav-repliee .nav-pied .version { display: none; }
+  body.nav-repliee .nav-item { justify-content: center; padding: 10px 6px; }
+  body.nav-repliee .marque { justify-content: center; padding: 16px 6px; }
+  body.nav-repliee .nav-pied { justify-content: center; }
+
+  /* ---------- Zone principale ---------- */
+  .principal { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--bord);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .topbar .titres { flex: 1; min-width: 200px; }
+  .topbar .societe {
+    font-size: 1.15rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    outline: none;
+    background: transparent;
+    color: var(--texte);
+    padding: 2px 6px;
+    margin-left: -6px;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .topbar .societe:hover { border-color: var(--bord); background: var(--surface-2); }
+  .topbar .societe:focus { border-color: var(--navy-600); background: #fff; }
+  .periode {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--texte-2);
+    letter-spacing: .01em;
+    padding-left: 1px;
+  }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .contenu { padding: 22px 24px 40px; flex: 1; }
+
+  /* ---------- Sous-barre contextuelle ---------- */
+  .sous-barre {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    background: var(--surface);
+    border-bottom: 1px solid var(--bord);
+    padding: 10px 24px;
+  }
+  .sous-barre.vide { display: none; }
+
+  /* ---------- Contrôles ---------- */
+  button {
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 500;
+    padding: 7px 13px;
+    border: 1px solid var(--bord-fort);
+    border-radius: var(--rayon-sm);
+    background: var(--surface);
+    color: var(--texte);
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+  }
+  button:hover { background: var(--surface-2); border-color: var(--texte-3); }
+  button:active { transform: translateY(.5px); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button.primaire {
+    background: var(--cuivre-500);
+    color: #fff;
+    border-color: var(--cuivre-500);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(168,92,44,.25);
+  }
+  button.primaire:hover { background: var(--cuivre-600); border-color: var(--cuivre-600); }
+  input[type="date"], input[type="time"], input[type="text"], input[type="number"],
+  input[type="month"], select {
+    font: inherit;
+    font-size: 0.86rem;
+    padding: 7px 10px;
+    border: 1px solid var(--bord-fort);
+    border-radius: var(--rayon-sm);
+    background: var(--surface);
+    color: var(--texte);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--navy-600);
+    box-shadow: 0 0 0 3px rgba(34,73,125,.12);
+  }
+  ::placeholder { color: var(--texte-3); }
+
+  /* ---------- Feuille de contenu ---------- */
+  .feuille {
+    background: var(--surface);
+    border: 1px solid var(--bord);
+    border-radius: var(--rayon);
+    padding: 20px;
+    box-shadow: var(--ombre-1);
   }
 
   /* ---------- Barre d'outils (non imprimée) ---------- */
@@ -94,23 +333,6 @@
     border-radius: 10px;
     padding: 20px;
   }
-  .entete-feuille {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .entete-feuille .societe {
-    font-size: 1.35rem;
-    font-weight: 700;
-    border: none;
-    outline: none;
-    min-width: 200px;
-    color: #111827;
-  }
-  .entete-feuille .societe:focus { border-bottom: 2px solid var(--bleu); }
   .periode { font-size: 1.05rem; font-weight: 600; color: var(--bleu); }
 
   table.planning {
@@ -125,9 +347,11 @@
     vertical-align: top;
   }
   table.planning thead th {
-    background: var(--bleu);
+    background: var(--navy-800);
     color: #fff;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: .01em;
     padding: 9px 6px;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
@@ -369,10 +593,11 @@
   .bascule-vue button:not(:first-child) { border-left: none; }
   .bascule-vue button:last-child { border-radius: 0 8px 8px 0; }
   .bascule-vue button.actif {
-    background: var(--bleu);
+    background: var(--navy-800);
     color: #fff;
-    border-color: var(--bleu);
+    border-color: var(--navy-800);
   }
+  .bascule-vue button { font-weight: 600; }
 
   /* ---------- Vue mois ---------- */
   table.planning.mois th.col-date { width: 92px; }
@@ -409,20 +634,22 @@
     gap: 14px;
   }
   .carte-vehicule {
-    border: 1px solid var(--gris-bord);
-    border-radius: 10px;
-    background: #fff;
-    padding: 14px;
+    border: 1px solid var(--bord);
+    border-radius: var(--rayon);
+    background: var(--surface);
+    padding: 16px;
     break-inside: avoid;
+    box-shadow: var(--ombre-1);
   }
+  .carte-vehicule:hover { box-shadow: var(--ombre-2); }
   .carte-vehicule h3 { font-size: 1rem; color: #111827; }
   .carte-vehicule .attribution { font-size: 0.8rem; color: #6b7280; margin: 2px 0 8px; }
   .section-vehicule { border-top: 1px solid #f3f4f6; padding: 8px 0 6px; }
   .section-vehicule h4 {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--bleu);
+    letter-spacing: 0.07em;
+    color: var(--texte-2);
     margin-bottom: 6px;
     display: flex;
     align-items: center;
@@ -447,9 +674,9 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  .badge.ok { background: #dcfce7; color: #166534; }
-  .badge.attention { background: #fef3c7; color: #92400e; }
-  .badge.alerte { background: #fee2e2; color: #991b1b; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-bord); }
+  .badge.attention { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-bord); }
+  .badge.alerte { background: var(--alerte-bg); color: var(--alerte-fg); border: 1px solid var(--alerte-bord); }
   .mini-form { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
   .mini-form input { font-size: 0.82rem; padding: 5px 7px; flex: 1; min-width: 0; }
   .mini-form button { font-size: 0.82rem; padding: 5px 9px; white-space: nowrap; }
@@ -468,9 +695,12 @@
     vertical-align: middle;
   }
   table.tableau-gestion thead th {
-    background: var(--bleu);
+    background: var(--navy-800);
     color: #fff;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -503,8 +733,8 @@
   }
   table.tableau-gestion input.etroit { width: 78px; }
   .note-onglet { font-size: 0.8rem; color: #6b7280; margin-top: 10px; }
-  .marge-positive { color: #166534; font-weight: 700; }
-  .marge-negative { color: #b91c1c; font-weight: 700; }
+  .marge-positive { color: var(--ok-fg); font-weight: 700; }
+  .marge-negative { color: var(--alerte-fg); font-weight: 700; }
   .avertissements { margin-top: 10px; }
   .avertissements .avert {
     font-size: 0.83rem;
@@ -525,15 +755,23 @@
     margin-bottom: 16px;
   }
   .kpi {
-    border: 1px solid var(--gris-bord);
-    border-radius: 10px;
-    padding: 12px 14px;
-    background: #fff;
+    border: 1px solid var(--bord);
+    border-radius: var(--rayon);
+    padding: 14px 16px;
+    background: var(--surface);
+    box-shadow: var(--ombre-1);
+    position: relative;
+    overflow: hidden;
   }
-  .kpi .valeur { font-size: 1.45rem; font-weight: 800; color: #111827; }
-  .kpi .valeur.positif { color: #166534; }
-  .kpi .valeur.negatif { color: #b91c1c; }
-  .kpi .libelle { font-size: 0.78rem; color: #6b7280; margin-top: 2px; }
+  .kpi::after {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--navy-700);
+  }
+  .kpi .valeur { font-size: 1.55rem; font-weight: 800; color: var(--texte); letter-spacing: -.01em; }
+  .kpi .valeur.positif { color: var(--ok-fg); }
+  .kpi .valeur.negatif { color: var(--alerte-fg); }
+  .kpi .libelle { font-size: 0.76rem; color: var(--texte-2); margin-top: 3px; }
   .liste-alertes { margin-top: 6px; }
   .alerte-ligne {
     display: flex;
@@ -554,10 +792,11 @@
   .alerte-ligne.grave:hover { background: #fee2e2; }
   .alerte-ligne .fleche { margin-left: auto; color: #9ca3af; }
   .titre-section-accueil {
-    font-size: 0.85rem;
+    font-size: 0.74rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--bleu);
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: var(--texte-2);
     margin: 18px 0 8px;
   }
 
@@ -602,8 +841,8 @@
     font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--bleu);
-    border-bottom: 2px solid var(--bleu);
+    color: var(--navy-800);
+    border-bottom: 2px solid var(--cuivre-500);
     margin: 16px 0 8px;
     padding-bottom: 2px;
   }
@@ -672,8 +911,22 @@
       print-color-adjust: exact;
       -webkit-print-color-adjust: exact;
     }
-    .toolbar, dialog { display: none !important; }
-    .feuille { border: none; border-radius: 0; padding: 0; }
+    .sidebar, .sous-barre, .topbar-actions, dialog { display: none !important; }
+    .app { display: block; }
+    .principal { display: block; }
+    .topbar {
+      position: static;
+      border: none;
+      padding: 0 0 10px;
+      display: block;
+    }
+    .topbar .societe {
+      border: none; padding: 0; margin: 0;
+      font-size: 1.3rem; max-width: none;
+    }
+    .topbar .periode { font-size: 0.95rem; color: var(--navy-700); font-weight: 700; }
+    .contenu { padding: 0; }
+    .feuille { border: none; border-radius: 0; padding: 0; box-shadow: none; }
     .pied-impression { display: block; }
     td.cellule { cursor: default; }
     td.cellule:hover { background: inherit; }
@@ -682,7 +935,6 @@
     table.planning.mois { font-size: 8pt; }
     table.planning.mois th, table.planning.mois td { padding: 2px 4px; }
     table.planning tr { break-inside: avoid; }
-    .entete-feuille .societe { border: none; }
     .no-print, .ligne-item button, .carte-vehicule > div > button { display: none !important; }
     .cartes-vehicules { grid-template-columns: repeat(2, 1fr); }
     .carte-vehicule, .carte-client { break-inside: avoid; }
@@ -694,16 +946,54 @@
 </head>
 <body>
 
-<div class="toolbar">
-  <div class="rangee-onglets">
-    <h1>🧽 Gestion Nettoyage <small id="version-app" style="font-size:0.6em; color:#9ca3af; font-weight:400"></small></h1>
-    <span class="onglets">
-      <button class="onglet" id="btn-vue-accueil">🏠 Accueil</button><button class="onglet" id="btn-vue-planning">📅 Planning</button><button class="onglet" id="btn-vue-interventions">📋 Interventions</button><button class="onglet" id="btn-vue-clients">🧑‍💼 Clients</button><button class="onglet" id="btn-vue-personnel">👥 Personnel</button><button class="onglet" id="btn-vue-stocks">📦 Stocks</button><button class="onglet" id="btn-vue-materiel">🧰 Matériel</button><button class="onglet" id="btn-vue-vehicules">🚙 Véhicules</button><button class="onglet" id="btn-vue-marges">📊 Marges</button><button class="onglet" id="btn-vue-rapports">📈 Rapports</button>
-    </span>
-    <span style="flex:1"></span>
-    <button id="btn-sauvegarde">💾 Sauvegarde</button>
-    <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
+<input type="file" id="fichier-import" accept=".json,application/json" style="display:none">
+
+<div class="app">
+<aside class="sidebar">
+  <div class="marque">
+    <div class="monogramme" id="brand-monogramme">GN</div>
+    <div class="textes">
+      <div class="nom" id="brand-nom">Gestion Nettoyage</div>
+      <div class="sous">Propreté</div>
+    </div>
   </div>
+
+  <nav class="nav">
+    <div class="nav-groupe">Pilotage</div>
+    <button class="nav-item" id="btn-vue-accueil"><span class="ico">🏠</span><span class="libelle">Accueil</span></button>
+    <button class="nav-item" id="btn-vue-marges"><span class="ico">📊</span><span class="libelle">Marges</span></button>
+    <button class="nav-item" id="btn-vue-rapports"><span class="ico">📈</span><span class="libelle">Rapports</span></button>
+
+    <div class="nav-groupe">Exploitation</div>
+    <button class="nav-item" id="btn-vue-planning"><span class="ico">📅</span><span class="libelle">Planning</span></button>
+    <button class="nav-item" id="btn-vue-interventions"><span class="ico">📋</span><span class="libelle">Interventions</span></button>
+
+    <div class="nav-groupe">Référentiels</div>
+    <button class="nav-item" id="btn-vue-clients"><span class="ico">🧑‍💼</span><span class="libelle">Clients</span></button>
+    <button class="nav-item" id="btn-vue-personnel"><span class="ico">👥</span><span class="libelle">Personnel</span></button>
+    <button class="nav-item" id="btn-vue-stocks"><span class="ico">📦</span><span class="libelle">Stocks</span></button>
+    <button class="nav-item" id="btn-vue-materiel"><span class="ico">🧰</span><span class="libelle">Matériel</span></button>
+    <button class="nav-item" id="btn-vue-vehicules"><span class="ico">🚙</span><span class="libelle">Véhicules</span></button>
+  </nav>
+
+  <div class="nav-pied">
+    <span class="version" id="version-app"></span>
+    <button class="btn-replier" id="btn-replier" title="Replier / déplier le menu">☰</button>
+  </div>
+</aside>
+
+<div class="principal">
+  <header class="topbar">
+    <div class="titres">
+      <input type="text" class="societe" id="nom-societe" placeholder="Nom de l'entreprise" title="Cliquez pour modifier le nom de votre société">
+      <div class="periode" id="libelle-periode"></div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-sauvegarde">💾 Sauvegarde</button>
+      <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
+    </div>
+  </header>
+
   <div class="sous-barre" id="sous-barre">
     <span class="bascule-vue action-planning">
       <button id="btn-vue-semaine">Semaine</button><button id="btn-vue-mois">Mois</button>
@@ -724,15 +1014,10 @@
     <button id="btn-planning-salarie" class="action-planning">👤 Planning salarié…</button>
     <input type="text" id="recherche-clients" class="action-clients" placeholder="🔍 Rechercher un client…" style="min-width:220px">
   </div>
-</div>
-<input type="file" id="fichier-import" accept=".json,application/json" style="display:none">
+
+  <main class="contenu">
 
 <div class="feuille">
-  <div class="entete-feuille">
-    <input type="text" class="societe" id="nom-societe" placeholder="Nom de l'entreprise" title="Cliquez pour modifier">
-    <div class="periode" id="libelle-periode"></div>
-  </div>
-
   <div id="zone-planning"></div>
 
   <div class="legende" id="legende">
@@ -743,6 +1028,9 @@
     <span><span class="pastille" style="background:var(--ferie)"></span> Férié</span>
   </div>
   <div class="pied-impression" id="pied-impression"></div>
+</div>
+  </main>
+</div>
 </div>
 
 <!-- Documents imprimables dédiés (fiche client, check-list…) -->
@@ -3193,7 +3481,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "29/08/2026 — 4"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "29/08/2026 — 5"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3532,6 +3820,7 @@ function majStylePage() {
 
 function rendre() {
   document.getElementById("nom-societe").value = donnees.societe || "";
+  majMarque();
   document.getElementById("pied-impression").textContent =
     `Planning édité le ${formatDateLongue(new Date())}`;
   majStylePage();
@@ -3567,6 +3856,17 @@ function rendre() {
 
   if (vue === "mois") rendreMois(zone);
   else rendreSemaine(zone);
+}
+
+// Marque : monogramme (initiales de la société) et nom dans la barre latérale
+function majMarque() {
+  const nom = (donnees.societe || "").trim();
+  document.getElementById("brand-nom").textContent = nom || "Gestion Nettoyage";
+  const initiales = (nom || "Gestion Nettoyage")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(mot => mot[0].toUpperCase()).join("");
+  document.getElementById("brand-monogramme").textContent = initiales || "GN";
+  document.title = nom ? `${nom} — Gestion Nettoyage` : "Gestion Nettoyage";
 }
 
 // Onglets, sous-barre contextuelle et légende selon la vue active
@@ -7766,6 +8066,11 @@ document.getElementById("btn-imprimer").addEventListener("click", () => window.p
 
 /* ================= Démarrage ================= */
 document.getElementById("version-app").textContent = "v. " + VERSION;
+document.getElementById("btn-replier").addEventListener("click", () => {
+  document.body.classList.toggle("nav-repliee");
+  try { localStorage.setItem("nav-repliee", document.body.classList.contains("nav-repliee") ? "1" : "0"); } catch (e) {}
+});
+try { if (localStorage.getItem("nav-repliee") === "1") document.body.classList.add("nav-repliee"); } catch (e) {}
 rendre();
 </script>
 </body>
