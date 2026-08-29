@@ -420,6 +420,35 @@
     color: #92400e;
     font-weight: 600;
   }
+  .pastille-type {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    vertical-align: -1px;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  .bloc-demande {
+    border: 1px solid var(--bord);
+    border-radius: var(--rayon);
+    background: var(--surface-2);
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  tr.ligne-refusee td { opacity: .6; text-decoration: line-through; }
+  table.calendrier-cp { border-collapse: collapse; font-size: 0.66rem; }
+  table.calendrier-cp th.mois-cal {
+    text-align: right; padding: 1px 6px 1px 0;
+    color: var(--texte-2); font-weight: 600; white-space: nowrap;
+  }
+  table.calendrier-cp td.case-cal {
+    width: 17px; height: 17px;
+    text-align: center;
+    border: 1px solid #EDF1F6;
+    color: var(--texte-3);
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  table.calendrier-cp td.vide-cal { border-color: transparent; }
+
   .bloc-type-intervention {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
@@ -971,6 +1000,7 @@
     <div class="nav-groupe">Référentiels</div>
     <button class="nav-item" id="btn-vue-clients"><span class="ico">🧑‍💼</span><span class="libelle">Clients</span></button>
     <button class="nav-item" id="btn-vue-personnel"><span class="ico">👥</span><span class="libelle">Personnel</span></button>
+    <button class="nav-item" id="btn-vue-conges"><span class="ico">🌴</span><span class="libelle">Congés</span></button>
     <button class="nav-item" id="btn-vue-stocks"><span class="ico">📦</span><span class="libelle">Stocks</span></button>
     <button class="nav-item" id="btn-vue-materiel"><span class="ico">🧰</span><span class="libelle">Matériel</span></button>
     <button class="nav-item" id="btn-vue-vehicules"><span class="ico">🚙</span><span class="libelle">Véhicules</span></button>
@@ -1003,6 +1033,9 @@
     </span>
     <span class="bascule-vue action-rapports">
       <button id="btn-vue-rapport-client">🧑‍💼 Rapport client</button><button id="btn-vue-feuilles-temps">⏱️ Feuilles de temps</button><button id="btn-vue-export-facturation">🧾 Export facturation</button>
+    </span>
+    <span class="bascule-vue action-conges">
+      <button id="btn-vue-cp-soldes">📊 Soldes</button><button id="btn-vue-cp-demandes">📝 Demandes</button><button id="btn-vue-cp-calendrier">🗓️ Calendrier</button>
     </span>
     <button id="btn-sem-prec" class="action-navig" title="Période précédente">◀</button>
     <input type="date" id="date-semaine" class="action-navig">
@@ -3481,7 +3514,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "29/08/2026 — 5"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "29/08/2026 — 6"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3497,7 +3530,8 @@ const ETIQUETTES = { repos: "REPOS", conge: "CONGÉ", ferie: "FÉRIÉ" };
 let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
 const VUES = ["accueil", "semaine", "mois", "clients", "personnel", "stocks", "materiel", "vehicules", "marges",
-  "bons", "controles", "tickets", "pointage", "rapport-client", "feuilles-temps", "export-facturation"];
+  "bons", "controles", "tickets", "pointage", "rapport-client", "feuilles-temps", "export-facturation",
+  "cp-soldes", "cp-demandes", "cp-calendrier"];
 let vue = VUES.includes(donnees.vue) ? donnees.vue : "accueil";
 let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
 let celluleEnCours = null; // { employeId, indexJour, cle }
@@ -3517,6 +3551,7 @@ function migrer(d) {
   if (!Array.isArray(d.controles)) d.controles = [];     // contrôles qualité
   if (!Array.isArray(d.tickets)) d.tickets = [];         // ordres de travail / réclamations
   if (!Array.isArray(d.pointages)) d.pointages = [];     // heures réelles
+  if (!Array.isArray(d.absences)) d.absences = [];       // congés et absences
   if (typeof d.parametres !== "object" || d.parametres === null) d.parametres = {};
   if (typeof d.parametres.prefixeBon !== "string") d.parametres.prefixeBon = "BI";
   if (typeof d.parametres.numerotation !== "object" || d.parametres.numerotation === null) {
@@ -3813,6 +3848,7 @@ function remplirCelluleTd(td, cellule) {
 // en portrait (paysage au-delà de 4 employés pour garder des colonnes lisibles)
 function majStylePage() {
   const paysage = vue === "semaine" || vue === "marges" || vue === "export-facturation" ||
+    vue === "cp-calendrier" ||
     (vue === "mois" && donnees.employes.length > 4);
   document.getElementById("style-page").textContent =
     `@page { size: A4 ${paysage ? "landscape" : "portrait"}; margin: 10mm; }`;
@@ -3844,6 +3880,9 @@ function rendre() {
     case "rapport-client": rendreRapportClient(zone); return;
     case "feuilles-temps": rendreFeuillesTemps(zone); return;
     case "export-facturation": rendreExportFacturation(zone); return;
+    case "cp-soldes": rendreCPSoldes(zone); return;
+    case "cp-demandes": rendreCPDemandes(zone); return;
+    case "cp-calendrier": rendreCPCalendrier(zone); return;
   }
 
   if (donnees.employes.length === 0) {
@@ -3872,11 +3911,13 @@ function majMarque() {
 // Onglets, sous-barre contextuelle et légende selon la vue active
 const VUES_INTERVENTIONS = ["bons", "controles", "tickets", "pointage"];
 const VUES_RAPPORTS = ["rapport-client", "feuilles-temps", "export-facturation"];
+const VUES_CONGES = ["cp-soldes", "cp-demandes", "cp-calendrier"];
 
 function majBarres() {
   const estPlanning = vue === "semaine" || vue === "mois";
   const estInterventions = VUES_INTERVENTIONS.includes(vue);
   const estRapports = VUES_RAPPORTS.includes(vue);
+  const estConges = VUES_CONGES.includes(vue);
   const actifs = {
     "btn-vue-accueil": vue === "accueil",
     "btn-vue-planning": estPlanning,
@@ -3888,6 +3929,10 @@ function majBarres() {
     "btn-vue-vehicules": vue === "vehicules",
     "btn-vue-marges": vue === "marges",
     "btn-vue-rapports": estRapports,
+    "btn-vue-conges": estConges,
+    "btn-vue-cp-soldes": vue === "cp-soldes",
+    "btn-vue-cp-demandes": vue === "cp-demandes",
+    "btn-vue-cp-calendrier": vue === "cp-calendrier",
     "btn-vue-semaine": vue === "semaine",
     "btn-vue-mois": vue === "mois",
     "btn-vue-bons": vue === "bons",
@@ -3904,6 +3949,7 @@ function majBarres() {
     [".action-planning", estPlanning],
     [".action-interventions", estInterventions],
     [".action-rapports", estRapports],
+    [".action-conges", estConges],
     [".action-navig", estPlanning || vue === "marges"],
     [".action-semaine", vue === "semaine"],
     [".action-clients", vue === "clients"],
@@ -4509,6 +4555,134 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
 });
 
 /* ================= Clients : accès et statistiques ================= */
+
+/* ================= Congés et absences ================= */
+
+const TYPES_ABSENCE = [
+  { code: "cp",        libelle: "Congés payés",        court: "CP",        couleur: "#0EA5A5", decompteCP: true },
+  { code: "rtt",       libelle: "RTT",                 court: "RTT",       couleur: "#22497D", decompteCP: false },
+  { code: "maladie",   libelle: "Arrêt maladie",       court: "Maladie",   couleur: "#B42318", decompteCP: false },
+  { code: "sanssolde", libelle: "Congé sans solde",    court: "Sans solde", couleur: "#8A99AF", decompteCP: false },
+  { code: "formation", libelle: "Formation",           court: "Formation", couleur: "#7C3AED", decompteCP: false },
+  { code: "familial",  libelle: "Événement familial",  court: "Familial",  couleur: "#C2703C", decompteCP: false },
+];
+const typeAbsence = (code) => TYPES_ABSENCE.find(t => t.code === code) || TYPES_ABSENCE[0];
+
+const JOURS_CP_PAR_MOIS = 2.5;   // jours ouvrables acquis par mois travaillé
+const PLAFOND_CP_ANNUEL = 30;    // 30 jours ouvrables par an
+
+// Jours fériés français d'une année (avec Pâques → lundi de Pâques,
+// Ascension et lundi de Pentecôte)
+function joursFeries(annee) {
+  const f = new Set([
+    `${annee}-01-01`, `${annee}-05-01`, `${annee}-05-08`, `${annee}-07-14`,
+    `${annee}-08-15`, `${annee}-11-01`, `${annee}-11-11`, `${annee}-12-25`,
+  ]);
+  // Calcul de Pâques (algorithme de Meeus/Jones/Butcher)
+  const a = annee % 19, b = Math.floor(annee / 100), cc = annee % 100;
+  const d = Math.floor(b / 4), e = b % 4, g = Math.floor((8 * b + 13) / 25);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(cc / 4), k = cc % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mois = Math.floor((h + l - 7 * m + 114) / 31);
+  const jour = ((h + l - 7 * m + 114) % 31) + 1;
+  const paques = new Date(annee, mois - 1, jour);
+  const ajoute = (n) => f.add(versInputDate(ajouterJours(paques, n)));
+  ajoute(1);   // lundi de Pâques
+  ajoute(39);  // Ascension
+  ajoute(50);  // lundi de Pentecôte
+  return f;
+}
+
+const cacheFeries = {};
+function estFerie(date) {
+  const an = date.getFullYear();
+  if (!cacheFeries[an]) cacheFeries[an] = joursFeries(an);
+  return cacheFeries[an].has(versInputDate(date));
+}
+
+// Jours ouvrables (lundi → samedi, hors fériés) entre deux dates incluses,
+// avec demi-journées éventuelles aux bornes
+function joursOuvrablesEntre(debutStr, finStr, demiDebut = false, demiFin = false) {
+  if (!debutStr || !finStr || finStr < debutStr) return 0;
+  let total = 0;
+  const debut = new Date(debutStr + "T00:00:00");
+  const fin = new Date(finStr + "T00:00:00");
+  for (let d = new Date(debut); d <= fin; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() === 0 || estFerie(d)) continue; // dimanche ou férié
+    let part = 1;
+    if (demiDebut && versInputDate(d) === debutStr) part -= 0.5;
+    if (demiFin && versInputDate(d) === finStr) part -= 0.5;
+    total += Math.max(0, part);
+  }
+  return Math.round(total * 2) / 2;
+}
+
+function joursAbsence(abs) {
+  return joursOuvrablesEntre(abs.debut, abs.fin, abs.demiJourneeDebut, abs.demiJourneeFin);
+}
+
+// Période de référence des congés payés : 1er juin → 31 mai
+function periodeReference(date = new Date()) {
+  const annee = date.getMonth() >= 5 ? date.getFullYear() : date.getFullYear() - 1;
+  return {
+    annee,
+    debut: `${annee}-06-01`,
+    fin: `${annee + 1}-05-31`,
+    libelle: `1er juin ${annee} → 31 mai ${annee + 1}`,
+  };
+}
+
+// Solde de congés payés d'un salarié sur une période de référence
+function soldeCP(emp, ref) {
+  const auj = versInputDate(new Date());
+  const finComptee = auj < ref.fin ? auj : ref.fin; // acquis à ce jour
+  const debutDroits = (emp.dateEntree && emp.dateEntree > ref.debut) ? emp.dateEntree : ref.debut;
+  let moisTravailles = 0;
+  if (debutDroits <= finComptee) {
+    const d1 = new Date(debutDroits + "T00:00:00");
+    const d2 = new Date(finComptee + "T00:00:00");
+    moisTravailles = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    if (d2.getDate() >= d1.getDate()) moisTravailles += 1; // mois entamé et achevé
+    moisTravailles = Math.max(0, Math.min(12, moisTravailles));
+  }
+  const acquis = Math.min(PLAFOND_CP_ANNUEL, Math.round(moisTravailles * JOURS_CP_PAR_MOIS * 2) / 2);
+  const ouverture = emp.cpOuverture > 0 ? emp.cpOuverture : 0;
+  const ajustements = (emp.cpAjustements || []).reduce((s, a) => s + (a.jours || 0), 0);
+
+  let pris = 0, enAttente = 0;
+  for (const abs of donnees.absences) {
+    if (abs.empId !== emp.id || !typeAbsence(abs.type).decompteCP) continue;
+    if (abs.fin < ref.debut || abs.debut > ref.fin) continue;
+    const j = joursAbsence(abs);
+    if (abs.statut === "valide") pris += j;
+    else if (abs.statut === "demande") enAttente += j;
+  }
+  const solde = Math.round((acquis + ouverture + ajustements - pris) * 2) / 2;
+  return { acquis, ouverture, ajustements, pris, enAttente, solde,
+    soldePrevisionnel: Math.round((solde - enAttente) * 2) / 2 };
+}
+
+// Jours d'absence (hors CP) pris sur une période, par type
+function compteursAbsences(empId, ref) {
+  const parType = {};
+  for (const abs of donnees.absences) {
+    if (abs.empId !== empId || abs.statut !== "valide") continue;
+    if (abs.fin < ref.debut || abs.debut > ref.fin) continue;
+    parType[abs.type] = (parType[abs.type] || 0) + joursAbsence(abs);
+  }
+  return parType;
+}
+
+// Absence validée couvrant une date donnée (pour le planning et l'accueil)
+function absencePourDate(empId, dateStr) {
+  return donnees.absences.find(a => a.empId === empId && a.statut === "valide" &&
+    a.debut <= dateStr && a.fin >= dateStr);
+}
+
+function formatJours(n) {
+  const v = Math.round(n * 2) / 2;
+  return v.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " j";
+}
 
 // Fréquences des types d'intervention et des tâches
 const FREQUENCES = [
@@ -7028,6 +7202,398 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
   rendre();
 });
 
+/* ================= Congés : vues ================= */
+
+let refConges = periodeReference();       // période affichée
+let anneeCalendrierCP = new Date().getFullYear();
+
+function badgeSolde(solde) {
+  const classe = solde > 5 ? "ok" : solde >= 0 ? "attention" : "alerte";
+  return `<span class="badge ${classe}">${formatJours(solde)}</span>`;
+}
+
+/* ---------- Soldes ---------- */
+
+function rendreCPSoldes(zone) {
+  document.getElementById("libelle-periode").textContent =
+    `Congés — soldes · période ${refConges.libelle}`;
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <button data-kaction="periode-prec">◀ Période précédente</button>
+      <span style="align-self:center; font-weight:600">${refConges.libelle}</span>
+      <button data-kaction="periode-suiv">Période suivante ▶</button>
+      <span style="flex:1"></span>
+      <button data-kaction="imprimer-soldes">🖨️ Imprimer les soldes</button>
+    </div>`;
+
+  if (donnees.employes.length === 0) {
+    html += `<div class="vide">Ajoutez d'abord vos salariés dans l'onglet 👥 Personnel.</div>`;
+    zone.innerHTML = html;
+    return;
+  }
+
+  const lignes = donnees.employes.map(emp => {
+    const s = soldeCP(emp, refConges);
+    const autres = compteursAbsences(emp.id, refConges);
+    const detailAutres = TYPES_ABSENCE.filter(t => !t.decompteCP && autres[t.code] > 0)
+      .map(t => `${t.court} ${formatJours(autres[t.code])}`).join(" · ");
+    return `
+    <tr>
+      <td><strong>${echapper(emp.nom)}</strong>${emp.role ? `<div style="font-size:0.78rem;color:var(--texte-2)">${echapper(emp.role)}</div>` : ""}</td>
+      <td class="num">${formatJours(s.acquis)}</td>
+      <td class="num"><input class="etroit" type="number" min="0" step="0.5" data-kchange="ouverture" data-eid="${emp.id}"
+        value="${s.ouverture > 0 ? s.ouverture : ""}" placeholder="0" title="Solde reporté de la période précédente"></td>
+      <td class="num">${s.ajustements !== 0 ? formatJours(s.ajustements) : "—"}
+        <button class="no-print" data-kaction="ajuster" data-eid="${emp.id}" title="Ajouter une correction" style="font-size:0.72rem; padding:1px 6px">±</button></td>
+      <td class="num">${s.pris > 0 ? formatJours(s.pris) : "—"}</td>
+      <td class="num">${s.enAttente > 0 ? `<span class="badge attention">${formatJours(s.enAttente)}</span>` : "—"}</td>
+      <td class="num">${badgeSolde(s.solde)}</td>
+      <td>${detailAutres || "—"}</td>
+    </tr>`;
+  }).join("");
+
+  html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th>Salarié</th><th class="num" style="width:110px" title="Jours acquis depuis le début de la période, à ce jour">Acquis à ce jour</th><th class="num" style="width:100px">Reporté</th>
+        <th class="num" style="width:110px">Ajustements</th><th class="num" style="width:80px">Pris</th>
+        <th class="num" style="width:100px">En attente</th><th class="num" style="width:110px">Solde</th>
+        <th style="width:200px">Autres absences</th>
+      </tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>
+    </div>
+    <div class="note-onglet">Décompte en <strong>jours ouvrables</strong> (lundi → samedi, hors jours fériés) :
+      2,5 jours acquis par mois travaillé, plafonnés à 30 jours par période de référence
+      (1er juin → 31 mai). « Acquis à ce jour » progresse chaque mois ; les congés pris dans l'année
+      se déduisent en principe du <strong>report</strong> de la période précédente, que vous saisissez
+      dans la colonne « Reporté ».</div>`;
+  zone.innerHTML = html;
+}
+
+function docSoldesCP() {
+  const lignes = donnees.employes.map(emp => {
+    const s = soldeCP(emp, refConges);
+    return `<div class="doc-ligne"><strong>${echapper(emp.nom)}</strong> — acquis ${formatJours(s.acquis)}
+      ${s.ouverture ? `+ report ${formatJours(s.ouverture)} ` : ""}${s.ajustements ? `+ ajust. ${formatJours(s.ajustements)} ` : ""}
+      − pris ${formatJours(s.pris)} = <strong>solde ${formatJours(s.solde)}</strong>
+      ${s.enAttente > 0 ? ` (${formatJours(s.enAttente)} en attente)` : ""}</div>`;
+  }).join("");
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">Soldes de congés payés — période ${refConges.libelle}</div>
+    <h2>Salariés</h2>
+    ${lignes || `<div class="doc-ligne">Aucun salarié.</div>`}
+    <div class="doc-sous-titre" style="margin-top:14px">Décompte en jours ouvrables (lundi → samedi, hors fériés).
+      Édité le ${formatDateLongue(new Date())}.</div>`;
+}
+
+/* ---------- Demandes ---------- */
+
+function rendreCPDemandes(zone) {
+  document.getElementById("libelle-periode").textContent = "Congés — demandes et absences";
+  const auj = versInputDate(new Date());
+
+  let html = `
+    <div class="bloc-demande no-print">
+      <div class="mini-form">
+        <select id="abs-emp" style="min-width:150px">${donnees.employes.map(e =>
+          `<option value="${e.id}">${echapper(e.nom)}</option>`).join("")}</select>
+        <select id="abs-type" style="min-width:150px">${TYPES_ABSENCE.map(t =>
+          `<option value="${t.code}">${t.libelle}</option>`).join("")}</select>
+        <label style="align-self:center; font-size:0.82rem">du</label>
+        <input type="date" id="abs-debut" value="${auj}">
+        <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.8rem">
+          <input type="checkbox" id="abs-demi-debut"> ½ j</label>
+        <label style="align-self:center; font-size:0.82rem">au</label>
+        <input type="date" id="abs-fin" value="${auj}">
+        <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.8rem">
+          <input type="checkbox" id="abs-demi-fin"> ½ j</label>
+        <input type="text" id="abs-motif" placeholder="Motif (optionnel)" style="flex:1; min-width:130px">
+        <button class="primaire" data-kaction="ajouter-demande">+ Enregistrer la demande</button>
+      </div>
+      <div id="abs-apercu" class="note-onglet" style="margin-top:6px"></div>
+    </div>`;
+
+  if (donnees.absences.length === 0) {
+    html += `<div class="vide">Aucune demande enregistrée.<br>
+      Saisissez ci-dessus les congés payés, RTT, arrêts maladie et autres absences de vos salariés :
+      les soldes se calculent tout seuls et les journées validées apparaissent au planning.</div>`;
+  } else {
+    const poids = { demande: 0, valide: 1, refuse: 2 };
+    const tries = [...donnees.absences].sort((a, b) =>
+      (poids[a.statut] ?? 1) - (poids[b.statut] ?? 1) || (b.debut || "").localeCompare(a.debut || ""));
+    const lignes = tries.map(abs => {
+      const emp = donnees.employes.find(e => e.id === abs.empId);
+      const t = typeAbsence(abs.type);
+      const jours = joursAbsence(abs);
+      const memeJour = abs.debut === abs.fin;
+      return `
+      <tr class="${abs.statut === "refuse" ? "ligne-refusee" : ""}">
+        <td><strong>${echapper(emp ? emp.nom : "?")}</strong></td>
+        <td><span class="pastille-type" style="background:${t.couleur}"></span> ${t.libelle}</td>
+        <td>${formatDateCourte(new Date(abs.debut + "T00:00:00"))}${memeJour ? "" : ` → ${formatDateCourte(new Date(abs.fin + "T00:00:00"))}`}
+          ${abs.demiJourneeDebut || abs.demiJourneeFin ? ` <small style="color:var(--texte-2)">(½ j)</small>` : ""}</td>
+        <td class="num"><strong>${formatJours(jours)}</strong></td>
+        <td>${echapper(abs.motif || "—")}</td>
+        <td>${abs.statut === "valide" ? `<span class="badge ok">Validé</span>` :
+             abs.statut === "refuse" ? `<span class="badge alerte">Refusé</span>` :
+             `<span class="badge attention">En attente</span>`}</td>
+        <td class="no-print" style="white-space:nowrap">
+          ${abs.statut !== "valide" ? `<button data-kaction="valider" data-aid="${abs.id}" title="Valider">✔</button>` : ""}
+          ${abs.statut !== "refuse" ? `<button data-kaction="refuser" data-aid="${abs.id}" title="Refuser">✕</button>` : ""}
+          <button data-kaction="imprimer-attestation" data-aid="${abs.id}" title="Imprimer l'attestation">🖨️</button>
+          <button data-kaction="supprimer-demande" data-aid="${abs.id}" title="Supprimer">🗑️</button>
+        </td>
+      </tr>`;
+    }).join("");
+
+    html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr><th style="width:150px">Salarié</th><th style="width:170px">Type</th><th style="width:170px">Période</th>
+        <th class="num" style="width:80px">Jours</th><th>Motif</th><th style="width:110px">Statut</th>
+        <th class="no-print" style="width:170px"></th></tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>
+    </div>
+    <div class="note-onglet">Une absence <strong>validée</strong> est reportée automatiquement dans le planning
+      (journées marquées) et décomptée du solde pour les congés payés.</div>`;
+  }
+  zone.innerHTML = html;
+  majApercuDemande();
+}
+
+// Aperçu du décompte pendant la saisie
+function majApercuDemande() {
+  const zone = document.getElementById("abs-apercu");
+  if (!zone) return;
+  const empId = document.getElementById("abs-emp").value;
+  const type = document.getElementById("abs-type").value;
+  const debut = document.getElementById("abs-debut").value;
+  const fin = document.getElementById("abs-fin").value;
+  const jours = joursOuvrablesEntre(debut, fin,
+    document.getElementById("abs-demi-debut").checked,
+    document.getElementById("abs-demi-fin").checked);
+  if (!debut || !fin || fin < debut) {
+    zone.innerHTML = `<span style="color:var(--alerte-fg)">Vérifiez les dates : la fin doit suivre le début.</span>`;
+    return;
+  }
+  const emp = donnees.employes.find(e => e.id === empId);
+  let texte = `Décompte : <strong>${formatJours(jours)}</strong> ouvrable(s) (lundi → samedi, hors fériés).`;
+  if (emp && typeAbsence(type).decompteCP) {
+    const s = soldeCP(emp, periodeReference(new Date(debut + "T00:00:00")));
+    const reste = Math.round((s.solde - jours) * 2) / 2;
+    texte += ` Solde de ${echapper(emp.nom)} : ${formatJours(s.solde)} → <strong>${formatJours(reste)}</strong> après validation.`;
+    if (reste < 0) texte += ` <span class="badge alerte">solde insuffisant</span>`;
+  }
+  zone.innerHTML = texte;
+}
+
+function docAttestationConges(abs) {
+  const emp = donnees.employes.find(e => e.id === abs.empId);
+  const t = typeAbsence(abs.type);
+  const jours = joursAbsence(abs);
+  const s = emp ? soldeCP(emp, periodeReference(new Date(abs.debut + "T00:00:00"))) : null;
+  return `
+    <h1>${echapper(donnees.societe || "")}</h1>
+    <div class="doc-sous-titre">${t.decompteCP ? "Attestation de congés payés" : "Attestation d'absence"}</div>
+    <h2>Salarié</h2>
+    <div class="doc-ligne"><strong>${echapper(emp ? emp.nom : "")}</strong>${emp && emp.role ? ` — ${echapper(emp.role)}` : ""}</div>
+    <h2>Absence</h2>
+    <div class="doc-ligne">Nature : <strong>${t.libelle}</strong></div>
+    <div class="doc-ligne">Du <strong>${formatDateLongue(new Date(abs.debut + "T00:00:00"))}</strong>
+      au <strong>${formatDateLongue(new Date(abs.fin + "T00:00:00"))}</strong> inclus
+      ${abs.demiJourneeDebut || abs.demiJourneeFin ? " (demi-journée(s) comprise(s))" : ""}</div>
+    <div class="doc-ligne">Durée décomptée : <strong>${formatJours(jours)}</strong> ouvrable(s)</div>
+    ${abs.motif ? `<div class="doc-ligne">Motif : ${echapper(abs.motif)}</div>` : ""}
+    <div class="doc-ligne">Statut : <strong>${abs.statut === "valide" ? "accordée" : abs.statut === "refuse" ? "refusée" : "en attente de validation"}</strong></div>
+    ${s && t.decompteCP ? `<h2>Solde de congés payés</h2>
+      <div class="doc-ligne">Période ${periodeReference(new Date(abs.debut + "T00:00:00")).libelle} —
+        acquis ${formatJours(s.acquis + s.ouverture + s.ajustements)}, pris ${formatJours(s.pris)},
+        <strong>solde ${formatJours(s.solde)}</strong></div>` : ""}
+    <div class="doc-signatures">
+      <div>Le salarié</div>
+      <div>L'employeur</div>
+    </div>
+    <div class="doc-sous-titre" style="margin-top:12px">Édité le ${formatDateLongue(new Date())}</div>`;
+}
+
+/* ---------- Calendrier annuel ---------- */
+
+function rendreCPCalendrier(zone) {
+  document.getElementById("libelle-periode").textContent = `Congés — calendrier ${anneeCalendrierCP}`;
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <button data-kaction="annee-prec">◀ ${anneeCalendrierCP - 1}</button>
+      <span style="align-self:center; font-weight:700">${anneeCalendrierCP}</span>
+      <button data-kaction="annee-suiv">${anneeCalendrierCP + 1} ▶</button>
+      <span style="flex:1"></span>
+      <span style="align-self:center; display:flex; gap:10px; flex-wrap:wrap">${TYPES_ABSENCE.map(t =>
+        `<span style="font-size:0.78rem"><span class="pastille-type" style="background:${t.couleur}"></span> ${t.court}</span>`).join("")}</span>
+    </div>`;
+
+  if (donnees.employes.length === 0) {
+    zone.innerHTML = html + `<div class="vide">Ajoutez vos salariés dans 👥 Personnel.</div>`;
+    return;
+  }
+
+  const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+  const blocs = donnees.employes.map(emp => {
+    const lignesMois = [];
+    for (let m = 0; m < 12; m++) {
+      const nbJours = new Date(anneeCalendrierCP, m + 1, 0).getDate();
+      let cases = "";
+      for (let j = 1; j <= nbJours; j++) {
+        const date = new Date(anneeCalendrierCP, m, j);
+        const dateStr = versInputDate(date);
+        const abs = absencePourDate(emp.id, dateStr);
+        const weekend = date.getDay() === 0;
+        const ferie = estFerie(date);
+        const t = abs ? typeAbsence(abs.type) : null;
+        const style = t ? `background:${t.couleur}; color:#fff; font-weight:700`
+          : ferie ? "background:var(--navy-050); color:var(--texte-3)"
+          : weekend ? "background:#F1F5F9; color:var(--texte-3)" : "";
+        cases += `<td class="case-cal" style="${style}" title="${dateStr}${t ? " — " + t.libelle : ferie ? " — férié" : ""}">${j}</td>`;
+      }
+      for (let j = nbJours; j < 31; j++) cases += `<td class="case-cal vide-cal"></td>`;
+      lignesMois.push(`<tr><th class="mois-cal">${moisNoms[m]}</th>${cases}</tr>`);
+    }
+    return `
+    <div class="carte-vehicule" style="margin-bottom:14px">
+      <h3 style="margin-bottom:8px">
+        <span class="pastille" style="background:${emp.couleur || "#22497D"}"></span>
+        ${echapper(emp.nom)}</h3>
+      <div style="overflow-x:auto"><table class="calendrier-cp"><tbody>${lignesMois.join("")}</tbody></table></div>
+    </div>`;
+  }).join("");
+
+  zone.innerHTML = html + blocs +
+    `<div class="note-onglet">Vue annuelle des absences validées — pratique pour repérer les
+      chevauchements avant d'accorder une demande. Imprimable en A4 paysage.</div>`;
+}
+
+/* ---------- Actions et saisies (préfixe k) ---------- */
+
+// Report d'une absence validée dans le planning (journées marquées)
+function appliquerAbsenceAuPlanning(abs, retirer = false) {
+  const t = typeAbsence(abs.type);
+  const debut = new Date(abs.debut + "T00:00:00");
+  const fin = new Date(abs.fin + "T00:00:00");
+  for (let d = new Date(debut); d <= fin; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() === 0) continue; // dimanche
+    const dateStr = versInputDate(d);
+    const cellule = celluleDeDate(abs.empId, d);
+    if (retirer) {
+      if (cellule && cellule.absenceId === abs.id) ecrireCelluleDate(abs.empId, dateStr, null);
+      continue;
+    }
+    // ne pas écraser un créneau de travail déjà saisi
+    if (cellule && cellule.type === "travail" && (cellule.creneaux || []).length) continue;
+    ecrireCelluleDate(abs.empId, dateStr, {
+      type: t.decompteCP ? "conge" : (abs.type === "maladie" ? "conge" : "conge"),
+      note: t.libelle,
+      absenceId: abs.id,
+    });
+  }
+}
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-kaction]");
+  if (!btn) return;
+  const abs = donnees.absences.find(a => a.id === btn.dataset.aid);
+
+  switch (btn.dataset.kaction) {
+    case "periode-prec":
+    case "periode-suiv": {
+      const delta = btn.dataset.kaction === "periode-suiv" ? 1 : -1;
+      refConges = periodeReference(new Date(refConges.annee + delta, 6, 1));
+      break;
+    }
+    case "annee-prec": anneeCalendrierCP--; break;
+    case "annee-suiv": anneeCalendrierCP++; break;
+    case "imprimer-soldes": imprimerDocument(docSoldesCP()); return;
+    case "imprimer-attestation": if (abs) imprimerDocument(docAttestationConges(abs)); return;
+    case "ajuster": {
+      const emp = donnees.employes.find(x => x.id === btn.dataset.eid);
+      if (!emp) return;
+      const saisie = prompt(`Correction de solde pour ${emp.nom} (en jours, négatif possible) :`, "1");
+      if (saisie === null) return;
+      const jours = lireNombre(saisie);
+      if (!jours) return;
+      const motif = prompt("Motif de la correction (optionnel) :", "") || "";
+      emp.cpAjustements = emp.cpAjustements || [];
+      emp.cpAjustements.push({ date: versInputDate(new Date()), jours, motif });
+      break;
+    }
+    case "ajouter-demande": {
+      const empId = document.getElementById("abs-emp").value;
+      const debut = document.getElementById("abs-debut").value;
+      const fin = document.getElementById("abs-fin").value;
+      if (!empId || !debut || !fin || fin < debut) {
+        alert("Vérifiez le salarié et les dates.");
+        return;
+      }
+      const nouvelle = {
+        id: nouvelId("abs"),
+        empId,
+        type: document.getElementById("abs-type").value,
+        debut, fin,
+        statut: "demande",
+        creeLe: versInputDate(new Date()),
+      };
+      if (document.getElementById("abs-demi-debut").checked) nouvelle.demiJourneeDebut = true;
+      if (document.getElementById("abs-demi-fin").checked) nouvelle.demiJourneeFin = true;
+      const motif = document.getElementById("abs-motif").value.trim();
+      if (motif) nouvelle.motif = motif;
+      donnees.absences.push(nouvelle);
+      break;
+    }
+    case "valider": {
+      if (!abs) return;
+      abs.statut = "valide";
+      appliquerAbsenceAuPlanning(abs);
+      break;
+    }
+    case "refuser": {
+      if (!abs) return;
+      appliquerAbsenceAuPlanning(abs, true);
+      abs.statut = "refuse";
+      break;
+    }
+    case "supprimer-demande": {
+      if (!abs) return;
+      if (!confirm("Supprimer cette absence ?")) return;
+      appliquerAbsenceAuPlanning(abs, true);
+      donnees.absences = donnees.absences.filter(a => a !== abs);
+      break;
+    }
+    default: return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-kchange]");
+  if (el && el.dataset.kchange === "ouverture") {
+    const emp = donnees.employes.find(x => x.id === el.dataset.eid);
+    if (!emp) return;
+    const n = lireNombre(el.value);
+    if (n > 0) emp.cpOuverture = n; else delete emp.cpOuverture;
+    sauvegarder();
+    rendre();
+    return;
+  }
+  // aperçu du décompte pendant la saisie d'une demande
+  if (e.target.closest("#abs-emp, #abs-type, #abs-debut, #abs-fin, #abs-demi-debut, #abs-demi-fin")) {
+    majApercuDemande();
+  }
+});
+
 /* ================= Accueil (tableau de bord) ================= */
 
 function calculerAlertes() {
@@ -7055,6 +7621,17 @@ function calculerAlertes() {
   const sousSeuil = donnees.produits.filter(p => p.seuil > 0 && p.quantite <= p.seuil);
   if (sousSeuil.length) {
     alertes.push({ texte: `📦 ${sousSeuil.length} produit(s) sous le seuil d'alerte : ${sousSeuil.slice(0, 3).map(p => p.nom).join(", ")}${sousSeuil.length > 3 ? "…" : ""}`, cible: "stocks" });
+  }
+
+  // Demandes de congés en attente
+  const enAttente = donnees.absences.filter(a => a.statut === "demande");
+  if (enAttente.length) {
+    const noms = enAttente.slice(0, 3).map(a => {
+      const emp = donnees.employes.find(e => e.id === a.empId);
+      return emp ? emp.nom : "?";
+    }).join(", ");
+    alertes.push({ texte: `🌴 ${enAttente.length} demande(s) de congés en attente : ${noms}${enAttente.length > 3 ? "…" : ""}`,
+      cible: "cp-demandes" });
   }
 
   // Tickets ouverts
@@ -7142,8 +7719,11 @@ function rendreAccueil(zone) {
   } else {
     const lignes = donnees.employes.map(emp => {
       const cellule = celluleDeDate(emp.id, auj);
-      let contenu = `<span style="color:#9ca3af">—</span>`;
-      if (cellule) {
+      const absAuj = absencePourDate(emp.id, versInputDate(auj));
+      let contenu = absAuj
+        ? `<span class="badge attention">${echapper(typeAbsence(absAuj.type).libelle)}</span>`
+        : `<span style="color:#9ca3af">—</span>`;
+      if (!absAuj && cellule) {
         if (cellule.type !== "travail") {
           contenu = `<span class="badge ${cellule.type === "conge" ? "attention" : "prio-basse"}">${ETIQUETTES[cellule.type] || ""}</span>`;
         } else if (cellule.creneaux && cellule.creneaux.length) {
@@ -7686,6 +8266,7 @@ document.getElementById("date-semaine").addEventListener("change", (e) => {
 let sousVuePlanning = vue === "mois" ? "mois" : "semaine"; // dernière sous-vue du planning
 let sousVueInterventions = VUES_INTERVENTIONS.includes(vue) ? vue : "bons";
 let sousVueRapports = VUES_RAPPORTS.includes(vue) ? vue : "rapport-client";
+let sousVueConges = VUES_CONGES.includes(vue) ? vue : "cp-soldes";
 
 function changerVue(nouvelleVue) {
   vue = nouvelleVue;
@@ -7693,6 +8274,7 @@ function changerVue(nouvelleVue) {
   if (vue === "semaine" || vue === "mois") sousVuePlanning = vue;
   if (VUES_INTERVENTIONS.includes(vue)) sousVueInterventions = vue;
   if (VUES_RAPPORTS.includes(vue)) sousVueRapports = vue;
+  if (VUES_CONGES.includes(vue)) sousVueConges = vue;
   if (vue === "mois" || vue === "marges") {
     moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
   }
@@ -7703,6 +8285,7 @@ document.getElementById("btn-vue-accueil").addEventListener("click", () => chang
 document.getElementById("btn-vue-planning").addEventListener("click", () => changerVue(sousVuePlanning));
 document.getElementById("btn-vue-interventions").addEventListener("click", () => changerVue(sousVueInterventions));
 document.getElementById("btn-vue-rapports").addEventListener("click", () => changerVue(sousVueRapports));
+document.getElementById("btn-vue-conges").addEventListener("click", () => changerVue(sousVueConges));
 document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
 document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
 document.getElementById("btn-vue-clients").addEventListener("click", () => changerVue("clients"));
@@ -7711,7 +8294,7 @@ document.getElementById("btn-vue-stocks").addEventListener("click", () => change
 document.getElementById("btn-vue-materiel").addEventListener("click", () => changerVue("materiel"));
 document.getElementById("btn-vue-vehicules").addEventListener("click", () => changerVue("vehicules"));
 document.getElementById("btn-vue-marges").addEventListener("click", () => changerVue("marges"));
-for (const sv of [...VUES_INTERVENTIONS, ...VUES_RAPPORTS]) {
+for (const sv of [...VUES_INTERVENTIONS, ...VUES_RAPPORTS, ...VUES_CONGES]) {
   document.getElementById("btn-vue-" + sv).addEventListener("click", () => changerVue(sv));
 }
 

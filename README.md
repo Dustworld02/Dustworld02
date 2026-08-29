@@ -35,6 +35,14 @@ Une fiche par client :
 ### 👥 Personnel
 Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée et **coût horaire chargé** (base du calcul des marges).
 
+### 🌴 Congés
+Gestion complète des congés et absences, en **jours ouvrables** (lundi → samedi, hors jours fériés — calcul automatique de Pâques, Ascension et Pentecôte) :
+- **Soldes** : par salarié, jours acquis à ce jour (2,5 j/mois travaillé, plafond 30 j sur la période de référence 1er juin → 31 mai), report de la période précédente (modifiable), corrections manuelles, jours pris, demandes en attente et **solde restant** ; période navigable, impression du récapitulatif.
+- **Demandes** : saisie salarié / type / du–au avec demi-journées, **aperçu du décompte et du solde restant avant validation** (alerte si insuffisant), statuts En attente / Validé / Refusé, **attestation imprimable** par absence. Types gérés : congés payés (décomptés du solde), RTT, arrêt maladie, congé sans solde, formation, événement familial.
+- **Calendrier** : vue annuelle par salarié, pastilles colorées par type — pour repérer les chevauchements d'équipe avant d'accorder une demande (imprimable en paysage).
+
+Une absence **validée** marque automatiquement les journées dans le planning (sans écraser un créneau de travail déjà saisi) ; un refus ou une suppression les retire. Les demandes en attente apparaissent dans les alertes de l'Accueil, et les absents du jour dans le planning du jour.
+
 ### 📦 Stocks
 Consommables : quantités, seuil d'alerte (lignes rouges sous le seuil), prix unitaire, entrées/sorties (journal), et **besoin théorique du mois** = besoins des clients × interventions planifiées.
 
