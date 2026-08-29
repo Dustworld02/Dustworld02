@@ -7334,7 +7334,7 @@ document.getElementById("btn-imprimer-ps").addEventListener("click", () => {
     return i === 0 ? doc : `<div class="saut-page">${doc}</div>`;
   });
   document.getElementById("modale-planning-salarie").close();
-  imprimerDocument(docs.join(""));
+  imprimerDocument(docs.join(""), true); // A4 paysage
 });
 
 /* ---------- Duplication d'un jour vers un autre ---------- */
