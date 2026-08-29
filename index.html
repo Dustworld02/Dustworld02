@@ -173,6 +173,15 @@
     color: #4b5563;
     white-space: normal;
   }
+  td.cellule .creneau .desc.liste-travaux {
+    text-align: left;
+    padding-left: 4px;
+  }
+  .taches-travail { margin-top: 2px; }
+  .taches-travail .ligne-tache { margin-bottom: 4px; }
+  .taches-travail .ligne-tache input { flex: 1; min-width: 0; }
+  .taches-travail .ligne-tache button, .taches-travail .ajout-tache button { padding: 6px 10px; }
+  .taches-travail .ajout-tache input { flex: 1; min-width: 0; }
   td.cellule .creneau.trajet {
     background: #f3f4f6;
     border-color: #d1d5db;
@@ -3355,7 +3364,11 @@ function htmlCreneau(c) {
   }
   let html = `<span class="creneau">${c.debut} – ${c.fin}`;
   if (c.client) html += `<span class="client">${echapper(c.client)}</span>`;
-  if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
+  if (Array.isArray(c.taches) && c.taches.length) {
+    html += `<span class="desc liste-travaux">${c.taches.map(t => "• " + echapper(t)).join("<br>")}</span>`;
+  } else if (c.desc) {
+    html += `<span class="desc">${echapper(c.desc)}</span>`;
+  }
   return html + `</span>`;
 }
 
@@ -6575,7 +6588,13 @@ function ajouterLigneCreneau(c = {}) {
     </div>
     <div class="ligne-details details-travail">
       <input type="text" class="client" list="liste-clients" placeholder="Client">
-      <input type="text" class="desc" placeholder="Travail à effectuer">
+    </div>
+    <div class="taches-travail">
+      <div class="liste-taches"></div>
+      <div class="ligne-details ajout-tache">
+        <input type="text" class="tache-nouvelle" placeholder="Travail à effectuer (une tâche par ligne)">
+        <button type="button" class="btn-ajouter-tache" title="Ajouter la tâche à la liste">+</button>
+      </div>
     </div>
     <div class="ligne-details details-trajet">
       <input type="text" class="depart" list="liste-lieux" placeholder="Lieu de départ">
@@ -6587,7 +6606,24 @@ function ajouterLigneCreneau(c = {}) {
   bloc.querySelector(".debut").value = c.debut || "";
   bloc.querySelector(".fin").value = c.fin || "";
   bloc.querySelector(".client").value = c.client || "";
-  bloc.querySelector(".desc").value = c.desc || "";
+
+  // Liste des tâches : reprend c.taches, ou l'ancienne description (une ligne)
+  const tachesInitiales = Array.isArray(c.taches) && c.taches.length
+    ? c.taches
+    : (c.desc ? [c.desc] : []);
+  for (const t of tachesInitiales) ajouterLigneTache(bloc, t);
+  const champNouvelleTache = bloc.querySelector(".tache-nouvelle");
+  const validerNouvelleTache = () => {
+    const texte = champNouvelleTache.value.trim();
+    if (!texte) return;
+    ajouterLigneTache(bloc, texte);
+    champNouvelleTache.value = "";
+    champNouvelleTache.focus();
+  };
+  bloc.querySelector(".btn-ajouter-tache").addEventListener("click", validerNouvelleTache);
+  champNouvelleTache.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); validerNouvelleTache(); }
+  });
   // Durée du trajet : champ direct, sinon calculée depuis les horaires de l'ancien format
   let duree = c.duree;
   if (duree == null && c.type === "trajet" && c.debut && c.fin) duree = dureeEntre(c.debut, c.fin);
@@ -6600,6 +6636,7 @@ function ajouterLigneCreneau(c = {}) {
     const estTrajet = selType.value === "trajet";
     bloc.querySelector(".saisie-travail").style.display = estTrajet ? "none" : "flex";
     bloc.querySelector(".details-travail").style.display = estTrajet ? "none" : "flex";
+    bloc.querySelector(".taches-travail").style.display = estTrajet ? "none" : "";
     bloc.querySelector(".saisie-trajet").style.display = estTrajet ? "flex" : "none";
     bloc.querySelector(".details-trajet").style.display = estTrajet ? "flex" : "none";
   };
@@ -6609,6 +6646,21 @@ function ajouterLigneCreneau(c = {}) {
   bloc.querySelector(".retirer").addEventListener("click", () => bloc.remove());
   activerGlisser(bloc);
   liste.appendChild(bloc);
+}
+
+// Une ligne de tâche (modifiable, supprimable) dans la liste d'un créneau
+function ajouterLigneTache(bloc, texte = "") {
+  const conteneur = bloc.querySelector(".liste-taches");
+  const ligne = document.createElement("div");
+  ligne.className = "ligne-details ligne-tache";
+  ligne.innerHTML = `
+    <span style="align-self:center; color:#6b7280">•</span>
+    <input type="text" class="tache-texte">
+    <button type="button" class="retirer-tache" title="Retirer cette tâche">✕</button>`;
+  ligne.querySelector(".tache-texte").value = texte;
+  ligne.querySelector(".retirer-tache").addEventListener("click", () => ligne.remove());
+  conteneur.appendChild(ligne);
+  return ligne;
 }
 
 // Réorganisation des créneaux par glisser-déposer (souris et tactile)
@@ -6745,9 +6797,16 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
         if (!debut || !fin) continue;
         const c = { debut, fin };
         const client = bloc.querySelector(".client").value.trim();
-        const desc = bloc.querySelector(".desc").value.trim();
         if (client) c.client = client;
-        if (desc) c.desc = desc;
+        // Liste des tâches (y compris le texte restant dans la ligne d'ajout)
+        const taches = [];
+        for (const champ of bloc.querySelectorAll(".tache-texte")) {
+          const texte = champ.value.trim();
+          if (texte) taches.push(texte);
+        }
+        const restant = bloc.querySelector(".tache-nouvelle").value.trim();
+        if (restant) taches.push(restant);
+        if (taches.length) c.taches = taches;
         creneaux.push(c);
       }
     }
