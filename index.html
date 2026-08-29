@@ -292,6 +292,16 @@
     line-height: 1;
   }
   .poignee:active { cursor: grabbing; }
+  .poignee-tache {
+    font-size: 0.85rem;
+    padding: 2px 1px;
+    align-self: center;
+  }
+  .ligne-tache.glisse {
+    opacity: 0.75;
+    background: var(--bleu-clair);
+    border-radius: 6px;
+  }
   .ligne-creneau {
     display: flex;
     gap: 6px;
@@ -6782,7 +6792,7 @@ function ajouterLigneTache(bloc, tache = "") {
   const ligne = document.createElement("div");
   ligne.className = "ligne-details ligne-tache";
   ligne.innerHTML = `
-    <span style="align-self:center; color:#6b7280">•</span>
+    <span class="poignee poignee-tache" title="Glisser pour changer l'ordre des tâches">⠿</span>
     <input type="text" class="tache-texte">
     <input type="number" class="tache-min" min="0" step="5" placeholder="min" title="Temps prévu (minutes)" style="width:70px">
     <small style="align-self:center; color:#6b7280">min</small>
@@ -6793,6 +6803,7 @@ function ajouterLigneTache(bloc, tache = "") {
     ligne.remove();
     majTotalTaches(bloc);
   });
+  activerGlisser(ligne, ".ligne-tache");
   conteneur.appendChild(ligne);
   return ligne;
 }
@@ -6814,10 +6825,11 @@ function majTotalTaches(bloc) {
     (depasse ? ` <span class="badge alerte">dépasse le créneau</span>` : "");
 }
 
-// Réorganisation des créneaux par glisser-déposer (souris et tactile)
-// Les écouteurs sont posés sur document : déplacer le bloc dans le DOM
-// ferait perdre une capture de pointeur posée sur la poignée.
-function activerGlisser(bloc) {
+// Réorganisation par glisser-déposer (souris et tactile), utilisée pour les
+// blocs de créneaux ET les lignes de tâches. Les écouteurs sont posés sur
+// document : déplacer l'élément dans le DOM ferait perdre une capture de
+// pointeur posée sur la poignée.
+function activerGlisser(bloc, selecteurFreres = ".bloc-creneau") {
   const poignee = bloc.querySelector(".poignee");
   poignee.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -6826,7 +6838,7 @@ function activerGlisser(bloc) {
 
     const deplacer = (ev) => {
       const y = ev.clientY;
-      for (const autre of liste.querySelectorAll(".bloc-creneau")) {
+      for (const autre of liste.querySelectorAll(selecteurFreres)) {
         if (autre === bloc) continue;
         const r = autre.getBoundingClientRect();
         if (y > r.top && y < r.bottom) {
