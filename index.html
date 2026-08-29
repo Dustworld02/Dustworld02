@@ -177,6 +177,25 @@
     text-align: left;
     padding-left: 4px;
   }
+  .select-freq {
+    font-size: 0.8rem;
+    padding: 4px 6px;
+    max-width: 130px;
+  }
+  .rappel-type {
+    font-size: 0.78rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin: 3px 0;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+  .rappel-type.du {
+    background: #fef3c7;
+    border-color: #fde68a;
+    color: #92400e;
+    font-weight: 600;
+  }
   .bloc-type-intervention {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
@@ -3174,7 +3193,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "29/08/2026 — 3"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "29/08/2026 — 4"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -4191,6 +4210,70 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
 
 /* ================= Clients : accès et statistiques ================= */
 
+// Fréquences des types d'intervention et des tâches
+const FREQUENCES = [
+  { code: "jour",      libelle: "1×/jour",       court: "1×/j",   parMois: 21.67 }, // jours ouvrés moyens
+  { code: "semaine",   libelle: "1×/semaine",    court: "1×/sem", parMois: 4.33 },
+  { code: "2semaines", libelle: "1×/2 semaines", court: "1×/2sem", parMois: 2.17 },
+  { code: "mois",      libelle: "1×/mois",       court: "1×/mois", parMois: 1 },
+];
+const freqParCode = (code) => FREQUENCES.find(f => f.code === code);
+
+// Charge mensuelle théorique d'un type : chaque tâche est comptée selon sa
+// propre fréquence si elle en a une, sinon celle du type ; le résultat est
+// multiplié par le nombre de personnes nécessaires.
+function chargeMensuelleType(ti) {
+  const freqType = freqParCode(ti.frequence);
+  let minutesMois = 0;
+  let mesurable = false;
+  for (const t of (ti.taches || [])) {
+    if (!(t.min > 0)) continue;
+    const f = freqParCode(t.freq) || freqType;
+    if (!f) continue;
+    minutesMois += t.min * f.parMois;
+    mesurable = true;
+  }
+  const pers = ti.nbPersonnes > 0 ? ti.nbPersonnes : 1;
+  return { mesurable, minutesMois, minutesMoisPersonnes: minutesMois * pers };
+}
+
+// Dernière date (AAAA-MM-JJ) où un type d'intervention a été appliqué au
+// planning, tous salariés confondus (trace creneau.typesAppliques)
+function derniereApplicationType(typeId) {
+  let derniere = null;
+  for (const cleSem in donnees.semaines) {
+    const sem = donnees.semaines[cleSem];
+    const lundi = new Date(cleSem + "T00:00:00");
+    for (const empId in sem) {
+      for (const idxJour in sem[empId]) {
+        const cellule = sem[empId][idxJour];
+        if (!cellule || cellule.type !== "travail") continue;
+        for (const cr of (cellule.creneaux || [])) {
+          if (!(cr.typesAppliques || []).includes(typeId)) continue;
+          const dateStr = versInputDate(ajouterJours(lundi, Number(idxJour)));
+          if (!derniere || dateStr > derniere) derniere = dateStr;
+        }
+      }
+    }
+  }
+  return derniere;
+}
+
+// État d'un type au regard de sa fréquence : jamais fait / à jour / dû
+function etatTypeIntervention(ti) {
+  const derniere = derniereApplicationType(ti.id);
+  const f = freqParCode(ti.frequence);
+  if (!derniere) return { jours: null, du: !!f, texte: f ? "jamais fait au planning" : "jamais fait au planning" };
+  const auj = new Date();
+  auj.setHours(0, 0, 0, 0);
+  const jours = Math.round((auj - new Date(derniere + "T00:00:00")) / 86400000);
+  const seuils = { jour: 1, semaine: 7, "2semaines": 14, mois: 30 };
+  const seuil = f ? seuils[f.code] : null;
+  const libelleJours = jours <= 0 ? "aujourd'hui" : jours === 1 ? "hier" : `il y a ${jours} j`;
+  return { jours, du: seuil !== null && jours >= seuil,
+    texte: `fait ${libelleJours}${f ? ` — prévu ${f.libelle}` : ""}` };
+}
+
 function clientParId(id) { return donnees.clients.find(c => c.id === id); }
 // Retrouve une fiche client depuis un nom saisi (casse et accents ignorés)
 function clientParNom(nom) {
@@ -4691,9 +4774,15 @@ function carteClient(cli) {
   // --- Types d'intervention (modèles de tâches réutilisables) ---
   const lignesTypes = (cli.typesIntervention || []).map((ti, i) => {
     const totalMin = (ti.taches || []).reduce((somme, t) => somme + (t.min > 0 ? t.min : 0), 0);
+    const charge = chargeMensuelleType(ti);
+    const freqType = freqParCode(ti.frequence);
     const infos = [];
     if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)));
     if (ti.nbPersonnes > 0) infos.push(`${ti.nbPersonnes} pers.`);
+    if (freqType) infos.push(freqType.libelle);
+    if (charge.mesurable) infos.push(`≈ ${formatHeures(Math.round(charge.minutesMoisPersonnes))}/mois`);
+    const optionsFreqTache = (t) => FREQUENCES.map(f =>
+      `<option value="${f.code}"${t.freq === f.code ? " selected" : ""}>${f.court}</option>`).join("");
     const lignesTachesTi = (ti.taches || []).map((t, j) => `
       <div class="ligne-item">
         <span style="color:#6b7280">•</span>
@@ -4702,6 +4791,10 @@ function carteClient(cli) {
         <input type="number" min="0" step="5" data-cchange="ti-tache-min" data-cid="${cli.id}" data-idx="${i}" data-jdx="${j}"
           value="${t.min > 0 ? t.min : ""}" placeholder="min" style="width:70px">
         <small style="color:#6b7280">min</small>
+        <select class="select-freq" data-cchange="ti-tache-freq" data-cid="${cli.id}" data-idx="${i}" data-jdx="${j}"
+          title="Fréquence de cette tâche (par défaut : celle du type)">
+          <option value="">= type</option>${optionsFreqTache(t)}
+        </select>
         <button class="no-print" data-caction="supprimer-ti-tache" data-cid="${cli.id}" data-idx="${i}" data-jdx="${j}" title="Retirer">✕</button>
       </div>`).join("");
     return `
@@ -4709,6 +4802,10 @@ function carteClient(cli) {
       <div class="ligne-item">
         <input type="text" data-cchange="ti-nom" data-cid="${cli.id}" data-idx="${i}"
           value="${echapperAttr(ti.nom || "")}" style="flex:1; min-width:0; font-weight:600">
+        <select class="select-freq" data-cchange="ti-freq" data-cid="${cli.id}" data-idx="${i}" title="Fréquence de ce type d'intervention">
+          <option value="">— fréquence —</option>
+          ${FREQUENCES.map(f => `<option value="${f.code}"${ti.frequence === f.code ? " selected" : ""}>${f.libelle}</option>`).join("")}
+        </select>
         <input type="number" min="1" step="1" data-cchange="ti-pers" data-cid="${cli.id}" data-idx="${i}"
           value="${ti.nbPersonnes > 0 ? ti.nbPersonnes : ""}" placeholder="pers." title="Nombre de personnes" style="width:70px">
         <small style="color:#6b7280">pers.</small>
@@ -4723,6 +4820,9 @@ function carteClient(cli) {
       </div>
     </div>`;
   }).join("");
+
+  const chargeTotaleClient = (cli.typesIntervention || [])
+    .reduce((somme, ti) => somme + chargeMensuelleType(ti).minutesMoisPersonnes, 0);
 
   const heuresTheoriques = (cli.dureeInterventionMin > 0 && cli.frequenceParMois > 0)
     ? formatHeures(Math.round(cli.dureeInterventionMin * cli.frequenceParMois)) + " / mois"
@@ -4766,8 +4866,14 @@ function carteClient(cli) {
       <h4>🧽 Types d'intervention</h4>
       ${lignesTypes || `<div class="stat-vehicule" style="color:#6b7280">Aucun type défini
         (ex. : « Salle blanche », « Bureau »…).</div>`}
+      ${chargeTotaleClient > 0 ? `<div class="stat-vehicule">Charge mensuelle estimée (tous types) :
+        <strong>${formatHeures(Math.round(chargeTotaleClient))}</strong></div>` : ""}
       <div class="mini-form no-print">
         <input type="text" class="ti-nouveau-nom" placeholder="Nouveau type (ex. : Salle blanche)" style="flex:2; min-width:150px">
+        <select class="ti-nouvelle-freq" title="Fréquence">
+          <option value="">— fréquence —</option>
+          ${FREQUENCES.map(f => `<option value="${f.code}">${f.libelle}</option>`).join("")}
+        </select>
         <input type="number" min="1" step="1" class="ti-nouveau-pers" placeholder="pers." title="Nombre de personnes" style="max-width:70px">
         <button data-caction="ajouter-ti" data-cid="${cli.id}">+ Type</button>
       </div>
@@ -4970,6 +5076,8 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
       const ti = { id: nouvelId("ti"), nom, taches: [] };
       const pers = parseInt(carte.querySelector(".ti-nouveau-pers").value, 10);
       if (pers > 0) ti.nbPersonnes = pers;
+      const freq = carte.querySelector(".ti-nouvelle-freq").value;
+      if (freq) ti.frequence = freq;
       cli.typesIntervention = cli.typesIntervention || [];
       cli.typesIntervention.push(ti);
       break;
@@ -5041,15 +5149,21 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
     if (!ti) return;
     const n = Math.round(lireNombre(valeur));
     if (n > 0) ti.nbPersonnes = n; else delete ti.nbPersonnes;
-  } else if (prop === "ti-tache-texte" || prop === "ti-tache-min") {
+  } else if (prop === "ti-freq") {
+    const ti = (cli.typesIntervention || [])[idx];
+    if (!ti) return;
+    if (el.value) ti.frequence = el.value; else delete ti.frequence;
+  } else if (prop === "ti-tache-texte" || prop === "ti-tache-min" || prop === "ti-tache-freq") {
     const ti = (cli.typesIntervention || [])[idx];
     const t = ti && (ti.taches || [])[Number(el.dataset.jdx)];
     if (!t) return;
     if (prop === "ti-tache-texte") {
       if (valeur) t.texte = valeur;
-    } else {
+    } else if (prop === "ti-tache-min") {
       const n = lireNombre(valeur);
       if (n > 0) t.min = n; else delete t.min;
+    } else {
+      if (el.value) t.freq = el.value; else delete t.freq;
     }
   }
   sauvegarder();
@@ -5347,12 +5461,24 @@ function docFicheClient(cli) {
     ${(cli.typesIntervention || []).length ? `<h2>Types d'intervention</h2>` +
       cli.typesIntervention.map(ti => {
         const totalMin = (ti.taches || []).reduce((s, t) => s + (t.min > 0 ? t.min : 0), 0);
+        const charge = chargeMensuelleType(ti);
+        const f = freqParCode(ti.frequence);
         const infos = [];
+        if (f) infos.push(f.libelle);
         if (ti.nbPersonnes > 0) infos.push(`${ti.nbPersonnes} personne(s)`);
-        if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)));
+        if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)) + " par passage");
+        if (charge.mesurable) infos.push(`≈ ${formatHeures(Math.round(charge.minutesMoisPersonnes))} / mois`);
         return `<div class="doc-ligne"><strong>${echapper(ti.nom)}</strong>${infos.length ? ` — ${infos.join(" · ")}` : ""}</div>` +
-          (ti.taches || []).map(t => `<div class="doc-ligne" style="padding-left:16px">• ${echapper(t.texte)}${t.min > 0 ? ` (${formatDuree(Math.round(t.min))})` : ""}</div>`).join("");
-      }).join("") : ""}
+          (ti.taches || []).map(t => {
+            const ft = freqParCode(t.freq);
+            return `<div class="doc-ligne" style="padding-left:16px">• ${echapper(t.texte)}${t.min > 0 ? ` (${formatDuree(Math.round(t.min))})` : ""}${ft ? ` — ${ft.libelle}` : ""}</div>`;
+          }).join("");
+      }).join("") +
+      (() => {
+        const total = cli.typesIntervention.reduce((s, ti) => s + chargeMensuelleType(ti).minutesMoisPersonnes, 0);
+        return total > 0 ? `<div class="doc-ligne" style="margin-top:6px"><strong>Charge mensuelle estimée :
+          ${formatHeures(Math.round(total))}</strong></div>` : "";
+      })() : ""}
     ${procedure ? `<h2>Protocole / procédure</h2>${procedure}` : ""}
     ${checklist ? `<h2>Check-list</h2>${checklist}` : ""}
     ${besoins ? `<h2>Consommables par intervention</h2>${besoins}` : ""}
@@ -6826,6 +6952,7 @@ function ajouterLigneCreneau(c = {}) {
       <input type="text" class="client" list="liste-clients" placeholder="Client">
       <select class="choix-type-intervention" title="Appliquer un type d'intervention du client" style="display:none; flex:1; min-width:0"></select>
     </div>
+    <div class="rappels-types"></div>
     <div class="taches-travail">
       <div class="liste-taches"></div>
       <div class="ligne-details ajout-tache">
@@ -6845,6 +6972,7 @@ function ajouterLigneCreneau(c = {}) {
   bloc.querySelector(".debut").value = c.debut || "";
   bloc.querySelector(".fin").value = c.fin || "";
   bloc.querySelector(".client").value = c.client || "";
+  if (Array.isArray(c.typesAppliques) && c.typesAppliques.length) bloc.dataset.types = c.typesAppliques.join(",");
 
   // Liste des tâches : reprend c.taches, ou l'ancienne description (une ligne)
   const tachesInitiales = Array.isArray(c.taches) && c.taches.length
@@ -6876,23 +7004,33 @@ function ajouterLigneCreneau(c = {}) {
   // Types d'intervention du client (modèles de tâches définis sur sa fiche)
   const champClient = bloc.querySelector(".client");
   const selTypes = bloc.querySelector(".choix-type-intervention");
+  const zoneRappels = bloc.querySelector(".rappels-types");
   const majTypesIntervention = () => {
     const cli = clientParNom(champClient.value);
     const types = (cli && cli.typesIntervention) || [];
     if (!types.length) {
       selTypes.style.display = "none";
       selTypes.innerHTML = "";
+      zoneRappels.innerHTML = "";
       return;
     }
     selTypes.style.display = "";
     selTypes.innerHTML = `<option value="">🧽 Appliquer un type d'intervention…</option>` +
       types.map((ti, i) => {
         const totalMin = (ti.taches || []).reduce((s, t) => s + (t.min > 0 ? t.min : 0), 0);
+        const f = freqParCode(ti.frequence);
         const infos = [];
         if (ti.nbPersonnes > 0) infos.push(`${ti.nbPersonnes} pers.`);
         if (totalMin > 0) infos.push(formatDuree(Math.round(totalMin)));
+        if (f) infos.push(f.libelle);
         return `<option value="${i}">${echapper(ti.nom)}${infos.length ? ` — ${infos.join(" · ")}` : ""}</option>`;
       }).join("");
+    // Rappels : dernière réalisation de chaque type au planning
+    zoneRappels.innerHTML = types.map(ti => {
+      const etat = etatTypeIntervention(ti);
+      return `<div class="rappel-type${etat.du ? " du" : ""}">${etat.du ? "⚠️" : "✅"}
+        <strong>${echapper(ti.nom)}</strong> — ${etat.texte}</div>`;
+    }).join("");
   };
   champClient.addEventListener("input", majTypesIntervention);
   champClient.addEventListener("change", majTypesIntervention);
@@ -6902,6 +7040,10 @@ function ajouterLigneCreneau(c = {}) {
     selTypes.value = "";
     if (!ti) return;
     for (const t of (ti.taches || [])) ajouterLigneTache(bloc, t);
+    // trace du type appliqué (sert aux rappels « dernière fois »)
+    const dejaAppliques = (bloc.dataset.types || "").split(",").filter(Boolean);
+    if (!dejaAppliques.includes(ti.id)) dejaAppliques.push(ti.id);
+    bloc.dataset.types = dejaAppliques.join(",");
     majTotalTaches(bloc);
   });
   majTypesIntervention();
@@ -6978,6 +7120,8 @@ function lireCreneauDepuisBloc(bloc) {
     taches.push(minRestant > 0 ? { texte: restant, min: minRestant } : { texte: restant });
   }
   if (taches.length) c.taches = taches;
+  const typesAppliques = (bloc.dataset.types || "").split(",").filter(Boolean);
+  if (typesAppliques.length) c.typesAppliques = typesAppliques;
   return c;
 }
 
