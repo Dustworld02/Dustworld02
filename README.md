@@ -33,7 +33,7 @@ Une fiche par client :
 - deux impressions : **🖨️ Fiche** (récapitulatif interne) et **🖨️ Check-list** — la feuille d'intervention vierge que l'équipe emporte (cases à cocher, consommables à emporter, observations, signatures).
 
 ### 👥 Personnel
-Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée et **coût horaire chargé** (base du calcul des marges).
+Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée, **heures de contrat (h/semaine)** et **coût horaire chargé**. La fiche affiche les heures mensualisées (× 52/12, ex. 35 h/semaine = 151h40/mois) et le **coût mensuel** du salarié. Ces deux champs alimentent la **masse salariale** (indicateur de l'Accueil, bandeau des Marges avec la part affectée aux clients, et écart contrat/réalisé dans les feuilles de temps).
 
 ### 🌴 Congés
 Gestion complète des congés et absences, en **jours ouvrables** (lundi → samedi, hors jours fériés — calcul automatique de Pâques, Ascension et Pentecôte) :

@@ -420,6 +420,22 @@
     color: #92400e;
     font-weight: 600;
   }
+  .bandeau-masse {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    background: var(--navy-050);
+    border: 1px solid #D6E1F2;
+    border-radius: var(--rayon-sm);
+    padding: 9px 13px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--texte);
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  .bandeau-masse span { color: var(--texte-2); }
+
   .pastille-type {
     display: inline-block;
     width: 10px; height: 10px;
@@ -3514,7 +3530,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "29/08/2026 — 6"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "29/08/2026 — 7"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -4164,6 +4180,7 @@ function rendrePersonnel(zone) {
 }
 
 function cartePersonnel(emp, idx) {
+  const heuresMens = heuresMensuelles(emp);
   const optionsVehicule = [`<option value="">— sans véhicule —</option>`]
     .concat(donnees.vehicules.map(v =>
       `<option value="${v.id}"${emp.vehiculeId === v.id ? " selected" : ""}>🚙 ${echapper(v.nom)}</option>`))
@@ -4202,12 +4219,20 @@ function cartePersonnel(emp, idx) {
       ${champ("Type de contrat", "text", "typeContrat", emp.typeContrat, `placeholder="ex. : CDI 35h, CDD…"`)}
       ${champ("Entré(e) le", "date", "dateEntree", emp.dateEntree)}
       <div class="ligne-item">
+        <span class="texte" style="flex:0 0 118px">⏱️ Heures contrat</span>
+        <input type="number" min="0" step="0.5" data-pchange="heuresContratSemaine" data-eid="${emp.id}"
+          value="${emp.heuresContratSemaine > 0 ? emp.heuresContratSemaine : ""}" placeholder="ex. : 35" style="width:90px"> h / semaine
+      </div>
+      <div class="ligne-item">
         <span class="texte" style="flex:0 0 118px">💶 Coût horaire</span>
         <input type="number" min="0" step="0.5" data-pchange="coutHoraire" data-eid="${emp.id}"
           value="${emp.coutHoraire > 0 ? emp.coutHoraire : ""}" placeholder="ex. : 18" style="width:90px"> €/h chargé
       </div>
+      ${heuresMens > 0 ? `<div class="stat-vehicule">Mensualisé : <strong>${formatHeures(Math.round(heuresMens * 60))}</strong> / mois
+        ${emp.coutHoraire > 0 ? ` — coût mensuel <strong>${formatEuros(heuresMens * emp.coutHoraire)}</strong>` : ""}</div>` : ""}
       <div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">
-        Le coût horaire chargé (salaire + charges) sert au calcul des marges par client.</div>
+        Les heures du contrat (mensualisées × 52/12) et le coût horaire chargé alimentent la
+        <strong>masse salariale</strong> ; le coût horaire sert aussi aux marges par client.</div>
     </div>
   </div>`;
 }
@@ -4266,10 +4291,10 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
   if (prop === "vehicule") {
     if (valeur) emp.vehiculeId = valeur;
     else delete emp.vehiculeId;
-  } else if (prop === "coutHoraire") {
+  } else if (prop === "coutHoraire" || prop === "heuresContratSemaine") {
     const n = lireNombre(valeur);
-    if (n > 0) emp.coutHoraire = n;
-    else delete emp.coutHoraire;
+    if (n > 0) emp[prop] = n;
+    else delete emp[prop];
   } else if (prop === "nom") {
     if (valeur) emp.nom = valeur; // on refuse un nom vide
   } else if (["role", "couleur", "tel", "email", "typeContrat", "dateEntree"].includes(prop)) {
@@ -4567,6 +4592,28 @@ const TYPES_ABSENCE = [
   { code: "familial",  libelle: "Événement familial",  court: "Familial",  couleur: "#C2703C", decompteCP: false },
 ];
 const typeAbsence = (code) => TYPES_ABSENCE.find(t => t.code === code) || TYPES_ABSENCE[0];
+
+// Heures mensualisées d'un salarié (heures hebdo du contrat × 52 / 12)
+function heuresMensuelles(emp) {
+  if (emp.heuresContratSemaine > 0) return emp.heuresContratSemaine * 52 / 12;
+  return 0;
+}
+
+// Masse salariale mensuelle théorique : Σ heures mensualisées × coût horaire
+function masseSalarialeMensuelle() {
+  let total = 0, heures = 0;
+  const incomplets = [];
+  for (const emp of donnees.employes) {
+    const h = heuresMensuelles(emp);
+    if (!(h > 0) || !(emp.coutHoraire > 0)) {
+      if (!(h > 0) || !(emp.coutHoraire > 0)) incomplets.push(emp.nom);
+      continue;
+    }
+    heures += h;
+    total += h * emp.coutHoraire;
+  }
+  return { total, heures, incomplets };
+}
 
 const JOURS_CP_PAR_MOIS = 2.5;   // jours ouvrables acquis par mois travaillé
 const PLAFOND_CP_ANNUEL = 30;    // 30 jours ouvrables par an
@@ -5804,6 +5851,21 @@ function rendreMarges(zone) {
   </table>
   </div>`;
 
+  const masse = masseSalarialeMensuelle();
+  if (masse.total > 0) {
+    const affecte = totaux.coutMO;
+    const nonAffecte = Math.max(0, masse.total - affecte);
+    const tauxAffectation = masse.total > 0 ? (affecte / masse.total) * 100 : 0;
+    html += `<div class="bandeau-masse">
+      <strong>Masse salariale du mois : ${formatEuros(masse.total)}</strong>
+      <span>(${formatHeures(Math.round(masse.heures * 60))} contractuelles)</span>
+      <span>·</span>
+      <span>Coût affecté aux clients : <strong>${formatEuros(affecte)}</strong> (${formatPourcent(tauxAffectation)})</span>
+      <span>·</span>
+      <span>Non affecté : <strong class="${nonAffecte > masse.total * 0.25 ? "marge-negative" : ""}">${formatEuros(nonAffecte)}</strong></span>
+    </div>`;
+  }
+
   const avertissements = [];
   if (stats.sansCout.length > 0) {
     avertissements.push(`💶 Coûts de main-d'œuvre incomplets : renseignez le coût horaire de
@@ -6973,6 +7035,8 @@ function docFeuilleTemps(emp, annee, mois) {
     <div class="doc-ligne">Heures planifiées : ${formatHeures(f.totaux.plan)} — Heures pointées : ${formatHeures(f.totaux.reel)}
       (${f.totaux.joursPointes} jour(s) pointé(s)${f.totaux.joursNonPointes ? `, ${f.totaux.joursNonPointes} non pointé(s)` : ""})</div>
     <div class="doc-ligne">Congés : ${f.totaux.cp} j — Fériés : ${f.totaux.ferie} j — Repos : ${f.totaux.repos} j</div>
+    ${heuresMensuelles(emp) > 0 ? `<div class="doc-ligne">Contrat : <strong>${formatHeures(Math.round(heuresMensuelles(emp) * 60))} / mois</strong>
+      (${formatKm(emp.heuresContratSemaine)} h/semaine)${emp.coutHoraire > 0 ? ` — coût mensuel ${formatEuros(heuresMensuelles(emp) * emp.coutHoraire)}` : ""}</div>` : ""}
     <h2>Détail</h2>
     ${lignes || `<div class="doc-ligne">Aucune activité ce mois-ci.</div>`}
     <div class="doc-signatures">
@@ -7034,6 +7098,19 @@ function rendreFeuillesTemps(zone) {
              : "—"}</td>
       </tr>`;
     }).join("");
+
+    const heuresContrat = heuresMensuelles(emp);
+    if (heuresContrat > 0) {
+      const ecart = f.totaux.retenu - heuresContrat * 60;
+      html += `<div class="bandeau-masse">
+        <strong>Contrat : ${formatHeures(Math.round(heuresContrat * 60))} / mois</strong>
+        <span>·</span>
+        <span>Retenu : <strong>${formatHeures(f.totaux.retenu)}</strong></span>
+        <span>·</span>
+        <span>Écart : <strong class="${ecart >= 0 ? "marge-positive" : "marge-negative"}">${ecart >= 0 ? "+" : "−"}${formatHeures(Math.abs(Math.round(ecart)))}</strong></span>
+        ${emp.coutHoraire > 0 ? `<span>·</span><span>Coût mensuel : <strong>${formatEuros(heuresContrat * emp.coutHoraire)}</strong></span>` : ""}
+      </div>`;
+    }
 
     html += `
     <div style="overflow-x:auto">
@@ -7623,6 +7700,13 @@ function calculerAlertes() {
     alertes.push({ texte: `📦 ${sousSeuil.length} produit(s) sous le seuil d'alerte : ${sousSeuil.slice(0, 3).map(p => p.nom).join(", ")}${sousSeuil.length > 3 ? "…" : ""}`, cible: "stocks" });
   }
 
+  // Masse salariale : données manquantes
+  const masseAlerte = masseSalarialeMensuelle();
+  if (masseAlerte.incomplets.length && donnees.employes.length) {
+    alertes.push({ texte: `⏱️ Heures de contrat ou coût horaire manquants pour ${masseAlerte.incomplets.slice(0, 3).join(", ")}${masseAlerte.incomplets.length > 3 ? "…" : ""} — masse salariale incomplète`,
+      cible: "personnel" });
+  }
+
   // Demandes de congés en attente
   const enAttente = donnees.absences.filter(a => a.statut === "demande");
   if (enAttente.length) {
@@ -7680,6 +7764,7 @@ function rendreAccueil(zone) {
   const calc = calculerMargesMois(annee, mois);
   const totaux = calc.totaux;
   const stats = calc.stats;
+  const masse = masseSalarialeMensuelle();
 
   // taux de conformité moyen du mois
   const prefixeMois = `${annee}-${String(mois + 1).padStart(2, "0")}`;
@@ -7693,6 +7778,7 @@ function rendreAccueil(zone) {
   let html = `<div class="cartes-kpi">
     ${kpi(formatEuros(totaux.ca), "CA du mois (contrats)")}
     ${kpi(formatEuros(totaux.coutMO + totaux.coutConso), "Coûts (MO + consommables)")}
+    ${masse.total > 0 ? kpi(formatEuros(masse.total), "Masse salariale mensuelle") : ""}
     ${kpi(formatEuros(totaux.marge), "Marge estimée" + (totaux.pct !== null ? ` (${formatPourcent(totaux.pct)})` : ""), totaux.marge >= 0 ? "positif" : "negatif")}
     ${kpi(formatHeures(Math.round(totaux.heuresPlan * 60)), "Heures planifiées")}
     ${stats.reelExiste ? kpi(formatHeures(Math.round(totaux.heures * 60)), "Heures retenues (avec pointages)") : ""}
