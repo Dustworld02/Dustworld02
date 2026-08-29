@@ -638,7 +638,14 @@
 
   /* ---------- Impression ---------- */
   @media print {
-    body { background: #fff; padding: 0; }
+    /* Force l'impression des couleurs même si « Graphiques d'arrière-plan »
+       est décoché dans la fenêtre d'impression (propriété héritée) */
+    body {
+      background: #fff;
+      padding: 0;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
     .toolbar, dialog { display: none !important; }
     .feuille { border: none; border-radius: 0; padding: 0; }
     .pied-impression { display: block; }
@@ -663,7 +670,7 @@
 
 <div class="toolbar">
   <div class="rangee-onglets">
-    <h1>🧽 Gestion Nettoyage</h1>
+    <h1>🧽 Gestion Nettoyage <small id="version-app" style="font-size:0.6em; color:#9ca3af; font-weight:400"></small></h1>
     <span class="onglets">
       <button class="onglet" id="btn-vue-accueil">🏠 Accueil</button><button class="onglet" id="btn-vue-planning">📅 Planning</button><button class="onglet" id="btn-vue-interventions">📋 Interventions</button><button class="onglet" id="btn-vue-clients">🧑‍💼 Clients</button><button class="onglet" id="btn-vue-personnel">👥 Personnel</button><button class="onglet" id="btn-vue-stocks">📦 Stocks</button><button class="onglet" id="btn-vue-materiel">🧰 Matériel</button><button class="onglet" id="btn-vue-vehicules">🚙 Véhicules</button><button class="onglet" id="btn-vue-marges">📊 Marges</button><button class="onglet" id="btn-vue-rapports">📈 Rapports</button>
     </span>
@@ -3160,6 +3167,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
+const VERSION = "29/08/2026 — 3"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -7455,6 +7463,7 @@ document.getElementById("btn-effacer").addEventListener("click", () => {
 document.getElementById("btn-imprimer").addEventListener("click", () => window.print());
 
 /* ================= Démarrage ================= */
+document.getElementById("version-app").textContent = "v. " + VERSION;
 rendre();
 </script>
 </body>
