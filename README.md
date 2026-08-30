@@ -12,6 +12,7 @@ Planning des salariés en vue **Semaine** ou **Mois** :
 - créneaux de travail (horaires, **client**, description du travail) et **trajets 🚗** (durée, km, lieu de départ → arrivée) ;
 - repos, congés, fériés, notes ; réorganisation par glisser-déposer (poignée ⠿) ;
 - totaux d'heures par salarié et par jour, kilomètres comptés **une seule fois par véhicule partagé** (équipes) ;
+- **👤 Planning individuel** (impression A4 paysage, en couleur) : une fiche par salarié, sans numéro de semaine ni dates — un planning type à afficher ou à remettre, valable tant que la semaine ne change pas ; le total de la semaine intègre le forfait de trajets du salarié avec la mention « trajet compris » ;
 - **📋 Copier une semaine…** (jusqu'à 8 semaines en arrière — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ») et **👤➜👤 Dupliquer salarié** ;
 - impression A4 paysage (semaine) ou portrait (mois).
 
@@ -33,7 +34,7 @@ Une fiche par client :
 - deux impressions : **🖨️ Fiche** (récapitulatif interne) et **🖨️ Check-list** — la feuille d'intervention vierge que l'équipe emporte (cases à cocher, consommables à emporter, observations, signatures).
 
 ### 👥 Personnel
-Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée, **heures de contrat (h/semaine)** et **coût horaire chargé**. La fiche affiche les heures mensualisées (× 52/12, ex. 35 h/semaine = 151h40/mois) et le **coût mensuel** du salarié. Ces deux champs alimentent la **masse salariale** (indicateur de l'Accueil, bandeau des Marges avec la part affectée aux clients, et écart contrat/réalisé dans les feuilles de temps).
+Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée, **heures de contrat (h/semaine)**, **trajets (h/semaine)** et **coût horaire chargé**. La fiche affiche les heures mensualisées (× 52/12, ex. 35 h/semaine = 151h40/mois) et le **coût mensuel** du salarié. Le champ **🚗 Trajets** (saisi « 5h50 », « 5:50 » ou « 5,5 ») est ajouté au total du planning individuel imprimé, sans être détaillé jour par jour — il est aussi modifiable au moment de l'impression. Les heures de contrat et le coût horaire alimentent la **masse salariale** (indicateur de l'Accueil, bandeau des Marges avec la part affectée aux clients, et écart contrat/réalisé dans les feuilles de temps).
 
 ### 🌴 Congés
 Gestion complète des congés et absences, en **jours ouvrables** (lundi → samedi, hors jours fériés — calcul automatique de Pâques, Ascension et Pentecôte) :

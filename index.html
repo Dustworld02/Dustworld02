@@ -983,7 +983,9 @@
     .no-print, .ligne-item button, .carte-vehicule > div > button { display: none !important; }
     .cartes-vehicules { grid-template-columns: repeat(2, 1fr); }
     .carte-vehicule, .carte-client { break-inside: avoid; }
-    body.impression-doc .toolbar, body.impression-doc .feuille { display: none !important; }
+    /* Documents dédiés : on masque toute l'application (sinon .app { min-height:100vh }
+       occupe une première page vide portant l'en-tête « société / semaine »). */
+    body.impression-doc .app { display: none !important; }
     body.impression-doc #zone-impression { display: block; }
     .doc .saut-page { break-before: page; }
   }
@@ -1135,6 +1137,14 @@
   <div class="champ">
     <label for="ps-semaine">Semaine (choisissez n'importe quel jour de la semaine voulue)</label>
     <input type="date" id="ps-semaine" style="width:100%">
+  </div>
+  <div class="champ">
+    <label for="ps-trajets">Trajets à ajouter au total (par semaine)</label>
+    <input type="text" id="ps-trajets" placeholder="ex. : 5h50" style="width:120px">
+    <div style="font-size:0.8rem; color:#6b7280; margin-top:4px" id="ps-trajets-aide">
+      Ajouté au total de la semaine avec la mention « trajet compris », sans apparaître
+      dans le détail des journées. Mémorisé dans la fiche du salarié.
+    </div>
   </div>
   <div class="actions-modale">
     <button id="btn-fermer-ps">Fermer</button>
@@ -3530,7 +3540,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "29/08/2026 — 7"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 8"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3747,6 +3757,17 @@ function dureesCellule(cellule) {
     }
   }
   return durees;
+}
+
+/* Lit une durée saisie à la main : « 5h50 », « 5:50 », « 5h », « 5,5 » (= 5h30)
+   ou un nombre d'heures. Renvoie des minutes. */
+function lireDureeHM(texte) {
+  const s = String(texte ?? "").trim().replace(",", ".");
+  if (!s) return 0;
+  const m = s.match(/^(\d+)\s*[hH:]\s*(\d{1,2})?$/);
+  if (m) return Number(m[1]) * 60 + Number(m[2] || 0);
+  const n = Number(s);
+  return isFinite(n) && n > 0 ? Math.round(n * 60) : 0;
 }
 
 function formatHeures(minutes) {
@@ -4224,6 +4245,12 @@ function cartePersonnel(emp, idx) {
           value="${emp.heuresContratSemaine > 0 ? emp.heuresContratSemaine : ""}" placeholder="ex. : 35" style="width:90px"> h / semaine
       </div>
       <div class="ligne-item">
+        <span class="texte" style="flex:0 0 118px">🚗 Trajets</span>
+        <input type="text" data-pchange="trajetsSemaine" data-eid="${emp.id}"
+          value="${emp.trajetsSemaineMin > 0 ? formatHeures(emp.trajetsSemaineMin) : ""}"
+          placeholder="ex. : 5h50" style="width:90px"> / semaine
+      </div>
+      <div class="ligne-item">
         <span class="texte" style="flex:0 0 118px">💶 Coût horaire</span>
         <input type="number" min="0" step="0.5" data-pchange="coutHoraire" data-eid="${emp.id}"
           value="${emp.coutHoraire > 0 ? emp.coutHoraire : ""}" placeholder="ex. : 18" style="width:90px"> €/h chargé
@@ -4232,7 +4259,9 @@ function cartePersonnel(emp, idx) {
         ${emp.coutHoraire > 0 ? ` — coût mensuel <strong>${formatEuros(heuresMens * emp.coutHoraire)}</strong>` : ""}</div>` : ""}
       <div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">
         Les heures du contrat (mensualisées × 52/12) et le coût horaire chargé alimentent la
-        <strong>masse salariale</strong> ; le coût horaire sert aussi aux marges par client.</div>
+        <strong>masse salariale</strong> ; le coût horaire sert aussi aux marges par client.
+        Les <strong>trajets</strong> sont ajoutés au total du planning individuel imprimé
+        (mention « trajet compris »), sans être détaillés jour par jour.</div>
     </div>
   </div>`;
 }
@@ -4295,6 +4324,10 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
     const n = lireNombre(valeur);
     if (n > 0) emp[prop] = n;
     else delete emp[prop];
+  } else if (prop === "trajetsSemaine") {
+    const min = lireDureeHM(valeur);
+    if (min > 0) emp.trajetsSemaineMin = min;
+    else delete emp.trajetsSemaineMin;
   } else if (prop === "nom") {
     if (valeur) emp.nom = valeur; // on refuse un nom vide
   } else if (["role", "couleur", "tel", "email", "typeContrat", "dateEntree"].includes(prop)) {
@@ -8544,7 +8577,6 @@ document.getElementById("btn-valider-dupliquer").addEventListener("click", () =>
 /* ---------- Planning individuel par salarié (impression) ---------- */
 
 function docPlanningSalarie(emp, lundi) {
-  const dimanche = ajouterJours(lundi, 6);
   const totalSemaine = { travail: 0, trajet: 0, km: 0 };
   const rangs = [];
 
@@ -8596,22 +8628,23 @@ function docPlanningSalarie(emp, lundi) {
     rangs.push(`
     <tr>
       <td style="width:110px; vertical-align:top; padding:6px 9px; border:1px solid #d1d5db; border-left:4px solid ${couleurEmp}; background:#f3f4f6; print-color-adjust:exact; -webkit-print-color-adjust:exact">
-        <strong>${JOURS[j]}</strong><br><span style="color:#6b7280; font-size:0.85em">${formatDateCourte(date)}</span>
+        <strong>${JOURS[j]}</strong>
         ${totalJour > 0 ? `<br><span style="font-size:0.85em; color:#1e3a8a"><strong>${formatHeures(totalJour)}</strong></span>` : ""}
       </td>
       <td${classeContenu} style="vertical-align:top; padding:6px 9px; border:1px solid #d1d5db">${contenu}</td>
     </tr>`);
   }
 
-  const detailTrajet = [];
-  if (totalSemaine.trajet > 0) detailTrajet.push(`${formatHeures(totalSemaine.trajet)} de trajet`);
-  if (totalSemaine.km > 0) detailTrajet.push(`${formatKm(totalSemaine.km)} km`);
+  // Forfait de trajets hebdomadaire du salarié : ajouté au total, sans être détaillé
+  // ni apparaître dans les journées — seule la mention « trajet compris » le signale.
+  const trajetForfait = Math.max(0, Number(emp.trajetsSemaineMin) || 0);
+  const totalAffiche = totalSemaine.travail + totalSemaine.trajet + trajetForfait;
+  const trajetCompris = totalSemaine.trajet + trajetForfait > 0;
 
   const couleurEmp = emp.couleur || "#1d4ed8";
   return `
     <h1>${echapper(donnees.societe || "")}</h1>
-    <div class="doc-sous-titre">Planning individuel — Semaine ${numeroSemaineISO(lundi)},
-      du ${formatDateLongue(lundi)} au ${formatDateLongue(dimanche)}</div>
+    <div class="doc-sous-titre">Planning individuel</div>
     <div class="doc-ligne" style="font-size:1.12em">
       <span style="display:inline-block; width:13px; height:13px; border-radius:4px; background:${couleurEmp}; margin-right:7px; vertical-align:baseline; print-color-adjust:exact; -webkit-print-color-adjust:exact"></span>
       <strong>${echapper(emp.nom)}</strong>${emp.role ? ` — <span style="color:#6b7280">${echapper(emp.role)}</span>` : ""}</div>
@@ -8619,8 +8652,8 @@ function docPlanningSalarie(emp, lundi) {
       <tbody>${rangs.join("")}</tbody>
     </table>
     <div class="total-bande" style="font-size:1.08em">
-      <strong>Total de la semaine : ${formatHeures(totalSemaine.travail + totalSemaine.trajet)}</strong>
-      ${detailTrajet.length ? ` <span style="color:#6b7280">(dont ${detailTrajet.join(" · ")})</span>` : ""}
+      <strong>Total de la semaine : ${formatHeures(totalAffiche)}</strong>
+      ${trajetCompris ? ` <span style="color:#6b7280">— trajet compris</span>` : ""}
     </div>
     <div class="doc-signatures">
       <div>Le salarié</div>
@@ -8637,8 +8670,28 @@ document.getElementById("btn-planning-salarie").addEventListener("click", () => 
   sel.innerHTML = donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("") +
     `<option value="">👥 Tous les salariés (une page chacun)</option>`;
   document.getElementById("ps-semaine").value = versInputDate(lundiCourant);
+  majTrajetsPS();
   document.getElementById("modale-planning-salarie").showModal();
 });
+
+// Champ « trajets » de la modale : reflète le salarié sélectionné
+function majTrajetsPS() {
+  const champ = document.getElementById("ps-trajets");
+  const aide = document.getElementById("ps-trajets-aide");
+  const emp = donnees.employes.find(e => e.id === document.getElementById("ps-salarie").value);
+  if (emp) {
+    champ.disabled = false;
+    champ.value = emp.trajetsSemaineMin > 0 ? formatHeures(emp.trajetsSemaineMin) : "";
+    aide.textContent = "Ajouté au total de la semaine avec la mention « trajet compris », "
+      + "sans apparaître dans le détail des journées. Mémorisé dans la fiche du salarié.";
+  } else {
+    champ.disabled = true;
+    champ.value = "";
+    aide.textContent = "Chaque salarié utilise les trajets enregistrés dans sa fiche (onglet 👥 Personnel).";
+  }
+}
+
+document.getElementById("ps-salarie").addEventListener("change", majTrajetsPS);
 
 document.getElementById("btn-fermer-ps").addEventListener("click", () => {
   document.getElementById("modale-planning-salarie").close();
@@ -8650,6 +8703,12 @@ document.getElementById("btn-imprimer-ps").addEventListener("click", () => {
   const choix = document.getElementById("ps-salarie").value;
   const concernes = choix ? donnees.employes.filter(e => e.id === choix) : donnees.employes;
   if (concernes.length === 0) return;
+  if (choix && concernes[0]) { // on mémorise les trajets saisis dans la fiche du salarié
+    const min = lireDureeHM(document.getElementById("ps-trajets").value);
+    if (min > 0) concernes[0].trajetsSemaineMin = min;
+    else delete concernes[0].trajetsSemaineMin;
+    sauvegarder();
+  }
   const docs = concernes.map((emp, i) => {
     const doc = docPlanningSalarie(emp, lundi);
     return i === 0 ? doc : `<div class="saut-page">${doc}</div>`;
