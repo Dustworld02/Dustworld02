@@ -13,7 +13,7 @@ Planning des salariés en vue **Semaine** ou **Mois** :
 - repos, congés, fériés, notes ; réorganisation par glisser-déposer (poignée ⠿) ;
 - **tâches une semaine sur deux** : chaque tâche peut être marquée « 1 sem/2 : semaines paires » ou « impaires » — un badge **1 sem/2 · paires** s'affiche dans le planning et sur la fiche imprimée, et le titre de la vue Semaine rappelle la parité de la semaine affichée (ex. « Semaine 35 (impaire) ») ;
 - totaux d'heures par salarié et par jour, kilomètres comptés **une seule fois par véhicule partagé** (équipes) ;
-- **👤 Planning individuel** (impression A4 paysage, en couleur) : une fiche par salarié, sans numéro de semaine ni dates — un planning type à afficher ou à remettre, valable tant que la semaine ne change pas ; le total de la semaine intègre le forfait de trajets du salarié avec la mention « trajet compris » ;
+- **👤 Planning individuel** (impression A4 paysage, en couleur) : une fiche par salarié **sur une seule page**, sans numéro de semaine ni dates — un planning type à afficher ou à remettre, valable tant que la semaine ne change pas. Les journées sont présentées en colonnes et la taille du texte s'ajuste automatiquement pour occuper la page sans déborder ; un **samedi ou un dimanche non travaillé n'est pas imprimé**, la place profite aux autres jours. Le total de la semaine intègre le forfait de trajets du salarié avec la mention « trajet compris » ;
 - **📋 Copier une semaine…** (jusqu'à 8 semaines en arrière — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ») et **👤➜👤 Dupliquer salarié** ;
 - impression A4 paysage (semaine) ou portrait (mois).
 
