@@ -11,6 +11,7 @@ Le tableau de bord : chiffres clés du mois en cours (CA des contrats, coûts, *
 Planning des salariés en vue **Semaine** ou **Mois** :
 - créneaux de travail (horaires, **client**, description du travail) et **trajets 🚗** (durée, km, lieu de départ → arrivée) ;
 - repos, congés, fériés, notes ; réorganisation par glisser-déposer (poignée ⠿) ;
+- **tâches une semaine sur deux** : chaque tâche peut être marquée « 1 sem/2 : semaines paires » ou « impaires » — un badge **1 sem/2 · paires** s'affiche dans le planning et sur la fiche imprimée, et le titre de la vue Semaine rappelle la parité de la semaine affichée (ex. « Semaine 35 (impaire) ») ;
 - totaux d'heures par salarié et par jour, kilomètres comptés **une seule fois par véhicule partagé** (équipes) ;
 - **👤 Planning individuel** (impression A4 paysage, en couleur) : une fiche par salarié, sans numéro de semaine ni dates — un planning type à afficher ou à remettre, valable tant que la semaine ne change pas ; le total de la semaine intègre le forfait de trajets du salarié avec la mention « trajet compris » ;
 - **📋 Copier une semaine…** (jusqu'à 8 semaines en arrière — pour un roulement une semaine sur deux, copiez « il y a 2 semaines ») et **👤➜👤 Dupliquer salarié** ;

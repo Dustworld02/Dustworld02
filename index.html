@@ -406,6 +406,22 @@
     padding: 4px 6px;
     max-width: 130px;
   }
+  /* Marqueur « à faire une semaine sur deux » sur une tâche */
+  .badge-alt {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: 5px;
+    font-size: 0.72em;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #fdf1e7;
+    color: #8a4a20;
+    border: 1px solid #eccbb0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .tache-alt { font-size: 0.8rem; padding: 4px 6px; max-width: 150px; }
   .rappel-type {
     font-size: 0.78rem;
     padding: 3px 8px;
@@ -3540,7 +3556,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 8"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 9"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3839,6 +3855,22 @@ function sousTotalTrajet(t) {
   return `<span class="sous-total">dont ${parts.join(" · ")}</span>`;
 }
 
+/* ---------- Tâches à faire une semaine sur deux ----------
+   Une tâche peut ne revenir qu'une semaine sur deux : on la rattache aux
+   semaines paires ou impaires (numéro de semaine ISO), ce qui reste lisible
+   même sur un planning imprimé sans dates. */
+const ALTERNANCES = [
+  { code: "paire",   libelle: "1 sem/2 : semaines paires",   court: "1 sem/2 · paires" },
+  { code: "impaire", libelle: "1 sem/2 : semaines impaires", court: "1 sem/2 · impaires" },
+];
+const altParCode = (code) => ALTERNANCES.find(a => a.code === code);
+
+// Badge à accoler au libellé d'une tâche (vide si la tâche est hebdomadaire)
+function badgeAlternance(tache) {
+  const alt = typeof tache === "object" && tache ? altParCode(tache.alt) : null;
+  return alt ? ` <span class="badge-alt">${alt.court}</span>` : "";
+}
+
 /* ================= Rendu ================= */
 
 // Contenu HTML d'un créneau (puce bleue travail / grise trajet)
@@ -3860,7 +3892,8 @@ function htmlCreneau(c) {
     html += `<span class="desc liste-travaux">${c.taches.map(t => {
       const texte = typeof t === "string" ? t : (t.texte || "");
       const min = typeof t === "object" && t.min > 0 ? t.min : 0;
-      return "• " + echapper(texte) + (min ? ` <span style="color:#9ca3af">(${formatDuree(Math.round(min))})</span>` : "");
+      return "• " + echapper(texte) + (min ? ` <span style="color:#9ca3af">(${formatDuree(Math.round(min))})</span>` : "")
+        + badgeAlternance(t);
     }).join("<br>")}</span>`;
   } else if (c.desc) {
     html += `<span class="desc">${echapper(c.desc)}</span>`;
@@ -4005,8 +4038,10 @@ function majBarres() {
 function rendreSemaine(zone) {
   document.getElementById("date-semaine").value = versInputDate(lundiCourant);
   const dimanche = ajouterJours(lundiCourant, 6);
+  const noSemaine = numeroSemaineISO(lundiCourant);
   document.getElementById("libelle-periode").textContent =
-    `Semaine ${numeroSemaineISO(lundiCourant)} — du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
+    `Semaine ${noSemaine} (${noSemaine % 2 === 0 ? "paire" : "impaire"}) — ` +
+    `du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
 
   const table = document.createElement("table");
   table.className = "planning";
@@ -8111,7 +8146,10 @@ function lireCreneauDepuisBloc(bloc) {
     const texte = ligne.querySelector(".tache-texte").value.trim();
     if (!texte) continue;
     const min = lireNombre(ligne.querySelector(".tache-min").value);
-    taches.push(min > 0 ? { texte, min } : { texte });
+    const tache = min > 0 ? { texte, min } : { texte };
+    const alt = ligne.querySelector(".tache-alt").value;
+    if (altParCode(alt)) tache.alt = alt;
+    taches.push(tache);
   }
   const restant = bloc.querySelector(".tache-nouvelle").value.trim();
   if (restant) {
@@ -8164,9 +8202,15 @@ function ajouterLigneTache(bloc, tache = "") {
     <input type="text" class="tache-texte">
     <input type="number" class="tache-min" min="0" step="5" placeholder="min" title="Temps prévu (minutes)" style="width:70px">
     <small style="align-self:center; color:#6b7280">min</small>
+    <select class="tache-alt" title="Tâche à faire chaque semaine, ou une semaine sur deux">
+      <option value="">chaque semaine</option>
+      ${ALTERNANCES.map(a => `<option value="${a.code}">${a.libelle}</option>`).join("")}
+    </select>
     <button type="button" class="retirer-tache" title="Retirer cette tâche">✕</button>`;
   ligne.querySelector(".tache-texte").value = texte;
   ligne.querySelector(".tache-min").value = min;
+  ligne.querySelector(".tache-alt").value =
+    (typeof tache === "object" && tache && altParCode(tache.alt)) ? tache.alt : "";
   ligne.querySelector(".retirer-tache").addEventListener("click", () => {
     ligne.remove();
     majTotalTaches(bloc);
@@ -8610,7 +8654,7 @@ function docPlanningSalarie(emp, lundi) {
             for (const t of taches) {
               const texte = typeof t === "string" ? t : (t.texte || "");
               const min = typeof t === "object" && t.min > 0 ? ` <span style="color:#6b7280">(${formatDuree(Math.round(t.min))})</span>` : "";
-              blocTravail += `<div style="padding-left:14px; font-size:0.94em">• ${echapper(texte)}${min}</div>`;
+              blocTravail += `<div style="padding-left:14px; font-size:0.94em">• ${echapper(texte)}${min}${badgeAlternance(t)}</div>`;
             }
             if (!taches.length && c.desc) {
               blocTravail += `<div style="padding-left:14px; font-size:0.94em">• ${echapper(c.desc)}</div>`;
