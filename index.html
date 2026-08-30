@@ -3600,7 +3600,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 12"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 13"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3900,14 +3900,14 @@ function sousTotalTrajet(t) {
 }
 
 /* ---------- Tâches à faire une semaine sur deux ----------
-   Une tâche peut ne revenir qu'une semaine sur deux : on la rattache aux
-   semaines paires ou impaires (numéro de semaine ISO), ce qui reste lisible
-   même sur un planning imprimé sans dates. */
+   Une tâche peut n'être à faire qu'une semaine sur deux ; elle porte alors
+   le marqueur « 1 semaine sur 2 ». Les anciennes valeurs « paire » et
+   « impaire » sont reprises telles quelles. */
 const ALTERNANCES = [
-  { code: "paire",   libelle: "1 semaine sur 2 : semaines paires",   court: "1 semaine sur 2 · paires" },
-  { code: "impaire", libelle: "1 semaine sur 2 : semaines impaires", court: "1 semaine sur 2 · impaires" },
+  { code: "1sur2", libelle: "1 semaine sur 2", court: "1 semaine sur 2" },
 ];
-const altParCode = (code) => ALTERNANCES.find(a => a.code === code);
+const CODES_ALT = ["1sur2", "paire", "impaire"]; // « paire »/« impaire » : anciennes fiches
+const altParCode = (code) => CODES_ALT.includes(code) ? ALTERNANCES[0] : undefined;
 
 // Badge à accoler au libellé d'une tâche (vide si la tâche est hebdomadaire)
 function badgeAlternance(tache) {
@@ -4082,10 +4082,8 @@ function majBarres() {
 function rendreSemaine(zone) {
   document.getElementById("date-semaine").value = versInputDate(lundiCourant);
   const dimanche = ajouterJours(lundiCourant, 6);
-  const noSemaine = numeroSemaineISO(lundiCourant);
   document.getElementById("libelle-periode").textContent =
-    `Semaine ${noSemaine} (${noSemaine % 2 === 0 ? "paire" : "impaire"}) — ` +
-    `du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
+    `Semaine ${numeroSemaineISO(lundiCourant)} — du ${formatDateLongue(lundiCourant)} au ${formatDateLongue(dimanche)}`;
 
   const table = document.createElement("table");
   table.className = "planning";
@@ -8254,7 +8252,7 @@ function ajouterLigneTache(bloc, tache = "") {
   ligne.querySelector(".tache-texte").value = texte;
   ligne.querySelector(".tache-min").value = min;
   ligne.querySelector(".tache-alt").value =
-    (typeof tache === "object" && tache && altParCode(tache.alt)) ? tache.alt : "";
+    (typeof tache === "object" && tache && altParCode(tache.alt)) ? "1sur2" : "";
   ligne.querySelector(".retirer-tache").addEventListener("click", () => {
     ligne.remove();
     majTotalTaches(bloc);
