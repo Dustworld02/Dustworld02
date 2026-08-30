@@ -3600,7 +3600,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 11"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 12"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3904,8 +3904,8 @@ function sousTotalTrajet(t) {
    semaines paires ou impaires (numéro de semaine ISO), ce qui reste lisible
    même sur un planning imprimé sans dates. */
 const ALTERNANCES = [
-  { code: "paire",   libelle: "1 sem/2 : semaines paires",   court: "1 sem/2 · paires" },
-  { code: "impaire", libelle: "1 sem/2 : semaines impaires", court: "1 sem/2 · impaires" },
+  { code: "paire",   libelle: "1 semaine sur 2 : semaines paires",   court: "1 semaine sur 2 · paires" },
+  { code: "impaire", libelle: "1 semaine sur 2 : semaines impaires", court: "1 semaine sur 2 · impaires" },
 ];
 const altParCode = (code) => ALTERNANCES.find(a => a.code === code);
 
