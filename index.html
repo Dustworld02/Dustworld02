@@ -960,7 +960,17 @@
   .doc .fiche-planning h1 { font-size: 1.45em; margin-bottom: 1px; }
   .doc .fiche-planning .doc-sous-titre { font-size: 0.92em; margin-bottom: 4px; }
   .doc .fiche-planning .doc-ligne { font-size: 1em; padding: 1px 0; }
-  .doc .fiche-planning .total-bande { font-size: 1.05em; padding: 6px 12px; margin-top: 7px; }
+  .doc .fiche-planning .total-bande {
+    font-size: 1.05em;
+    padding: 6px 12px;
+    margin-top: 7px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+  .doc .total-bande .tb-op { font-size: 1.2em; color: #64748b; font-weight: 700; }
+  .doc .total-bande .tb-total { font-size: 1.12em; }
   .doc .fiche-planning .doc-signatures { margin-top: 12px; gap: 24px; }
   .doc .fiche-planning .doc-signatures > div { font-size: 0.85em; padding-top: 4px; }
   .doc .fiche-planning .chip-travail,
@@ -3590,7 +3600,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 10"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 11"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -8721,8 +8731,8 @@ function docPlanningSalarie(emp, lundi) {
   // Forfait de trajets hebdomadaire du salarié : ajouté au total, sans être détaillé
   // ni apparaître dans les journées — seule la mention « trajet compris » le signale.
   const trajetForfait = Math.max(0, Number(emp.trajetsSemaineMin) || 0);
-  const totalAffiche = totalSemaine.travail + totalSemaine.trajet + trajetForfait;
-  const trajetCompris = totalSemaine.trajet + trajetForfait > 0;
+  const totalTrajets = totalSemaine.trajet + trajetForfait;
+  const totalAffiche = totalSemaine.travail + totalTrajets;
 
   return `
     <div class="fiche-planning">
@@ -8733,8 +8743,12 @@ function docPlanningSalarie(emp, lundi) {
       <strong>${echapper(emp.nom)}</strong>${emp.role ? ` — <span style="color:#6b7280">${echapper(emp.role)}</span>` : ""}</div>
     <div class="fiche-jours">${cartes.join("")}</div>
     <div class="total-bande">
-      <strong>Total de la semaine : ${formatHeures(totalAffiche)}</strong>
-      ${trajetCompris ? ` <span style="color:#6b7280">— trajet compris</span>` : ""}
+      ${totalTrajets > 0 ? `
+        <span>Travail chez les clients : <strong>${formatHeures(totalSemaine.travail)}</strong></span>
+        <span class="tb-op">+</span>
+        <span>Trajets : <strong>${formatHeures(totalTrajets)}</strong></span>
+        <span class="tb-op">=</span>` : ""}
+      <span class="tb-total">Total de la semaine : <strong>${formatHeures(totalAffiche)}</strong></span>
     </div>
     <div class="doc-signatures">
       <div>Le salarié</div>
