@@ -3600,7 +3600,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 13"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 14"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -8675,10 +8675,14 @@ function docPlanningSalarie(emp, lundi) {
     totalSemaine.trajet += durees.trajet;
     totalSemaine.km += durees.km;
 
-    // Un week-end non travaillé n'est pas imprimé : la place profite aux autres jours
+    // Les jours sans rien à dire ne sont pas imprimés : la place profite aux
+    // autres. Un week-end non travaillé disparaît même s'il porte « repos » ;
+    // en semaine on garde les journées étiquetées (repos, congé, férié) et
+    // celles qui portent une note, car leur absence se lirait comme un oubli.
     const travaille = cellule && cellule.type === "travail" &&
       (cellule.creneaux || []).some(c => (c.debut && c.fin) || c.type === "trajet");
-    if (j >= 5 && !travaille) continue;
+    const aSignaler = cellule && (cellule.type !== "travail" || cellule.note);
+    if (!travaille && (j >= 5 || !aSignaler)) continue;
 
     let contenu = `<span style="color:#9ca3af">—</span>`;
     let classeContenu = "";
