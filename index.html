@@ -1070,6 +1070,7 @@
     <button class="nav-item" id="btn-vue-accueil"><span class="ico">🏠</span><span class="libelle">Accueil</span></button>
     <button class="nav-item" id="btn-vue-marges"><span class="ico">📊</span><span class="libelle">Marges</span></button>
     <button class="nav-item" id="btn-vue-rapports"><span class="ico">📈</span><span class="libelle">Rapports</span></button>
+    <button class="nav-item" id="btn-vue-finances"><span class="ico">💶</span><span class="libelle">Finances</span></button>
 
     <div class="nav-groupe">Exploitation</div>
     <button class="nav-item" id="btn-vue-planning"><span class="ico">📅</span><span class="libelle">Planning</span></button>
@@ -1114,6 +1115,9 @@
     </span>
     <span class="bascule-vue action-conges">
       <button id="btn-vue-cp-soldes">📊 Soldes</button><button id="btn-vue-cp-demandes">📝 Demandes</button><button id="btn-vue-cp-calendrier">🗓️ Calendrier</button>
+    </span>
+    <span class="bascule-vue action-finances">
+      <button id="btn-vue-frais">🧾 Frais généraux</button><button id="btn-vue-tva">🏛️ TVA</button><button id="btn-vue-cotisations">👥 Cotisations</button>
     </span>
     <button id="btn-sem-prec" class="action-navig" title="Période précédente">◀</button>
     <input type="date" id="date-semaine" class="action-navig">
@@ -3600,7 +3604,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 14"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "30/08/2026 — 15"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3617,7 +3621,7 @@ let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
 const VUES = ["accueil", "semaine", "mois", "clients", "personnel", "stocks", "materiel", "vehicules", "marges",
   "bons", "controles", "tickets", "pointage", "rapport-client", "feuilles-temps", "export-facturation",
-  "cp-soldes", "cp-demandes", "cp-calendrier"];
+  "cp-soldes", "cp-demandes", "cp-calendrier", "frais", "tva", "cotisations"];
 let vue = VUES.includes(donnees.vue) ? donnees.vue : "accueil";
 let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
 let celluleEnCours = null; // { employeId, indexJour, cle }
@@ -3638,7 +3642,12 @@ function migrer(d) {
   if (!Array.isArray(d.tickets)) d.tickets = [];         // ordres de travail / réclamations
   if (!Array.isArray(d.pointages)) d.pointages = [];     // heures réelles
   if (!Array.isArray(d.absences)) d.absences = [];       // congés et absences
+  if (!Array.isArray(d.frais)) d.frais = [];             // frais généraux (charges hors chantier)
+  if (typeof d.cotisations !== "object" || d.cotisations === null) d.cotisations = {}; // "AAAA-MM" -> réel payé
+  if (typeof d.tva !== "object" || d.tva === null) d.tva = {};                         // "AAAA-MM" -> déclaré
   if (typeof d.parametres !== "object" || d.parametres === null) d.parametres = {};
+  if (!(d.parametres.tauxTvaVente > 0)) d.parametres.tauxTvaVente = 20;                // TVA sur les prestations
+  if (!(d.parametres.tauxChargesPatronales > 0)) d.parametres.tauxChargesPatronales = 42;
   if (typeof d.parametres.prefixeBon !== "string") d.parametres.prefixeBon = "BI";
   if (typeof d.parametres.numerotation !== "object" || d.parametres.numerotation === null) {
     d.parametres.numerotation = {};
@@ -3696,8 +3705,10 @@ function lireNombre(v) {
 function formatEuros(n) {
   let v = Math.round(n * 100) / 100;
   if (v === 0) v = 0; // évite l'affichage « -0 € »
+  // entier → « 620 € » ; sinon toujours deux décimales → « 1 483,20 € »
+  const decimales = Number.isInteger(v) ? 0 : 2;
   return v.toLocaleString("fr-FR",
-    { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " €";
+    { minimumFractionDigits: decimales, maximumFractionDigits: decimales }) + " €";
 }
 
 function formatPourcent(p) {
@@ -3997,6 +4008,9 @@ function rendre() {
     case "cp-soldes": rendreCPSoldes(zone); return;
     case "cp-demandes": rendreCPDemandes(zone); return;
     case "cp-calendrier": rendreCPCalendrier(zone); return;
+    case "frais": rendreFrais(zone); return;
+    case "tva": rendreTva(zone); return;
+    case "cotisations": rendreCotisations(zone); return;
   }
 
   if (donnees.employes.length === 0) {
@@ -4026,12 +4040,14 @@ function majMarque() {
 const VUES_INTERVENTIONS = ["bons", "controles", "tickets", "pointage"];
 const VUES_RAPPORTS = ["rapport-client", "feuilles-temps", "export-facturation"];
 const VUES_CONGES = ["cp-soldes", "cp-demandes", "cp-calendrier"];
+const VUES_FINANCES = ["frais", "tva", "cotisations"];
 
 function majBarres() {
   const estPlanning = vue === "semaine" || vue === "mois";
   const estInterventions = VUES_INTERVENTIONS.includes(vue);
   const estRapports = VUES_RAPPORTS.includes(vue);
   const estConges = VUES_CONGES.includes(vue);
+  const estFinances = VUES_FINANCES.includes(vue);
   const actifs = {
     "btn-vue-accueil": vue === "accueil",
     "btn-vue-planning": estPlanning,
@@ -4044,6 +4060,10 @@ function majBarres() {
     "btn-vue-marges": vue === "marges",
     "btn-vue-rapports": estRapports,
     "btn-vue-conges": estConges,
+    "btn-vue-finances": estFinances,
+    "btn-vue-frais": vue === "frais",
+    "btn-vue-tva": vue === "tva",
+    "btn-vue-cotisations": vue === "cotisations",
     "btn-vue-cp-soldes": vue === "cp-soldes",
     "btn-vue-cp-demandes": vue === "cp-demandes",
     "btn-vue-cp-calendrier": vue === "cp-calendrier",
@@ -4064,7 +4084,8 @@ function majBarres() {
     [".action-interventions", estInterventions],
     [".action-rapports", estRapports],
     [".action-conges", estConges],
-    [".action-navig", estPlanning || vue === "marges"],
+    [".action-finances", estFinances],
+    [".action-navig", estPlanning || vue === "marges" || vue === "frais"],
     [".action-semaine", vue === "semaine"],
     [".action-clients", vue === "clients"],
   ];
@@ -5976,6 +5997,18 @@ function rendreMarges(zone) {
     </div>`;
   }
 
+  // Du chantier à l'entreprise : la marge brute moins les frais généraux
+  const res = resultatMois(annee, mois);
+  if (res.frais > 0) {
+    html += `<div class="bandeau-masse">
+      <span>Marge brute des chantiers : <strong>${formatEuros(res.margeBrute)}</strong></span>
+      <span>−</span>
+      <span>Frais généraux : <strong>${formatEuros(res.frais)}</strong></span>
+      <span>=</span>
+      <strong class="${res.resultat < 0 ? "marge-negative" : ""}">Résultat du mois : ${formatEuros(res.resultat)}${res.pct !== null ? ` (${formatPourcent(res.pct)})` : ""}</strong>
+    </div>`;
+  }
+
   const avertissements = [];
   if (stats.sansCout.length > 0) {
     avertissements.push(`💶 Coûts de main-d'œuvre incomplets : renseignez le coût horaire de
@@ -6007,6 +6040,481 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
     changerVue("clients");
   }
 });
+
+/* ================= Finances : frais généraux, TVA, cotisations =================
+   Les marges par client (onglet 📊) s'arrêtent à la marge brute de chantier :
+   CA − main-d'œuvre − consommables. Les frais généraux de l'entreprise sont
+   suivis ici et retranchés au niveau de l'entreprise, pas répartis par client.
+   Tous les montants sont en HT : la TVA est neutre pour le résultat.          */
+
+const CATEGORIES_FRAIS = [
+  { code: "vehicules",  libelle: "🚙 Véhicules (carburant, entretien, leasing)" },
+  { code: "assurances", libelle: "🛡️ Assurances" },
+  { code: "locaux",     libelle: "🏢 Locaux (loyer, charges, énergie)" },
+  { code: "materiel",   libelle: "🧰 Matériel & EPI" },
+  { code: "produits",   libelle: "🧴 Produits & consommables" },
+  { code: "telecom",    libelle: "📱 Téléphonie, internet & logiciels" },
+  { code: "honoraires", libelle: "📑 Honoraires (comptable, juridique)" },
+  { code: "banque",     libelle: "🏦 Banque & frais financiers" },
+  { code: "formation",  libelle: "🎓 Formation" },
+  { code: "commercial", libelle: "📣 Commercial & communication" },
+  { code: "taxes",      libelle: "🏛️ Impôts & taxes" },
+  { code: "autres",     libelle: "📦 Autres" },
+];
+const categorieFrais = (code) =>
+  CATEGORIES_FRAIS.find(c => c.code === code) || CATEGORIES_FRAIS[CATEGORIES_FRAIS.length - 1];
+
+const RECURRENCES = [
+  { code: "mensuel",     libelle: "Tous les mois",     parMois: 1 },
+  { code: "trimestriel", libelle: "Par trimestre",     parMois: 3 },
+  { code: "annuel",      libelle: "Une fois par an",   parMois: 12 },
+  { code: "ponctuel",    libelle: "Ponctuel",          parMois: 1 },
+];
+const recurrenceFrais = (code) => RECURRENCES.find(r => r.code === code) || RECURRENCES[0];
+
+const TAUX_TVA = [20, 10, 5.5, 2.1, 0];
+const MOIS_LONGS = Array.from({ length: 12 }, (_, m) => {
+  const s = new Date(2000, m, 1).toLocaleDateString("fr-FR", { month: "long" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+});
+const cleMois = (annee, mois) => `${annee}-${String(mois + 1).padStart(2, "0")}`;
+const rangMois = (annee, mois) => annee * 12 + mois;
+
+// Le frais court-il encore sur ce mois ? (date de début, fin éventuelle)
+function fraisActif(f, annee, mois) {
+  const rang = rangMois(annee, mois);
+  if (f.date) {
+    const d = new Date(f.date + "T00:00:00");
+    if (rang < rangMois(d.getFullYear(), d.getMonth())) return false;
+  }
+  if (f.dateFin) {
+    const d = new Date(f.dateFin + "T00:00:00");
+    if (rang > rangMois(d.getFullYear(), d.getMonth())) return false;
+  }
+  return true;
+}
+
+// Montant réellement décaissé ce mois-ci — sert à la TVA et à la trésorerie
+function fraisMontantMois(f, annee, mois) {
+  const m = Math.max(0, Number(f.montantHT) || 0);
+  if (!m || !fraisActif(f, annee, mois)) return 0;
+  const d = f.date ? new Date(f.date + "T00:00:00") : null;
+  if (f.recurrence === "ponctuel") {
+    return d && d.getFullYear() === annee && d.getMonth() === mois ? m : 0;
+  }
+  if (f.recurrence === "trimestriel") {
+    if (!d) return 0;
+    const ecart = rangMois(annee, mois) - rangMois(d.getFullYear(), d.getMonth());
+    return ecart >= 0 && ecart % 3 === 0 ? m : 0;
+  }
+  if (f.recurrence === "annuel") return d && d.getMonth() === mois ? m : 0;
+  return m; // mensuel
+}
+
+// Montant mensualisé — sert au calcul de rentabilité, pour qu'une prime
+// d'assurance annuelle ne plombe pas artificiellement un seul mois
+function fraisMontantLisse(f, annee, mois) {
+  const m = Math.max(0, Number(f.montantHT) || 0);
+  if (!m || !fraisActif(f, annee, mois)) return 0;
+  if (f.recurrence === "ponctuel") return fraisMontantMois(f, annee, mois);
+  return m / recurrenceFrais(f.recurrence).parMois;
+}
+
+function fraisDuMois(annee, mois) {
+  const parCategorie = {};
+  const lignes = [];
+  let lisse = 0, reel = 0, tvaDeductible = 0;
+  for (const f of donnees.frais) {
+    const l = fraisMontantLisse(f, annee, mois);
+    const r = fraisMontantMois(f, annee, mois);
+    lisse += l;
+    reel += r;
+    tvaDeductible += r * (Number(f.tauxTva) || 0) / 100;
+    if (l > 0) parCategorie[f.categorie] = (parCategorie[f.categorie] || 0) + l;
+    lignes.push({ f, lisse: l, reel: r });
+  }
+  return { lignes, lisse, reel, tvaDeductible, parCategorie };
+}
+
+// Rentabilité réelle du mois : marge brute des chantiers − frais généraux
+function resultatMois(annee, mois) {
+  const totaux = calculerMargesMois(annee, mois).totaux;
+  const frais = fraisDuMois(annee, mois).lisse;
+  const resultat = totaux.marge - frais;
+  return { ca: totaux.ca, margeBrute: totaux.marge, frais, resultat,
+           pct: totaux.ca > 0 ? (resultat / totaux.ca) * 100 : null };
+}
+
+// TVA du mois — régime réel normal, déclaration CA3 mensuelle
+function tvaDuMois(annee, mois) {
+  const caHT = calculerMargesMois(annee, mois).totaux.ca;
+  const taux = Number(donnees.parametres.tauxTvaVente) || 0;
+  const collectee = caHT * taux / 100;
+  const deductible = fraisDuMois(annee, mois).tvaDeductible;
+  const saisi = donnees.tva[cleMois(annee, mois)] || {};
+  return { caHT, collectee, deductible, due: collectee - deductible,
+           declare: Number(saisi.declare) || 0, aDeclare: saisi.declare !== undefined && saisi.declare !== "" };
+}
+
+// Cotisations : le coût horaire du Personnel est un coût CHARGÉ, on en déduit
+// la part patronale par le taux de charges — rien n'est recompté dans les marges
+function cotisationsDuMois(annee, mois) {
+  const masse = masseSalarialeMensuelle();
+  const taux = Number(donnees.parametres.tauxChargesPatronales) || 0;
+  const brut = taux > 0 ? masse.total / (1 + taux / 100) : masse.total;
+  const estime = masse.total - brut;
+  const saisi = donnees.cotisations[cleMois(annee, mois)] || {};
+  const reel = (Number(saisi.urssaf) || 0) + (Number(saisi.retraite) || 0) + (Number(saisi.autres) || 0);
+  const renseigne = ["urssaf", "retraite", "autres"].some(k => saisi[k] !== undefined && saisi[k] !== "");
+  return { masse: masse.total, brut, estime, saisi, reel, renseigne,
+           ecart: reel - estime, incomplets: masse.incomplets };
+}
+
+/* ---------- Vue : frais généraux ---------- */
+
+function rendreFrais(zone) {
+  document.getElementById("date-semaine").value = versInputDate(moisCourant);
+  const annee = moisCourant.getFullYear();
+  const mois = moisCourant.getMonth();
+  document.getElementById("libelle-periode").textContent =
+    "Frais généraux — " + libelleMoisLong(annee, mois);
+
+  const fm = fraisDuMois(annee, mois);
+  const res = resultatMois(annee, mois);
+  const kpi = (valeur, libelle, classe = "") =>
+    `<div class="kpi"><div class="valeur ${classe}">${valeur}</div><div class="libelle">${libelle}</div></div>`;
+
+  let html = `<div class="cartes-kpi">
+    ${kpi(formatEuros(fm.lisse), "Frais généraux mensualisés")}
+    ${kpi(formatEuros(fm.reel), "Décaissé ce mois-ci (HT)")}
+    ${kpi(formatEuros(fm.tvaDeductible), "TVA déductible du mois")}
+    ${kpi(formatEuros(res.margeBrute), "Marge brute des chantiers", res.margeBrute >= 0 ? "positif" : "negatif")}
+    ${kpi(formatEuros(res.resultat), "Résultat du mois" + (res.pct !== null ? ` (${formatPourcent(res.pct)})` : ""),
+          res.resultat >= 0 ? "positif" : "negatif")}
+  </div>`;
+
+  html += `
+    <div class="ajout-vehicule no-print">
+      <input type="text" id="frais-nouveau-libelle" placeholder="Libellé (ex. : assurance flotte)" style="flex:2; min-width:180px">
+      <select id="frais-nouvelle-categorie" style="flex:1; min-width:150px">
+        ${CATEGORIES_FRAIS.map(c => `<option value="${c.code}">${c.libelle}</option>`).join("")}
+      </select>
+      <input type="number" id="frais-nouveau-montant" min="0" step="0.01" placeholder="Montant HT" style="width:110px">
+      <select id="frais-nouvelle-recurrence" style="width:150px">
+        ${RECURRENCES.map(r => `<option value="${r.code}">${r.libelle}</option>`).join("")}
+      </select>
+      <button class="primaire" data-faction="ajouter">+ Ajouter</button>
+    </div>`;
+
+  if (donnees.frais.length === 0) {
+    html += `<div class="vide">Aucun frais général pour le moment.<br>
+      Ajoutez ci-dessus vos charges d'entreprise (loyer, assurances, carburant, comptable, téléphonie…)
+      pour voir apparaître votre <strong>résultat réel</strong>, et non plus seulement la marge de chantier.</div>`;
+    zone.innerHTML = html;
+    return;
+  }
+
+  const lignes = fm.lignes.map(({ f, lisse, reel }) => {
+    const inactif = lisse === 0 && reel === 0;
+    return `
+    <tr${inactif ? ` style="opacity:.5"` : ""}>
+      <td><input type="text" data-fchange="libelle" data-fid="${f.id}" value="${echapperAttr(f.libelle || "")}"></td>
+      <td><select data-fchange="categorie" data-fid="${f.id}">
+        ${CATEGORIES_FRAIS.map(c => `<option value="${c.code}"${f.categorie === c.code ? " selected" : ""}>${c.libelle}</option>`).join("")}
+      </select></td>
+      <td class="num"><input class="etroit" type="number" min="0" step="0.01" data-fchange="montantHT" data-fid="${f.id}"
+        value="${f.montantHT > 0 ? f.montantHT : ""}" placeholder="—"></td>
+      <td class="num"><select data-fchange="tauxTva" data-fid="${f.id}" style="width:80px">
+        ${TAUX_TVA.map(t => `<option value="${t}"${Number(f.tauxTva) === t ? " selected" : ""}>${formatKm(t)} %</option>`).join("")}
+      </select></td>
+      <td><select data-fchange="recurrence" data-fid="${f.id}">
+        ${RECURRENCES.map(r => `<option value="${r.code}"${f.recurrence === r.code ? " selected" : ""}>${r.libelle}</option>`).join("")}
+      </select></td>
+      <td><input type="date" data-fchange="date" data-fid="${f.id}" value="${f.date || ""}"></td>
+      <td><input type="date" data-fchange="dateFin" data-fid="${f.id}" value="${f.dateFin || ""}"></td>
+      <td class="num"><strong>${lisse > 0 ? formatEuros(lisse) : "—"}</strong></td>
+      <td class="num">${reel > 0 ? formatEuros(reel) : "—"}</td>
+      <td class="no-print"><button data-faction="supprimer" data-fid="${f.id}" title="Supprimer">✕</button></td>
+    </tr>`;
+  }).join("");
+
+  html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th>Libellé</th><th style="width:190px">Catégorie</th>
+        <th class="num" style="width:110px">Montant HT</th><th class="num" style="width:90px">TVA</th>
+        <th style="width:140px">Récurrence</th><th style="width:140px">Depuis le</th><th style="width:140px">Jusqu'au</th>
+        <th class="num" style="width:110px">€/mois</th><th class="num" style="width:110px">Ce mois-ci</th>
+        <th class="no-print" style="width:40px"></th>
+      </tr></thead>
+      <tbody>${lignes}</tbody>
+      <tfoot><tr>
+        <th colspan="7">Total</th>
+        <th class="num">${formatEuros(fm.lisse)}</th>
+        <th class="num">${formatEuros(fm.reel)}</th>
+        <th class="no-print"></th>
+      </tr></tfoot>
+    </table>
+    </div>`;
+
+  const parCat = Object.entries(fm.parCategorie).sort((a, b) => b[1] - a[1]);
+  if (parCat.length) {
+    html += `<div class="titre-section-accueil">📊 Répartition mensualisée</div>
+    <div style="overflow-x:auto"><table class="tableau-gestion" style="max-width:520px">
+      <tbody>${parCat.map(([code, montant]) => `
+        <tr><td>${categorieFrais(code).libelle}</td>
+          <td class="num"><strong>${formatEuros(montant)}</strong></td>
+          <td class="num">${fm.lisse > 0 ? formatPourcent(montant / fm.lisse * 100) : "—"}</td></tr>`).join("")}
+      </tbody></table></div>`;
+  }
+
+  html += `<div class="note-onglet">
+    <strong>€/mois</strong> lisse les charges (une prime annuelle compte pour un douzième) : c'est ce montant
+    qui sert au <strong>résultat</strong>. <strong>Ce mois-ci</strong> est le montant réellement décaissé,
+    utilisé pour la TVA. Les montants sont en <strong>HT</strong> — la TVA n'entre pas dans le résultat.
+    La main-d'œuvre et les consommables ne se saisissent pas ici : ils viennent déjà du planning et des
+    fiches clients (onglet 📊 Marges).</div>`;
+
+  zone.innerHTML = html;
+}
+
+/* ---------- Vue : TVA ---------- */
+
+function rendreTva(zone) {
+  const annee = moisCourant.getFullYear();
+  document.getElementById("libelle-periode").textContent = "TVA — année " + annee;
+
+  const mois = Array.from({ length: 12 }, (_, m) => ({ m, ...tvaDuMois(annee, m) }));
+  const tot = mois.reduce((a, x) => ({
+    caHT: a.caHT + x.caHT, collectee: a.collectee + x.collectee,
+    deductible: a.deductible + x.deductible, due: a.due + x.due, declare: a.declare + x.declare,
+  }), { caHT: 0, collectee: 0, deductible: 0, due: 0, declare: 0 });
+
+  const moisAuj = new Date();
+  const enCours = (m) => annee === moisAuj.getFullYear() && m === moisAuj.getMonth();
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <button data-faction="annee-prec" title="Année précédente">◀</button>
+      <strong style="align-self:center; min-width:60px; text-align:center">${annee}</strong>
+      <button data-faction="annee-suiv" title="Année suivante">▶</button>
+      <span style="align-self:center; margin-left:14px">Taux de TVA sur vos prestations</span>
+      <input type="number" min="0" step="0.1" data-param="tauxTvaVente"
+        value="${donnees.parametres.tauxTvaVente}" style="width:80px"> %
+    </div>`;
+
+  html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th>Mois</th><th class="num">CA HT</th><th class="num">TVA collectée</th>
+        <th class="num">TVA déductible</th><th class="num">TVA à payer</th>
+        <th class="num" style="width:130px">Déclaré / payé</th><th class="num">Écart</th>
+      </tr></thead>
+      <tbody>${mois.map(x => {
+        const ecart = x.aDeclare ? x.declare - x.due : null;
+        const credit = x.due < 0;
+        return `
+        <tr${enCours(x.m) ? ` style="background:#f8fafc"` : ""}>
+          <td>${MOIS_LONGS[x.m]}${enCours(x.m) ? ` <span class="badge">en cours</span>` : ""}</td>
+          <td class="num">${x.caHT > 0 ? formatEuros(x.caHT) : "—"}</td>
+          <td class="num">${x.collectee > 0 ? formatEuros(x.collectee) : "—"}</td>
+          <td class="num">${x.deductible > 0 ? formatEuros(x.deductible) : "—"}</td>
+          <td class="num"><strong>${x.due !== 0 ? formatEuros(x.due) : "—"}</strong>
+            ${credit ? ` <span class="badge attention">crédit</span>` : ""}</td>
+          <td class="num"><input class="etroit" type="number" step="0.01" data-tvachange="declare"
+            data-cle="${cleMois(annee, x.m)}" value="${x.aDeclare ? x.declare : ""}" placeholder="—"></td>
+          <td class="num">${ecart === null ? "—" :
+            `<span class="${Math.abs(ecart) < 0.5 ? "" : "negatif"}">${formatEuros(ecart)}</span>`}</td>
+        </tr>`;
+      }).join("")}</tbody>
+      <tfoot><tr>
+        <th>Total ${annee}</th>
+        <th class="num">${formatEuros(tot.caHT)}</th>
+        <th class="num">${formatEuros(tot.collectee)}</th>
+        <th class="num">${formatEuros(tot.deductible)}</th>
+        <th class="num">${formatEuros(tot.due)}</th>
+        <th class="num">${formatEuros(tot.declare)}</th>
+        <th class="num"></th>
+      </tr></tfoot>
+    </table>
+    </div>`;
+
+  html += `<div class="note-onglet">
+    Régime <strong>réel normal</strong> : une déclaration CA3 chaque mois.
+    La <strong>TVA collectée</strong> est calculée sur le CA des contrats (onglet 📊 Marges) au taux ci-dessus ;
+    la <strong>TVA déductible</strong> sur les frais généraux réellement décaissés dans le mois, chacun à son
+    propre taux. Quand la TVA déductible dépasse la collectée, vous êtes en <strong>crédit de TVA</strong>,
+    reportable ou remboursable. Saisissez le montant réellement déclaré pour repérer un écart :
+    c'est un estimatif d'aide au pilotage, votre comptable reste la référence.</div>`;
+
+  zone.innerHTML = html;
+}
+
+/* ---------- Vue : cotisations sociales ---------- */
+
+function rendreCotisations(zone) {
+  const annee = moisCourant.getFullYear();
+  document.getElementById("libelle-periode").textContent = "Cotisations sociales — année " + annee;
+
+  const lignes = Array.from({ length: 12 }, (_, m) => ({ m, ...cotisationsDuMois(annee, m) }));
+  const tot = lignes.reduce((a, x) => ({ estime: a.estime + x.estime, reel: a.reel + x.reel }),
+                            { estime: 0, reel: 0 });
+  const c0 = lignes[0];
+
+  let html = `
+    <div class="ajout-vehicule no-print">
+      <button data-faction="annee-prec" title="Année précédente">◀</button>
+      <strong style="align-self:center; min-width:60px; text-align:center">${annee}</strong>
+      <button data-faction="annee-suiv" title="Année suivante">▶</button>
+      <span style="align-self:center; margin-left:14px">Taux de charges patronales</span>
+      <input type="number" min="0" step="0.5" data-param="tauxChargesPatronales"
+        value="${donnees.parametres.tauxChargesPatronales}" style="width:80px"> %
+    </div>`;
+
+  if (!(c0.masse > 0)) {
+    html += `<div class="vide">Masse salariale inconnue.<br>
+      Renseignez les <strong>heures de contrat</strong> et le <strong>coût horaire chargé</strong> de chaque
+      salarié dans l'onglet <strong>👥 Personnel</strong> pour que l'estimation se calcule.</div>`;
+    zone.innerHTML = html;
+    return;
+  }
+
+  const kpi = (valeur, libelle, classe = "") =>
+    `<div class="kpi"><div class="valeur ${classe}">${valeur}</div><div class="libelle">${libelle}</div></div>`;
+  html = `<div class="cartes-kpi">
+    ${kpi(formatEuros(c0.masse), "Masse salariale chargée / mois")}
+    ${kpi(formatEuros(c0.brut), "Dont brut estimé")}
+    ${kpi(formatEuros(c0.estime), "Dont cotisations patronales")}
+  </div>` + html;
+
+  html += `
+    <div style="overflow-x:auto">
+    <table class="tableau-gestion">
+      <thead><tr>
+        <th>Mois</th><th class="num">Masse chargée</th><th class="num">Cotisations estimées</th>
+        <th class="num" style="width:120px">URSSAF</th><th class="num" style="width:120px">Retraite / prév.</th>
+        <th class="num" style="width:120px">Autres</th><th class="num">Total réel</th><th class="num">Écart</th>
+      </tr></thead>
+      <tbody>${lignes.map(x => {
+        const champ = (prop) => `<input class="etroit" type="number" step="0.01" data-cotchange="${prop}"
+          data-cle="${cleMois(annee, x.m)}" value="${x.saisi[prop] !== undefined && x.saisi[prop] !== "" ? x.saisi[prop] : ""}" placeholder="—">`;
+        const gros = x.renseigne && Math.abs(x.ecart) > x.estime * 0.1;
+        return `
+        <tr>
+          <td>${MOIS_LONGS[x.m]}</td>
+          <td class="num">${formatEuros(x.masse)}</td>
+          <td class="num"><strong>${formatEuros(x.estime)}</strong></td>
+          <td class="num">${champ("urssaf")}</td>
+          <td class="num">${champ("retraite")}</td>
+          <td class="num">${champ("autres")}</td>
+          <td class="num">${x.renseigne ? formatEuros(x.reel) : "—"}</td>
+          <td class="num">${x.renseigne
+            ? `<span class="${gros ? "negatif" : ""}">${formatEuros(x.ecart)}</span>${gros ? ` <span class="badge alerte">à vérifier</span>` : ""}`
+            : "—"}</td>
+        </tr>`;
+      }).join("")}</tbody>
+      <tfoot><tr>
+        <th>Total ${annee}</th><th class="num"></th>
+        <th class="num">${formatEuros(tot.estime)}</th>
+        <th class="num" colspan="3"></th>
+        <th class="num">${formatEuros(tot.reel)}</th>
+        <th class="num">${formatEuros(tot.reel - tot.estime)}</th>
+      </tr></tfoot>
+    </table>
+    </div>`;
+
+  html += `<div class="note-onglet">
+    ⚠️ Ces cotisations ne se <strong>rajoutent pas</strong> à vos coûts : le coût horaire saisi dans
+    👥 Personnel est un coût <strong>chargé</strong>, elles sont donc déjà comprises dans la masse salariale,
+    dans les marges et dans le résultat. Cet onglet sert au <strong>suivi de trésorerie</strong> et au contrôle
+    de vos bordereaux. L'estimation part de la masse chargée dont on retire le brut au taux ci-dessus —
+    ajustez ce taux d'après un bulletin de paie réel pour coller à votre situation
+    (allègements, réduction générale…). Un écart de plus de 10 % est signalé.</div>`;
+
+  zone.innerHTML = html;
+}
+
+/* ---------- Saisies et actions des onglets Finances ---------- */
+
+document.getElementById("zone-planning").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-faction]");
+  if (!btn) return;
+  switch (btn.dataset.faction) {
+    case "ajouter": {
+      const champ = document.getElementById("frais-nouveau-libelle");
+      const libelle = champ.value.trim();
+      if (!libelle) { champ.focus(); return; }
+      donnees.frais.push({
+        id: nouvelId("frais"),
+        libelle,
+        categorie: document.getElementById("frais-nouvelle-categorie").value,
+        montantHT: lireNombre(document.getElementById("frais-nouveau-montant").value),
+        tauxTva: 20,
+        recurrence: document.getElementById("frais-nouvelle-recurrence").value,
+        date: versInputDate(moisCourant),
+      });
+      break;
+    }
+    case "supprimer": {
+      const idx = donnees.frais.findIndex(f => f.id === btn.dataset.fid);
+      if (idx === -1) return;
+      if (!confirm(`Supprimer « ${donnees.frais[idx].libelle} » ?`)) return;
+      donnees.frais.splice(idx, 1);
+      break;
+    }
+    case "annee-prec":
+      moisCourant = new Date(moisCourant.getFullYear() - 1, moisCourant.getMonth(), 1);
+      break;
+    case "annee-suiv":
+      moisCourant = new Date(moisCourant.getFullYear() + 1, moisCourant.getMonth(), 1);
+      break;
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-fchange], [data-tvachange], [data-cotchange], [data-param]");
+  if (!el) return;
+  const valeur = el.value.trim();
+
+  if (el.dataset.param) {
+    const n = lireNombre(valeur);
+    donnees.parametres[el.dataset.param] = n >= 0 ? n : 0;
+  } else if (el.dataset.fchange) {
+    const f = donnees.frais.find(x => x.id === el.dataset.fid);
+    if (!f) return;
+    const prop = el.dataset.fchange;
+    if (prop === "montantHT" || prop === "tauxTva") {
+      const n = lireNombre(valeur);
+      if (n > 0) f[prop] = n; else delete f[prop];
+      if (prop === "tauxTva" && n === 0) f.tauxTva = 0; // 0 % est un choix, pas une absence
+    } else if (valeur) {
+      f[prop] = valeur;
+    } else {
+      delete f[prop];
+    }
+  } else if (el.dataset.tvachange) {
+    const cle = el.dataset.cle;
+    donnees.tva[cle] = donnees.tva[cle] || {};
+    if (valeur) donnees.tva[cle][el.dataset.tvachange] = lireNombre(valeur);
+    else delete donnees.tva[cle][el.dataset.tvachange];
+    if (Object.keys(donnees.tva[cle]).length === 0) delete donnees.tva[cle];
+  } else {
+    const cle = el.dataset.cle;
+    donnees.cotisations[cle] = donnees.cotisations[cle] || {};
+    if (valeur) donnees.cotisations[cle][el.dataset.cotchange] = lireNombre(valeur);
+    else delete donnees.cotisations[cle][el.dataset.cotchange];
+    if (Object.keys(donnees.cotisations[cle]).length === 0) delete donnees.cotisations[cle];
+  }
+  sauvegarder();
+  rendre();
+});
+
 
 /* ================= Documents imprimables ================= */
 
@@ -7875,6 +8383,8 @@ function rendreAccueil(zone) {
   const totaux = calc.totaux;
   const stats = calc.stats;
   const masse = masseSalarialeMensuelle();
+  const res = resultatMois(annee, mois);
+  const tva = tvaDuMois(annee, mois);
 
   // taux de conformité moyen du mois
   const prefixeMois = `${annee}-${String(mois + 1).padStart(2, "0")}`;
@@ -7889,7 +8399,10 @@ function rendreAccueil(zone) {
     ${kpi(formatEuros(totaux.ca), "CA du mois (contrats)")}
     ${kpi(formatEuros(totaux.coutMO + totaux.coutConso), "Coûts (MO + consommables)")}
     ${masse.total > 0 ? kpi(formatEuros(masse.total), "Masse salariale mensuelle") : ""}
-    ${kpi(formatEuros(totaux.marge), "Marge estimée" + (totaux.pct !== null ? ` (${formatPourcent(totaux.pct)})` : ""), totaux.marge >= 0 ? "positif" : "negatif")}
+    ${kpi(formatEuros(totaux.marge), "Marge brute des chantiers" + (totaux.pct !== null ? ` (${formatPourcent(totaux.pct)})` : ""), totaux.marge >= 0 ? "positif" : "negatif")}
+    ${res.frais > 0 ? kpi(formatEuros(res.frais), "Frais généraux mensualisés") : ""}
+    ${res.frais > 0 ? kpi(formatEuros(res.resultat), "Résultat du mois" + (res.pct !== null ? ` (${formatPourcent(res.pct)})` : ""), res.resultat >= 0 ? "positif" : "negatif") : ""}
+    ${tva.due !== 0 ? kpi(formatEuros(tva.due), tva.due >= 0 ? "TVA à payer ce mois" : "Crédit de TVA", tva.due >= 0 ? "" : "positif") : ""}
     ${kpi(formatHeures(Math.round(totaux.heuresPlan * 60)), "Heures planifiées")}
     ${stats.reelExiste ? kpi(formatHeures(Math.round(totaux.heures * 60)), "Heures retenues (avec pointages)") : ""}
     ${kpi(String(totaux.interventions), "Interventions")}
@@ -8449,7 +8962,7 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
 /* ================= Barre d'outils ================= */
 
 function naviguer(sens) {
-  if (vue === "mois" || vue === "marges") {
+  if (vue === "mois" || vue === "marges" || vue === "frais") {
     moisCourant = new Date(moisCourant.getFullYear(), moisCourant.getMonth() + sens, 1);
     lundiCourant = lundiDeLaSemaine(moisCourant);
   } else {
@@ -8472,6 +8985,7 @@ let sousVuePlanning = vue === "mois" ? "mois" : "semaine"; // dernière sous-vue
 let sousVueInterventions = VUES_INTERVENTIONS.includes(vue) ? vue : "bons";
 let sousVueRapports = VUES_RAPPORTS.includes(vue) ? vue : "rapport-client";
 let sousVueConges = VUES_CONGES.includes(vue) ? vue : "cp-soldes";
+let sousVueFinances = VUES_FINANCES.includes(vue) ? vue : "frais";
 
 function changerVue(nouvelleVue) {
   vue = nouvelleVue;
@@ -8480,7 +8994,8 @@ function changerVue(nouvelleVue) {
   if (VUES_INTERVENTIONS.includes(vue)) sousVueInterventions = vue;
   if (VUES_RAPPORTS.includes(vue)) sousVueRapports = vue;
   if (VUES_CONGES.includes(vue)) sousVueConges = vue;
-  if (vue === "mois" || vue === "marges") {
+  if (VUES_FINANCES.includes(vue)) sousVueFinances = vue;
+  if (vue === "mois" || vue === "marges" || vue === "frais") {
     moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
   }
   sauvegarder();
@@ -8491,6 +9006,10 @@ document.getElementById("btn-vue-planning").addEventListener("click", () => chan
 document.getElementById("btn-vue-interventions").addEventListener("click", () => changerVue(sousVueInterventions));
 document.getElementById("btn-vue-rapports").addEventListener("click", () => changerVue(sousVueRapports));
 document.getElementById("btn-vue-conges").addEventListener("click", () => changerVue(sousVueConges));
+document.getElementById("btn-vue-finances").addEventListener("click", () => changerVue(sousVueFinances));
+for (const v of VUES_FINANCES) {
+  document.getElementById("btn-vue-" + v).addEventListener("click", () => changerVue(v));
+}
 document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
 document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
 document.getElementById("btn-vue-clients").addEventListener("click", () => changerVue("clients"));

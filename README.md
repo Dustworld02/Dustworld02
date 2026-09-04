@@ -5,7 +5,7 @@ Logiciel de gestion complet pour entreprise de nettoyage, dans **un seul fichier
 ## Les onglets
 
 ### 🏠 Accueil
-Le tableau de bord : chiffres clés du mois en cours (CA des contrats, coûts, **marge estimée**, heures planifiées et retenues, interventions, taux de conformité qualité) + **centre d'alertes cliquables** (contrôles techniques, révisions en retard, stocks sous seuil, tickets à traiter, anomalies, coûts horaires manquants, journées non pointées) + le planning du jour.
+Le tableau de bord : chiffres clés du mois en cours (CA des contrats, coûts, **marge brute**, **frais généraux**, **résultat du mois**, TVA à payer, heures planifiées et retenues, interventions, taux de conformité qualité) + **centre d'alertes cliquables** (contrôles techniques, révisions en retard, stocks sous seuil, tickets à traiter, anomalies, coûts horaires manquants, journées non pointées) + le planning du jour.
 
 ### 📅 Planning
 Planning des salariés en vue **Semaine** ou **Mois** :
@@ -63,6 +63,14 @@ Tableau de bord mensuel par client, calculé automatiquement à partir du planni
 - **marge en € et en %**, totaux, et alertes : client du planning sans fiche (bouton « Créer la fiche »), contrat manquant, coût horaire non renseigné, dépassement d'heures.
 
 Le rapprochement planning ↔ clients se fait par le nom, sans tenir compte des majuscules ni des accents. Quand des pointages existent, une colonne « **Heures retenues** » apparaît : le coût de main-d'œuvre est alors calculé sur les heures réelles.
+
+### 💶 Finances
+Trois sous-onglets pour passer de la marge de chantier au résultat réel :
+- **🧾 Frais généraux** : toutes les charges d'entreprise (loyer, assurances, carburant, comptable, téléphonie, formation…) avec catégorie, montant HT, taux de TVA, récurrence (mensuelle, trimestrielle, annuelle, ponctuelle), date de début et fin éventuelle. Deux colonnes : **€/mois** (montant mensualisé — une prime annuelle compte pour un douzième, c'est lui qui sert au résultat) et **ce mois-ci** (montant réellement décaissé, utilisé pour la TVA). Répartition par catégorie et KPI du mois.
+- **🏛️ TVA** (régime réel normal, déclaration CA3 mensuelle) : les 12 mois de l'année avec CA HT, **TVA collectée** (CA × votre taux), **TVA déductible** (frais du mois, chacun à son taux), **TVA à payer** — ou crédit de TVA quand elle est négative. Une colonne « déclaré / payé » à remplir pour repérer les écarts.
+- **👥 Cotisations sociales** : masse salariale chargée, brut estimé et **cotisations patronales estimées** (à partir d'un taux de charges réglable), face aux montants **réels** saisis mois par mois (URSSAF, retraite/prévoyance, autres). L'écart est signalé au-delà de 10 %. ⚠️ Ces cotisations ne s'ajoutent pas aux coûts : le coût horaire du Personnel étant *chargé*, elles sont déjà dans les marges — cet onglet sert au suivi de trésorerie et au contrôle des bordereaux.
+
+Le **résultat du mois** (marge brute des chantiers − frais généraux mensualisés) apparaît sur l'Accueil et en bas de l'onglet Marges. Les frais ne sont pas répartis par client : les marges par client restent des marges brutes de chantier. Tous les montants sont en HT.
 
 ### 📈 Rapports
 - **🧑‍💼 Rapport client mensuel** : le document à remettre chaque mois à vos clients — interventions réalisées (bons, anomalies, signatures), heures planifiées/effectuées, taux de conformité qualité, consommables utilisés.
