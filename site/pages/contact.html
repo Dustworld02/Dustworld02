@@ -1,0 +1,95 @@
+<!--
+title: Contact & devis gratuit | Entreprise de nettoyage 74 | B&F
+description: Contactez B&F Berto & Fils, entreprise de nettoyage industriel et salle blanche à Saint-Jeoire-en-Faucigny, Haute-Savoie. Devis gratuit : Chris Berto 06 67 96 72 26. Contact technique : Antonio Berto 06 81 29 97 40.
+slug: contact
+breadcrumb: Contact
+priority: 0.9
+-->
+<div class="wrap page-head">
+  <span class="eyebrow">Contact direct</span>
+  <h1>Parlons de votre projet</h1>
+  <p class="lead">Un site industriel à entretenir, une salle blanche à nettoyer, une intervention urgente ? Appelez-nous directement ou décrivez votre besoin : nous visitons le site, évaluons vos contraintes et remettons un devis détaillé.</p>
+</div>
+
+<section class="alt" style="padding-top:48px">
+  <div class="wrap">
+    <div class="contact-cards">
+      <div class="contact-card">
+        <span class="eyebrow">Commercial &amp; administratif · Devis</span>
+        <h3>Chris Berto</h3>
+        <p>Demandes de devis, contrats, questions administratives, marchés publics.</p>
+        <ul class="contact-lines">
+          <li><a href="tel:{{phone_com}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>{{phone_com_display}}</a></li>
+          <li><a href="tel:{{phone_ch}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>{{phone_ch_display}} (Suisse)</a></li>
+        </ul>
+      </div>
+      <div class="contact-card">
+        <span class="eyebrow">Contact technique · Besoin technique</span>
+        <h3>Antonio (Tony) Berto</h3>
+        <p>Responsable technique : visites de site, protocoles, suivi des interventions, urgences.</p>
+        <ul class="contact-lines">
+          <li><a href="tel:{{phone_tech}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>{{phone_tech_display}}</a></li>
+          <li><a href="mailto:{{email}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v.5l8 5 8-5V6H4zm0 3v9h16V9l-8 5z"/></svg>{{email}}</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split" style="align-items:start">
+    <div>
+      <span class="eyebrow">Décrire votre besoin</span>
+      <h2>Demande de devis en ligne</h2>
+      <p class="muted">Le formulaire prépare un e-mail dans votre messagerie, adressé à {{email}}. Vous pouvez aussi nous appeler directement.</p>
+      <form class="form" id="devis" action="mailto:{{email}}" method="post" enctype="text/plain">
+        <div class="form-row">
+          <div><label for="nom">Nom et société</label><input id="nom" name="Nom" type="text" required autocomplete="name"></div>
+          <div><label for="tel">Téléphone</label><input id="tel" name="Telephone" type="tel" required autocomplete="tel"></div>
+        </div>
+        <div class="form-row">
+          <div><label for="mail">E-mail</label><input id="mail" name="Email" type="email" autocomplete="email"></div>
+          <div><label for="ville">Commune du site</label><input id="ville" name="Commune" type="text" placeholder="Ex. Cluses, Annemasse, Genève"></div>
+        </div>
+        <label for="type">Type de prestation</label>
+        <select id="type" name="Prestation">
+          <option>Nettoyage de salle blanche / zone propre / ZAC</option>
+          <option>Nettoyage industriel (usine, atelier, bureaux)</option>
+          <option>Vitrerie</option>
+          <option>Nettoyage spécialisé / désinfection</option>
+          <option>Bâtiment communal / collectivité</option>
+          <option>Conseil nouveau bâtiment</option>
+          <option>Autre</option>
+        </select>
+        <label for="msg">Votre besoin</label>
+        <textarea id="msg" name="Message" rows="5" placeholder="Surface, classe ISO le cas échéant, fréquence souhaitée, contraintes d'accès ou d'horaires…"></textarea>
+        <button class="btn btn-primary" type="submit">Envoyer ma demande</button>
+        <p class="hint">Aucune donnée n'est stockée sur ce site : le message part depuis votre propre messagerie.</p>
+      </form>
+    </div>
+    <div>
+      <span class="eyebrow">Nous trouver</span>
+      <h2>Saint-Jeoire-en-Faucigny, Haute-Savoie</h2>
+      <address style="font-style:normal;line-height:1.8;margin-bottom:16px">
+        <strong>B&amp;F Berto &amp; Fils</strong><br>
+        {{street}}<br>
+        {{postal}} {{city}}<br>
+        <a href="https://www.google.com/maps/search/?api=1&amp;query={{street}}+{{postal}}+{{city}}" rel="noopener" target="_blank">Ouvrir dans Google Maps →</a>
+      </address>
+      <iframe class="map" title="Carte : Saint-Jeoire-en-Faucigny, Haute-Savoie" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?bbox=6.40%2C46.11%2C6.52%2C46.17&amp;layer=mapnik&amp;marker=46.1408%2C6.4614"></iframe>
+      <p class="small muted" style="margin-top:12px">Entreprise de nettoyage au cœur du Faucigny : à quelques minutes de Bonneville et de Cluses, à moins d'une heure d'Annemasse, Genève, Annecy, Sallanches et Thonon-les-Bains. <a href="/zones-intervention/">Voir les zones d'intervention</a>.</p>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var f=document.getElementById('devis');if(!f)return;
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var v=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+    var sujet='Demande de devis – '+v('type')+(v('ville')?' – '+v('ville'):'');
+    var corps='Nom / société : '+v('nom')+'\nTéléphone : '+v('tel')+'\nE-mail : '+v('mail')+'\nCommune du site : '+v('ville')+'\nPrestation : '+v('type')+'\n\n'+v('msg');
+    window.location.href='mailto:{{email}}?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps);
+  });
+})();
+</script>

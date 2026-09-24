@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://haute-savoie-propre-site.lovable.app/sitemap.xml

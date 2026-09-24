@@ -1,5 +1,7 @@
 # 🧽 Gestion Nettoyage
 
+> Ce dépôt contient aussi le **site vitrine** de B&F Berto & Fils : sources dans [`site/`](site/README.md), site généré prêt à héberger dans `docs/`.
+
 Logiciel de gestion complet pour entreprise de nettoyage, dans **un seul fichier** : `index.html`. Aucune installation, aucun serveur : téléchargez le fichier et ouvrez-le d'un double-clic dans votre navigateur. Tout fonctionne hors ligne et s'imprime proprement en PDF.
 
 ## Les onglets

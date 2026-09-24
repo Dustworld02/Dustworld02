@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="robots" content="{{robots}}">
+<link rel="canonical" href="{{canonical}}">
+<meta name="author" content="{{site_name}}">
+<meta name="geo.region" content="FR-74">
+<meta name="geo.placename" content="{{city}}">
+<meta name="geo.position" content="46.1408;6.4614">
+<meta name="ICBM" content="46.1408, 6.4614">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="{{site_name}}">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{og_image}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{title}}">
+<meta name="twitter:description" content="{{description}}">
+<meta name="twitter:image" content="{{og_image}}">
+<meta name="theme-color" content="#0B1D3A">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<link rel="stylesheet" href="/assets/style.css">
+{{jsonld}}
+</head>
+<body class="{{body_class}}">
+<a class="skip" href="#contenu">Aller au contenu</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="{{site_name}} — accueil">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="40" height="40" role="img"><rect width="40" height="40" rx="9" fill="#0B1D3A"/><path d="M11 10h9.5c4 0 6.5 2 6.5 5.2 0 2.2-1.2 3.7-3 4.3 2.4.6 4 2.4 4 5 0 3.6-2.8 5.5-7 5.5H11V10zm4.2 3.4v4.8h4.6c1.8 0 2.8-.9 2.8-2.4s-1-2.4-2.8-2.4h-4.6zm0 8.1v5.1h5.3c2 0 3.1-1 3.1-2.6s-1.1-2.5-3.1-2.5h-5.3z" fill="#fff"/><circle cx="31" cy="30" r="4" fill="#18B4C8"/></svg>
+      </span>
+      <span class="brand-text">
+        <strong>B&amp;F Berto &amp; Fils</strong>
+        <small>Salle blanche &amp; nettoyage industriel · Haute-Savoie</small>
+      </span>
+    </a>
+
+    <details class="nav-toggle">
+      <summary aria-label="Ouvrir le menu"><span></span><span></span><span></span></summary>
+      <nav class="site-nav" aria-label="Navigation principale">
+        <ul>{{nav}}</ul>
+        <a class="btn btn-primary nav-cta" href="tel:{{phone_com}}">Devis : {{phone_com_display}}</a>
+      </nav>
+    </details>
+
+    <nav class="site-nav site-nav-desktop" aria-label="Navigation principale">
+      <ul>{{nav}}</ul>
+    </nav>
+    <a class="btn btn-primary header-cta" href="tel:{{phone_com}}">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+      Devis gratuit
+    </a>
+  </div>
+</header>
+
+{{breadcrumb}}
+
+<main id="contenu">
+{{content}}
+</main>
+
+<section class="cta-band" aria-labelledby="cta-final">
+  <div class="wrap cta-inner">
+    <div>
+      <p class="eyebrow">Devis gratuit · Réponse rapide</p>
+      <h2 id="cta-final">Un site à nettoyer, une salle blanche à entretenir&nbsp;?</h2>
+      <p>Nous visitons votre site, évaluons vos contraintes et remettons un devis détaillé. Intervention dans toute la Haute-Savoie et à Genève.</p>
+    </div>
+    <div class="cta-actions">
+      <a class="btn btn-light" href="tel:{{phone_com}}">Demande de devis · {{phone_com_display}}</a>
+      <a class="btn btn-outline-light" href="tel:{{phone_tech}}">Besoin technique · {{phone_tech_display}}</a>
+      <a class="link-light" href="/contact/">Ou écrivez-nous →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-col footer-brand">
+      <p class="footer-name">B&amp;F Berto &amp; Fils</p>
+      <p>Entreprise de nettoyage industriel et de salles blanches en Haute-Savoie depuis 2004. Nettoyage industriel &amp; spécialisé, zones propres, zones à atmosphère contrôlée, vitrerie, désinfection.</p>
+      <address>
+        <a href="https://www.google.com/maps/search/?api=1&amp;query={{street}}+{{postal}}+{{city}}" rel="noopener" target="_blank">{{street}}<br>{{postal}} {{city}}</a><br>
+        <a href="tel:{{phone_com}}">{{phone_com_display}}</a> (commercial)<br>
+        <a href="tel:{{phone_tech}}">{{phone_tech_display}}</a> (technique)<br>
+        <a href="tel:{{phone_ch}}">{{phone_ch_display}}</a> (Suisse)<br>
+        <a href="mailto:{{email}}">{{email}}</a>
+      </address>
+    </div>
+    <div class="footer-col">
+      <p class="footer-title">Prestations</p>
+      <ul>
+        <li><a href="/nettoyage-salle-blanche/">Nettoyage de salle blanche</a></li>
+        <li><a href="/nettoyage-salle-blanche/#zone-propre">Zone propre &amp; ZAC</a></li>
+        <li><a href="/nettoyage-industriel/">Nettoyage industriel</a></li>
+        <li><a href="/vitrerie/">Vitrerie</a></li>
+        <li><a href="/nettoyage-specialise/">Nettoyage spécialisé &amp; désinfection</a></li>
+        <li><a href="/conseil-nouveaux-batiments/">Conseil &amp; nouveaux bâtiments</a></li>
+        <li><a href="/batiments-communaux/">Bâtiments communaux</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <p class="footer-title">Entreprise de nettoyage près de chez vous</p>
+      <ul>
+        <li><a href="/zones-intervention/#vallee-de-l-arve">Vallée de l'Arve : Bonneville, Cluses, Sallanches</a></li>
+        <li><a href="/zones-intervention/#genevois">Genevois : Annemasse, Saint-Julien, Genève</a></li>
+        <li><a href="/zones-intervention/#annecy">Bassin annécien : Annecy, La Roche-sur-Foron</a></li>
+        <li><a href="/zones-intervention/#chablais">Chablais : Thonon-les-Bains</a></li>
+        <li><a href="/zones-intervention/">Toutes les zones d'intervention</a></li>
+      </ul>
+      <p class="footer-title">Informations</p>
+      <ul>
+        <li><a href="/faq/">Questions fréquentes</a></li>
+        <li><a href="/contact/">Contact &amp; devis</a></li>
+        <li><a href="/mentions-legales/">Mentions légales</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>© {{year}} B&amp;F Berto &amp; Fils — Nettoyage Industriel &amp; Spécialisé. Salles blanches, zones propres et atmosphères contrôlées en Haute-Savoie.</p>
+    <p class="footer-areas">{{areas}}</p>
+  </div>
+</footer>
+</body>
+</html>
