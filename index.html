@@ -3721,7 +3721,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "10/10/2026 — 16"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "10/10/2026 — 17"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -9041,8 +9041,16 @@ function deplacerTache(src, cib) {
   const crSrc = celSrc && celSrc.type === "travail" && (celSrc.creneaux || [])[src.iCreneau];
   if (!crSrc || !Array.isArray(crSrc.taches) || crSrc.taches[src.iTache] === undefined) return -1;
 
+  // Créneau cible au format ancien (une description, pas de liste) : on le migre
+  // d'abord, sinon la description cesserait d'être affichée puis serait détruite
+  // à la première validation de modale.
+  if (!Array.isArray(crCib.taches) || !crCib.taches.length) {
+    crCib.taches = crCib.desc ? [crCib.desc] : [];
+    delete crCib.desc;
+  }
+
   const memeCreneau = crSrc === crCib;   // identité de référence, jamais d'index
-  let rang = cib.rang < 0 ? (crCib.taches || []).length : cib.rang;
+  let rang = cib.rang < 0 ? crCib.taches.length : cib.rang;
   if (memeCreneau) {
     if (rang === src.iTache || rang === src.iTache + 1) return -1;  // dépôt sur place
     if (rang > src.iTache) rang--;                                  // l'extraction décale
@@ -9050,7 +9058,6 @@ function deplacerTache(src, cib) {
 
   const tache = retirerTacheSource(src);
   if (tache === undefined) return -1;
-  if (!Array.isArray(crCib.taches)) crCib.taches = [];
   rang = Math.max(0, Math.min(rang, crCib.taches.length));
   crCib.taches.splice(rang, 0, tache);
   sauvegarder();
@@ -9317,7 +9324,8 @@ function majBandeau() {
     refus = true;
     suite = `✕ ${(ETIQUETTES[c.refus] || c.refus).toLowerCase()} — pas de tâche ce jour-là`;
   } else if (c && c.vide) {
-    suite = `➜ ${echapper(nomSalarie(c.empId))} · ${quand(c.dateStr)} — jour vide, j'ouvrirai la journée`;
+    suite = `➜ ${echapper(nomSalarie(c.empId))} · ${quand(c.dateStr)}`
+      + ` — aucun créneau de travail, j'ouvrirai la journée`;
   } else if (c && c.iCreneau >= 0) {
     const cr = creneauAccueil(c);
     if (cr) {
@@ -9351,20 +9359,34 @@ function signalerArrivee(cib, rang) {
   }
 }
 
-// Jour de travail sans créneau : on n'invente rien. La modale s'ouvre avec un
-// créneau neuf pré-rempli ; la tâche n'est retirée de la source qu'à la validation.
+// Journée sans aucun créneau de travail : on n'invente rien. La modale s'ouvre
+// avec un créneau neuf pré-rempli ; la tâche n'est retirée de la source qu'une
+// fois qu'on a constaté qu'elle y figure vraiment (voir btn-valider-cellule).
 function ouvrirJourneeVide(src, cib, crSrc, tache) {
   const date = dateDe(cib.dateStr);
   ouvrirModaleCellule(cib.empId, (date.getDay() + 6) % 7, lundiDeLaSemaine(date));
-  const blocs = document.querySelectorAll("#liste-creneaux .bloc-creneau");
-  const bloc = blocs[blocs.length - 1];
-  if (!bloc) return;
-  bloc.querySelector(".debut").value = crSrc.debut || "";
-  bloc.querySelector(".fin").value = crSrc.fin || "";
-  bloc.querySelector(".client").value = crSrc.client || "";
-  ajouterLigneTache(bloc, tache);
-  majTotalTaches(bloc);
-  deplacementEnAttente = { src };
+  const tousLesBlocs = () => document.querySelectorAll("#liste-creneaux .bloc-creneau");
+  let bloc = tousLesBlocs()[tousLesBlocs().length - 1];
+  // On ne recycle que le bloc vierge que la modale ajoute d'office sur une
+  // journée sans rien. Sinon — un trajet, un créneau incomplet — on en crée un :
+  // remplir un bloc « trajet » reviendrait à écrire dans des champs masqués, que
+  // lireCreneauDepuisBloc ignore, et la tâche serait perdue.
+  const vierge = bloc && bloc.querySelector(".type").value === "travail"
+    && !bloc.querySelector(".debut").value && !bloc.querySelector(".fin").value
+    && !bloc.querySelector(".client").value && !bloc.querySelector(".ligne-tache");
+  if (vierge) {
+    bloc.querySelector(".debut").value = crSrc.debut || "";
+    bloc.querySelector(".fin").value = crSrc.fin || "";
+    bloc.querySelector(".client").value = crSrc.client || "";
+    ajouterLigneTache(bloc, tache);
+    majTotalTaches(bloc);
+  } else {
+    ajouterLigneCreneau({ debut: crSrc.debut, fin: crSrc.fin, client: crSrc.client, taches: [tache] });
+    bloc = tousLesBlocs()[tousLesBlocs().length - 1];
+  }
+  majVisibiliteCreneaux();
+  bloc.scrollIntoView({ block: "nearest" });
+  deplacementEnAttente = { src, tache };
 }
 
 // Suggestions de clients (fiches d'abord, puis historique du planning,
@@ -9465,10 +9487,18 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
   } else {
     sem[employeId][indexJour] = cellule;
   }
-  // Tâche amenée par glissement sur un jour vide : elle n'est retirée de son
-  // créneau d'origine qu'une fois la nouvelle journée validée.
+  // Tâche amenée par glissement sur une journée sans créneau : on ne la retire de
+  // son origine que si elle figure bel et bien dans ce qu'on vient d'écrire. Le
+  // gérant peut très bien avoir changé d'avis entre-temps — passer la journée en
+  // repos, retirer le créneau, effacer un horaire : dans tous ces cas la tâche
+  // reste à sa place plutôt que de disparaître sans laisser de trace.
   if (deplacementEnAttente) {
-    retirerTacheSource(deplacementEnAttente.src);
+    const attendue = deplacementEnAttente.tache;
+    const libelle = typeof attendue === "string" ? attendue : (attendue.texte || "");
+    const ecrite = type === "travail" && (cellule.creneaux || []).some(cr =>
+      cr.type !== "trajet" && (cr.taches || []).some(t =>
+        (typeof t === "string" ? t : (t.texte || "")) === libelle));
+    if (ecrite) retirerTacheSource(deplacementEnAttente.src);
     deplacementEnAttente = null;
   }
   sauvegarder();
@@ -9477,6 +9507,7 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
 });
 
 document.getElementById("btn-vider-cellule").addEventListener("click", () => {
+  deplacementEnAttente = null;
   if (!celluleEnCours) return;
   const { employeId, indexJour, cle } = celluleEnCours;
   const sem = semainePourCle(cle);
@@ -9487,6 +9518,7 @@ document.getElementById("btn-vider-cellule").addEventListener("click", () => {
 });
 
 document.getElementById("btn-annuler-cellule").addEventListener("click", () => {
+  deplacementEnAttente = null;
   document.getElementById("modale-cellule").close();
 });
 
