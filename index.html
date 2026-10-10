@@ -401,6 +401,112 @@
     text-align: left;
     padding-left: 4px;
   }
+
+  /* Une tâche du planning est un élément à part : c'est ce qu'on attrape.
+     display:block reproduit exactement le saut de ligne des anciens <br>. */
+  .tache-grille {
+    display: block;
+    text-align: left;
+    padding: 0 2px;   /* vertical nul : la grille garde exactement sa hauteur d'avant */
+    border-radius: 4px;
+    -webkit-touch-callout: none;
+  }
+  @media (hover: hover) {
+    .tache-grille:hover { background: #fff; outline: 1px dashed var(--cuivre-400); cursor: grab; }
+  }
+  /* Au doigt seulement : neutraliser la loupe iOS et le menu contextuel Android
+     avant l'appui long. À la souris, le libellé reste sélectionnable. */
+  @media (pointer: coarse) {
+    .tache-grille { user-select: none; -webkit-user-select: none; }
+  }
+  .tache-grille.source { opacity: .35; outline: 1px dashed #9ca3af; }
+  @keyframes arrivee-tache {
+    from { background: var(--cuivre-400); }
+    to   { background: transparent; }
+  }
+  .tache-grille.vient-d-arriver { animation: arrivee-tache 1.3s ease-out; }
+  /* min-height est inopérant sur un <td> : hauteur franche, pour pouvoir viser
+     un jour vide au doigt. Neutralisée à l'impression (voir @media print). */
+  table.planning tbody td.cellule { height: 52px; }
+  table.planning.mois tbody td.cellule { height: 26px; }
+  /* ---------- Glisser-déposer d'une tâche entre créneaux ----------
+     Tout le décor vit sur <body>, hors de #zone-planning, pour survivre au
+     rendre() complet qu'entraîne un changement de semaine en plein geste. */
+  .fantome-tache {
+    position: fixed;
+    z-index: 60;
+    pointer-events: none;          /* sinon elementFromPoint ne voit que lui */
+    background: #fff;
+    border: 2px solid var(--cuivre-500);
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-size: 0.82rem;
+    color: #374151;
+    max-width: 260px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  }
+  #bandeau-glisse {
+    position: fixed;
+    z-index: 60;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    background: var(--navy-700);
+    color: #fff;
+    border-radius: 9px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    max-width: 92vw;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+  }
+  #bandeau-glisse.refus { background: #b91c1c; }
+  .bande-nav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 76px;
+    z-index: 55;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cuivre-600);
+    background: var(--cuivre-050);
+    border: 2px dashed var(--cuivre-400);
+    opacity: .92;
+  }
+  .bande-nav.gauche { left: 0; }
+  .bande-nav.droite { right: 0; transform: rotate(180deg); }
+  .bande-nav.chaude { background: var(--cuivre-400); color: #fff; }
+  /* Mode dépôt : toutes les cibles s'allument dès la prise, en cuivre —
+     surtout pas en bleu, déjà pris par td.cellule:hover et .creneau. */
+  body.mode-glisse { cursor: grabbing; user-select: none; }
+  body.mode-glisse td.cellule:hover { background: inherit; }
+  body.mode-glisse [data-dcible] { outline: 1px dashed var(--cuivre-400); }
+  body.mode-glisse td.cellule.repos,
+  body.mode-glisse td.cellule.conge,
+  body.mode-glisse td.cellule.ferie { opacity: .45; }
+  body.mode-glisse .creneau.trajet { opacity: .45; }
+  .creneau.cible-depot {
+    position: relative;
+    outline: 2px solid var(--cuivre-500) !important;
+    background: var(--cuivre-050) !important;
+  }
+  /* Positionné en absolu : le trait ne décale rien, sinon la cible oscillerait
+     d'une image à l'autre pendant le glissement. */
+  .trait-insertion {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    height: 2px;
+    background: var(--cuivre-500);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
   .select-freq {
     font-size: 0.8rem;
     padding: 4px 6px;
@@ -1040,6 +1146,14 @@
     table.planning.mois { font-size: 8pt; }
     table.planning.mois th, table.planning.mois td { padding: 2px 4px; }
     table.planning tr { break-inside: avoid; }
+    /* Le planning papier ne doit rien savoir du glisser-déposer */
+    table.planning tbody td.cellule,
+    table.planning.mois tbody td.cellule { height: auto; }
+    .tache-grille {
+      background: none !important; outline: none !important;
+      opacity: 1 !important; animation: none !important;
+    }
+    .creneau.cible-depot { outline: none !important; background: var(--bleu-clair) !important; }
     .no-print, .ligne-item button, .carte-vehicule > div > button { display: none !important; }
     .cartes-vehicules { grid-template-columns: repeat(2, 1fr); }
     .carte-vehicule, .carte-client { break-inside: avoid; }
@@ -1141,6 +1255,9 @@
     <span><span class="pastille" style="background:var(--repos)"></span> Repos</span>
     <span><span class="pastille" style="background:var(--conge)"></span> Congé</span>
     <span><span class="pastille" style="background:var(--ferie)"></span> Férié</span>
+    <span class="no-print" style="color:var(--cuivre-600)">↔ Glissez une tâche vers un autre créneau,
+      jour ou salarié (au doigt : maintenez une demi-seconde) — poussez vers le bord de l'écran
+      pour changer de semaine</span>
   </div>
   <div class="pied-impression" id="pied-impression"></div>
 </div>
@@ -3604,7 +3721,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "30/08/2026 — 15"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "10/10/2026 — 16"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3929,7 +4046,9 @@ function badgeAlternance(tache) {
 /* ================= Rendu ================= */
 
 // Contenu HTML d'un créneau (puce bleue travail / grise trajet)
-function htmlCreneau(c) {
+// iReel est l'index du créneau DANS cellule.creneaux (et non dans la liste
+// affichée) : c'est lui qui sert de repère au glisser-déposer des tâches.
+function htmlCreneau(c, iReel = -1) {
   if (c.type === "trajet") {
     const infos = [];
     if (c.duree > 0) infos.push(formatDuree(c.duree));
@@ -3941,15 +4060,18 @@ function htmlCreneau(c) {
     if (c.desc) html += `<span class="desc">${echapper(c.desc)}</span>`;
     return html + `</span>`;
   }
-  let html = `<span class="creneau">${c.debut} – ${c.fin}`;
+  let html = `<span class="creneau" data-dcible="${iReel}">${c.debut} – ${c.fin}`;
   if (c.client) html += `<span class="client">${echapper(c.client)}</span>`;
   if (Array.isArray(c.taches) && c.taches.length) {
-    html += `<span class="desc liste-travaux">${c.taches.map(t => {
+    // Une tâche = un élément, repéré par deux entiers seulement : le <td> parent
+    // porte déjà le salarié et la date. Plus de <br> : .tache-grille est en block.
+    html += `<span class="desc liste-travaux">${c.taches.map((t, j) => {
       const texte = typeof t === "string" ? t : (t.texte || "");
       const min = typeof t === "object" && t.min > 0 ? t.min : 0;
-      return "• " + echapper(texte) + (min ? ` <span style="color:#9ca3af">(${formatDuree(Math.round(min))})</span>` : "")
-        + badgeAlternance(t);
-    }).join("<br>")}</span>`;
+      return `<span class="tache-grille" data-dtache="${iReel}|${j}">• ` + echapper(texte)
+        + (min ? ` <span style="color:#9ca3af">(${formatDuree(Math.round(min))})</span>` : "")
+        + badgeAlternance(t) + `</span>`;
+    }).join("")}</span>`;
   } else if (c.desc) {
     html += `<span class="desc">${echapper(c.desc)}</span>`;
   }
@@ -3960,8 +4082,14 @@ function htmlCreneau(c) {
 function remplirCelluleTd(td, cellule) {
   if (!cellule) return;
   if (cellule.type === "travail") {
-    const creneaux = (cellule.creneaux || []).filter(c => (c.debut && c.fin) || c.type === "trajet");
-    td.innerHTML = creneaux.map(htmlCreneau).join("");
+    // On indexe AVANT de filtrer : sans cela l'index affiché ne correspondrait
+    // plus à celui de cellule.creneaux et une tâche déposée partirait dans le
+    // mauvais créneau, silencieusement.
+    td.innerHTML = (cellule.creneaux || [])
+      .map((c, i) => ({ c, i }))
+      .filter(x => (x.c.debut && x.c.fin) || x.c.type === "trajet")
+      .map(x => htmlCreneau(x.c, x.i))
+      .join("");
   } else {
     td.classList.add(cellule.type);
     td.innerHTML = `<span class="etiquette">${ETIQUETTES[cellule.type] || ""}</span>`;
@@ -4144,6 +4272,7 @@ function rendreSemaine(zone) {
       td.className = "cellule";
       td.dataset.employeId = emp.id;
       td.dataset.indexJour = j;
+      td.dataset.date = versInputDate(ajouterJours(lundiCourant, j)); // repère du glisser-déposer
 
       if (cellule) {
         remplirCelluleTd(td, cellule);
@@ -8489,6 +8618,7 @@ function qrDataUrl(texte) {
 /* ================= Modale cellule ================= */
 
 function ouvrirModaleCellule(employeId, indexJour, lundi = lundiCourant) {
+  deplacementEnAttente = null;   // toute ouverture annule un dépôt resté en attente
   const cle = cleSemaine(lundi);
   celluleEnCours = { employeId, indexJour, cle };
   const emp = donnees.employes.find(e => e.id === employeId);
@@ -8792,10 +8922,37 @@ function majTotalTaches(bloc) {
     (depasse ? ` <span class="badge alerte">dépasse le créneau</span>` : "");
 }
 
-// Réorganisation par glisser-déposer (souris et tactile), utilisée pour les
-// blocs de créneaux ET les lignes de tâches. Les écouteurs sont posés sur
-// document : déplacer l'élément dans le DOM ferait perdre une capture de
-// pointeur posée sur la poignée.
+// Enveloppe commune à tous les glissements (souris, doigt, stylet). Les
+// écouteurs sont posés sur document : déplacer ou détruire l'élément saisi
+// ferait perdre une capture de pointeur posée sur lui. Renvoie la fonction de
+// clôture, pour qu'un appelant puisse mettre fin au geste de lui-même.
+function suivreGlissement(e, { deplacer, lacher, annuler }) {
+  const id = e.pointerId;
+  const retraits = [];
+  let fini = false;
+  const pose = (cible, type, fn, opts) => {
+    cible.addEventListener(type, fn, opts);
+    retraits.push(() => cible.removeEventListener(type, fn, opts));
+  };
+  const fin = (valide) => {
+    if (fini) return;
+    fini = true;
+    for (const retirer of retraits) retirer();
+    if (valide) lacher();
+    else (annuler || lacher)();
+  };
+  pose(document, "pointermove", (ev) => { if (ev.pointerId === id) deplacer(ev); });
+  pose(document, "pointerup", (ev) => { if (ev.pointerId === id) fin(true); });
+  pose(document, "pointercancel", (ev) => { if (ev.pointerId === id) fin(false); });
+  pose(document, "keydown", (ev) => { if (ev.key === "Escape") fin(false); });
+  pose(document, "visibilitychange", () => { if (document.hidden) fin(false); });
+  return fin;
+}
+
+// Réorganisation par glisser-déposer À L'INTÉRIEUR d'une liste de la modale :
+// blocs de créneaux et lignes de tâches. La politique « se réinsérer parmi ses
+// frères » est propre à ce cas ; le glissement entre cases du planning a la
+// sienne (voir plus bas).
 function activerGlisser(bloc, selecteurFreres = ".bloc-creneau") {
   const poignee = bloc.querySelector(".poignee");
   poignee.addEventListener("pointerdown", (e) => {
@@ -8818,16 +8975,396 @@ function activerGlisser(bloc, selecteurFreres = ".bloc-creneau") {
         }
       }
     };
-    const lacher = () => {
-      bloc.classList.remove("glisse");
-      document.removeEventListener("pointermove", deplacer);
-      document.removeEventListener("pointerup", lacher);
-      document.removeEventListener("pointercancel", lacher);
-    };
-    document.addEventListener("pointermove", deplacer);
-    document.addEventListener("pointerup", lacher);
-    document.addEventListener("pointercancel", lacher);
+    suivreGlissement(e, { deplacer, lacher: () => bloc.classList.remove("glisse") });
   });
+}
+
+/* ================= Glisser-déposer d'une tâche ==================
+   Déplacer une tâche vers un autre créneau, un autre jour, un autre salarié
+   ou une autre semaine, d'un seul geste, à la souris comme au doigt.
+
+   Deux invariants gouvernent tout le module :
+   1. L'état du geste ne contient AUCUNE référence DOM — uniquement des
+      données. C'est ce qui permet d'appeler rendre() en plein glissement,
+      donc de changer de semaine sans lâcher.
+   2. Rien n'est retiré de la source avant le dépôt. Échap, pointercancel,
+      lâcher dans le vide, appel entrant : aucun ne peut perdre une tâche. */
+
+let glisse = null;      // null hors geste
+let finGlissement = 0;  // horodatage du dernier lâcher (garde-fou du clic parasite)
+let deplacementEnAttente = null; // dépôt sur un jour vide, en attente de validation
+
+const RETARD_BANDE = 550;   // ms de stationnement sur un bord avant de changer de période
+const APPUI_LONG = 350;     // ms d'appui avant qu'un doigt n'attrape
+const SEUIL_SOURIS = 6;     // px de déplacement avant qu'une souris n'attrape
+const SEUIL_DOIGT = 10;     // px au-delà desquels un doigt faisait défiler, pas glisser
+const LARGEUR_BANDE = 76;   // largeur visible de la bande
+const ZONE_BANDE = 44;      // zone réellement active : plus étroite, pour qu'on puisse
+                            // viser la dernière colonne sans changer de semaine par erreur
+
+const coordDeTd = (td) => td ? { empId: td.dataset.employeId, dateStr: td.dataset.date } : null;
+const dateDe = (dateStr) => new Date(dateStr + "T00:00:00");
+const nomSalarie = (id) => (donnees.employes.find(e => e.id === id) || {}).nom || "";
+
+// Le créneau capable d'accueillir une tâche, ou null. Validé sur les DONNÉES :
+// une surbrillance ne garantit jamais un dépôt.
+function creneauAccueil(coord) {
+  if (!coord || !coord.empId || !coord.dateStr || !(coord.iCreneau >= 0)) return null;
+  if (!donnees.employes.some(e => e.id === coord.empId)) return null;
+  const cel = celluleDeDate(coord.empId, dateDe(coord.dateStr));
+  if (!cel || cel.type !== "travail") return null;
+  const cr = (cel.creneaux || [])[coord.iCreneau];
+  if (!cr || cr.type === "trajet" || !cr.debut || !cr.fin) return null;
+  return cr;
+}
+
+// Retire une tâche de son créneau d'origine et la renvoie (ou undefined).
+// Le créneau lui-même est TOUJOURS conservé : les pointages y sont rattachés
+// par index et se désaligneraient.
+function retirerTacheSource(src) {
+  const cel = celluleDeDate(src.empId, dateDe(src.dateStr));
+  const cr = cel && cel.type === "travail" && (cel.creneaux || [])[src.iCreneau];
+  if (!cr || !Array.isArray(cr.taches) || cr.taches[src.iTache] === undefined) return undefined;
+  const [tache] = cr.taches.splice(src.iTache, 1);
+  if (!cr.taches.length) {
+    delete cr.taches;
+    delete cr.desc;  // sinon l'ancienne description mono-ligne ressusciterait
+  }
+  return tache;
+}
+
+// Déplace une tâche. Renvoie le rang obtenu, ou -1 si rien n'a été écrit.
+function deplacerTache(src, cib) {
+  const crCib = creneauAccueil(cib);
+  if (!crCib) return -1;
+  const celSrc = celluleDeDate(src.empId, dateDe(src.dateStr));
+  const crSrc = celSrc && celSrc.type === "travail" && (celSrc.creneaux || [])[src.iCreneau];
+  if (!crSrc || !Array.isArray(crSrc.taches) || crSrc.taches[src.iTache] === undefined) return -1;
+
+  const memeCreneau = crSrc === crCib;   // identité de référence, jamais d'index
+  let rang = cib.rang < 0 ? (crCib.taches || []).length : cib.rang;
+  if (memeCreneau) {
+    if (rang === src.iTache || rang === src.iTache + 1) return -1;  // dépôt sur place
+    if (rang > src.iTache) rang--;                                  // l'extraction décale
+  }
+
+  const tache = retirerTacheSource(src);
+  if (tache === undefined) return -1;
+  if (!Array.isArray(crCib.taches)) crCib.taches = [];
+  rang = Math.max(0, Math.min(rang, crCib.taches.length));
+  crCib.taches.splice(rang, 0, tache);
+  sauvegarder();
+  rendre();
+  return rang;
+}
+
+/* ---------- Le geste ---------- */
+
+document.getElementById("zone-planning").addEventListener("pointerdown", (e) => {
+  const span = e.target.closest("[data-dtache]");
+  if (!span || glisse) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  // Les <dialog> survivent à rendre() avec un contenu périmé : valider une
+  // modale restée ouverte écraserait la cellule et annulerait le déplacement.
+  if (document.getElementById("modale-cellule").open) return;
+
+  const td = span.closest("td.cellule");
+  const [iCreneau, iTache] = span.dataset.dtache.split("|").map(Number);
+  const src = Object.assign(coordDeTd(td), { iCreneau, iTache });  // LA SOURCE EST FIGÉE ICI
+  const cr = creneauAccueil(src);
+  const tache = cr && (cr.taches || [])[iTache];
+  if (tache === undefined) return;   // DOM désynchronisé : on ne touche à rien
+
+  glisse = {
+    pointerId: e.pointerId, tactile: e.pointerType === "touch",
+    src, cr, tache,
+    libelle: typeof tache === "string" ? tache : (tache.texte || "tâche"),
+    actif: false, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+    cible: null, minuteur: 0, bord: 0, bordDepuis: 0, raf: 0,
+    fantome: null, bandeau: null, bandes: null, retirerBloqueur: null,
+  };
+
+  const bloquer = (ev) => { if (glisse && glisse.actif && ev.cancelable) ev.preventDefault(); };
+  document.addEventListener("touchmove", bloquer, { passive: false });
+  glisse.retirerBloqueur = () => document.removeEventListener("touchmove", bloquer);
+
+  const demarrer = () => {
+    if (!glisse || glisse.actif) return;
+    glisse.actif = true;
+    // Le tactile pose une capture IMPLICITE sur l'élément saisi : rendre() le
+    // détruirait et tuerait le geste. On la relâche tout de suite.
+    try { span.releasePointerCapture(e.pointerId); } catch (err) { /* pas de capture */ }
+    document.body.classList.add("mode-glisse");
+    creerDecor();
+    glisse.raf = requestAnimationFrame(imageGlisse);
+  };
+  if (glisse.tactile) glisse.minuteur = setTimeout(demarrer, APPUI_LONG);
+
+  let fin;
+  fin = suivreGlissement(e, {
+    deplacer: (ev) => {
+      if (!glisse) return;
+      glisse.x = ev.clientX;
+      glisse.y = ev.clientY;
+      if (glisse.actif) return;
+      const d = Math.hypot(ev.clientX - glisse.x0, ev.clientY - glisse.y0);
+      if (glisse.tactile) {
+        if (d > SEUIL_DOIGT) { clearTimeout(glisse.minuteur); fin(false); }  // c'était un défilement
+        return;
+      }
+      if (d < SEUIL_SOURIS) return;
+      ev.preventDefault();   // ici et pas au pointerdown : une simple tape doit garder son clic
+      demarrer();
+    },
+    lacher: () => terminerGlissement(true),
+    annuler: () => terminerGlissement(false),
+  });
+});
+
+// Sortie UNIQUE et idempotente : glisse est libéré AVANT d'agir, de sorte
+// qu'un rendre() réentrant ne puisse jamais laisser un geste fantôme.
+function terminerGlissement(valide) {
+  const g = glisse;
+  if (!g) return;
+  glisse = null;
+  clearTimeout(g.minuteur);
+  cancelAnimationFrame(g.raf);
+  if (g.retirerBloqueur) g.retirerBloqueur();
+  document.body.classList.remove("mode-glisse");
+  if (g.fantome) g.fantome.remove();
+  if (g.bandeau) g.bandeau.remove();
+  if (g.bandes) for (const b of g.bandes) b.remove();
+  nettoyerPeinture();
+  if (!g.actif) return;          // simple tape : surtout pas de neutralisation du clic
+  finGlissement = Date.now();
+  const c = g.cible;
+  if (!valide || !c || c.refus) return;
+  if (c.vide) { ouvrirJourneeVide(g.src, c, g.cr, g.tache); return; }
+  const rang = deplacerTache(g.src, c);
+  if (rang >= 0) signalerArrivee(c, rang);
+}
+
+// La cible se calcule par géométrie, jamais par ev.target : en tactile le
+// pointeur reste capturé par l'élément d'origine.
+function calculerCible() {
+  const el = document.elementFromPoint(glisse.x, glisse.y);
+  const td = el && el.closest("td.cellule");
+  if (!td || !td.dataset.date) return { refus: "hors" };
+  const coord = coordDeTd(td);
+  const spanCre = el.closest("[data-dcible]");
+  if (spanCre) {
+    const i = Number(spanCre.dataset.dcible);
+    if (creneauAccueil(Object.assign({}, coord, { iCreneau: i }))) {
+      return Object.assign({}, coord, { iCreneau: i, rang: rangDans(spanCre) });
+    }
+  }
+  // Rabattement : on est dans la case mais pas sur une puce → dernier créneau
+  // recevable. C'est ce qui rend le geste faisable au doigt : on vise la case.
+  const creneaux = td.querySelectorAll("[data-dcible]");
+  for (let k = creneaux.length - 1; k >= 0; k--) {
+    const i = Number(creneaux[k].dataset.dcible);
+    if (creneauAccueil(Object.assign({}, coord, { iCreneau: i }))) {
+      return Object.assign({}, coord, { iCreneau: i, rang: -1 });
+    }
+  }
+  const cel = celluleDeDate(coord.empId, dateDe(coord.dateStr));
+  if (cel && cel.type !== "travail") return { refus: cel.type };
+  return Object.assign({}, coord, { vide: true });
+}
+
+// Rang d'insertion dans un créneau, d'après la moitié de ligne survolée
+function rangDans(spanCre) {
+  const lignes = spanCre.querySelectorAll("[data-dtache]");
+  for (const ligne of lignes) {
+    const r = ligne.getBoundingClientRect();
+    if (glisse.y >= r.top && glisse.y <= r.bottom) {
+      return Number(ligne.dataset.dtache.split("|")[1]) + (glisse.y < r.top + r.height / 2 ? 0 : 1);
+    }
+  }
+  return -1;   // en fin de liste
+}
+
+/* ---------- Décor du geste (tout vit sur <body>) ---------- */
+
+function creerDecor() {
+  const g = glisse;
+  g.fantome = document.createElement("div");
+  g.fantome.className = "fantome-tache no-print";
+  g.fantome.innerHTML = "• " + echapper(g.libelle)
+    + (typeof g.tache === "object" && g.tache.min > 0
+        ? ` <span style="color:#9ca3af">(${formatDuree(Math.round(g.tache.min))})</span>` : "")
+    + badgeAlternance(g.tache);
+  document.body.appendChild(g.fantome);
+
+  g.bandeau = document.createElement("div");
+  g.bandeau.id = "bandeau-glisse";
+  g.bandeau.className = "no-print";
+  const barre = document.querySelector(".topbar");
+  g.bandeau.style.top = Math.max(8, (barre ? barre.getBoundingClientRect().bottom : 0) + 8) + "px";
+  document.body.appendChild(g.bandeau);
+
+  g.bandes = ["gauche", "droite"].map(cote => {
+    const b = document.createElement("div");
+    b.className = "bande-nav no-print " + cote;
+    document.body.appendChild(b);
+    return b;
+  });
+  etiquetterBandes();
+}
+
+// Les bandes annoncent la période RÉELLEMENT visée, pas « précédent / suivant »
+function etiquetterBandes() {
+  if (!glisse || !glisse.bandes) return;
+  const [g1, g2] = glisse.bandes;
+  if (vue === "mois") {
+    const a = moisCourant.getFullYear(), m = moisCourant.getMonth();
+    g1.textContent = "◀ " + libelleMoisLong(a, m - 1);
+    g2.textContent = libelleMoisLong(a, m + 1) + " ▶";
+  } else {
+    g1.textContent = "◀ Semaine du " + formatDateCourte(ajouterJours(lundiCourant, -7));
+    g2.textContent = "Semaine du " + formatDateCourte(ajouterJours(lundiCourant, 7)) + " ▶";
+  }
+}
+
+// Une seule boucle d'animation, qui meurt avec le geste
+function imageGlisse() {
+  const g = glisse;
+  if (!g || !g.actif) return;
+  g.fantome.style.left = (g.x + (g.tactile ? -70 : 12)) + "px";
+  g.fantome.style.top = (g.y + (g.tactile ? -46 : 10)) + "px";  // au doigt : au-dessus de la main
+  g.cible = calculerCible();
+  peindre();
+  majBandeau();
+  traiterBords();
+  if (glisse) glisse.raf = requestAnimationFrame(imageGlisse);
+}
+
+// Bords de la FENÊTRE : stationner y fait tourner la période, s'en approcher
+// par le haut ou le bas fait défiler la page.
+function traiterBords() {
+  const g = glisse;
+  const cote = g.x < ZONE_BANDE ? -1 : (g.x > window.innerWidth - ZONE_BANDE ? 1 : 0);
+  if (cote !== g.bord) { g.bord = cote; g.bordDepuis = performance.now(); }
+  g.bandes[0].classList.toggle("chaude", cote === -1);
+  g.bandes[1].classList.toggle("chaude", cote === 1);
+  if (cote && performance.now() - g.bordDepuis >= RETARD_BANDE) {
+    g.bordDepuis = performance.now();
+    naviguer(cote);          // rendre() rase la grille : sans conséquence, l'état est en données
+    g.cible = null;
+    etiquetterBandes();
+    return;
+  }
+  const marge = 90;
+  if (g.y < marge) window.scrollBy(0, -Math.ceil((marge - g.y) / 6));
+  else if (g.y > window.innerHeight - marge) {
+    window.scrollBy(0, Math.ceil((g.y - (window.innerHeight - marge)) / 6));
+  }
+}
+
+// Aucune référence mémorisée : on balaie par sélecteur et on compare les dataset
+// (jamais de sélecteur construit avec un identifiant de salarié).
+function nettoyerPeinture() {
+  for (const el of document.querySelectorAll(".cible-depot")) el.classList.remove("cible-depot");
+  for (const el of document.querySelectorAll(".tache-grille.source")) el.classList.remove("source");
+  for (const el of document.querySelectorAll(".trait-insertion")) el.remove();
+}
+
+const memeCase = (el, coord) => {
+  const td = el.closest("td.cellule");
+  return td && td.dataset.employeId === coord.empId && td.dataset.date === coord.dateStr;
+};
+
+function peindre() {
+  nettoyerPeinture();
+  const g = glisse;
+  for (const el of document.querySelectorAll("[data-dtache]")) {
+    const [i, j] = el.dataset.dtache.split("|").map(Number);
+    if (i === g.src.iCreneau && j === g.src.iTache && memeCase(el, g.src)) {
+      el.classList.add("source");
+      break;
+    }
+  }
+  const c = g.cible;
+  if (!c || c.refus || c.vide) return;
+  for (const el of document.querySelectorAll("[data-dcible]")) {
+    if (Number(el.dataset.dcible) !== c.iCreneau || !memeCase(el, c)) continue;
+    el.classList.add("cible-depot");
+    const lignes = el.querySelectorAll("[data-dtache]");
+    const trait = document.createElement("span");
+    trait.className = "trait-insertion no-print";
+    const r = el.getBoundingClientRect();
+    let y;
+    if (!lignes.length) y = r.height - 3;
+    else if (c.rang < 0 || c.rang >= lignes.length) y = lignes[lignes.length - 1].getBoundingClientRect().bottom - r.top;
+    else y = lignes[c.rang].getBoundingClientRect().top - r.top;
+    trait.style.top = Math.max(0, Math.min(y, r.height - 2)) + "px";
+    el.appendChild(trait);
+    break;
+  }
+}
+
+// Le bandeau dit toujours d'où vient la tâche, où elle va, et pourquoi si c'est refusé
+function majBandeau() {
+  const g = glisse;
+  const c = g.cible;
+  const quand = (ds) => {
+    const d = dateDe(ds);
+    return `${JOURS[(d.getDay() + 6) % 7].toLowerCase()} ${formatDateCourte(d)}`;
+  };
+  let suite = `<span style="opacity:.75">déposez sur un créneau</span>`;
+  let refus = false;
+  if (c && c.refus && c.refus !== "hors") {
+    refus = true;
+    suite = `✕ ${(ETIQUETTES[c.refus] || c.refus).toLowerCase()} — pas de tâche ce jour-là`;
+  } else if (c && c.vide) {
+    suite = `➜ ${echapper(nomSalarie(c.empId))} · ${quand(c.dateStr)} — jour vide, j'ouvrirai la journée`;
+  } else if (c && c.iCreneau >= 0) {
+    const cr = creneauAccueil(c);
+    if (cr) {
+      suite = `➜ ${echapper(nomSalarie(c.empId))} · ${quand(c.dateStr)} · ${cr.debut}–${cr.fin}`
+        + (cr.client ? " " + echapper(cr.client) : "");
+      const minTache = typeof g.tache === "object" && g.tache.min > 0 ? g.tache.min : 0;
+      const somme = (cr.taches || []).reduce((s, t) => s + (t && t.min > 0 ? t.min : 0), 0)
+        + (cr === g.cr ? 0 : minTache);
+      const duree = dureeEntre(cr.debut, cr.fin);
+      if (somme > duree) {
+        suite += ` <span style="color:#fecaca">⚠ ${formatDuree(Math.round(somme))} de tâches pour ${formatDuree(duree)}</span>`;
+      }
+    }
+  }
+  g.bandeau.innerHTML = `<strong>${echapper(g.libelle)}</strong>`
+    + ` <span style="opacity:.75">prise chez ${echapper(nomSalarie(g.src.empId))} · ${quand(g.src.dateStr)}</span>`
+    + ` &nbsp; ${suite}`;
+  g.bandeau.classList.toggle("refus", refus);
+}
+
+// Après le dépôt : la tâche arrivée clignote et est amenée à l'écran
+function signalerArrivee(cib, rang) {
+  for (const el of document.querySelectorAll("[data-dtache]")) {
+    const [i, j] = el.dataset.dtache.split("|").map(Number);
+    if (i === cib.iCreneau && j === rang && memeCase(el, cib)) {
+      el.classList.add("vient-d-arriver");
+      el.scrollIntoView({ block: "nearest" });
+      setTimeout(() => el.classList.remove("vient-d-arriver"), 1400);
+      return;
+    }
+  }
+}
+
+// Jour de travail sans créneau : on n'invente rien. La modale s'ouvre avec un
+// créneau neuf pré-rempli ; la tâche n'est retirée de la source qu'à la validation.
+function ouvrirJourneeVide(src, cib, crSrc, tache) {
+  const date = dateDe(cib.dateStr);
+  ouvrirModaleCellule(cib.empId, (date.getDay() + 6) % 7, lundiDeLaSemaine(date));
+  const blocs = document.querySelectorAll("#liste-creneaux .bloc-creneau");
+  const bloc = blocs[blocs.length - 1];
+  if (!bloc) return;
+  bloc.querySelector(".debut").value = crSrc.debut || "";
+  bloc.querySelector(".fin").value = crSrc.fin || "";
+  bloc.querySelector(".client").value = crSrc.client || "";
+  ajouterLigneTache(bloc, tache);
+  majTotalTaches(bloc);
+  deplacementEnAttente = { src };
 }
 
 // Suggestions de clients (fiches d'abord, puis historique du planning,
@@ -8928,6 +9465,12 @@ document.getElementById("btn-valider-cellule").addEventListener("click", () => {
   } else {
     sem[employeId][indexJour] = cellule;
   }
+  // Tâche amenée par glissement sur un jour vide : elle n'est retirée de son
+  // créneau d'origine qu'une fois la nouvelle journée validée.
+  if (deplacementEnAttente) {
+    retirerTacheSource(deplacementEnAttente.src);
+    deplacementEnAttente = null;
+  }
   sauvegarder();
   rendre();
   document.getElementById("modale-cellule").close();
@@ -8949,6 +9492,9 @@ document.getElementById("btn-annuler-cellule").addEventListener("click", () => {
 
 // Clic sur une cellule du planning (vue semaine : index du jour ; vue mois : date)
 document.getElementById("zone-planning").addEventListener("click", (e) => {
+  // Un dépôt produit un click synthétique : sans cette garde, la modale
+  // s'ouvrirait à la fin de chaque glissement. Une simple tape passe.
+  if (Date.now() - finGlissement < 350) return;
   const td = e.target.closest("td.cellule");
   if (!td) return;
   if (td.dataset.date) {
