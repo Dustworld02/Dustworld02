@@ -24,6 +24,8 @@ import { ImpressionCampagne } from "./pages/qualification/ImpressionCampagne";
 import { Ecarts, EcartDetail } from "./pages/Ecarts";
 import { Taches } from "./pages/Taches";
 import { Discussions } from "./pages/Discussions";
+import { Nettoyage } from "./pages/nettoyage/Nettoyage";
+import { Personnel } from "./pages/Personnel";
 
 function Ecran({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-full items-center justify-center p-6 text-texte-2">{children}</div>;
@@ -58,6 +60,8 @@ export function App() {
                 <Route path="contaminations" element={<Contaminations />} />
                 <Route path="ecarts" element={<Ecarts />} />
                 <Route path="ecarts/:id" element={<EcartDetail />} />
+                <Route path="nettoyage" element={<Nettoyage />} />
+                <Route path="personnel" element={<Personnel />} />
                 <Route path="taches" element={<Taches />} />
                 <Route path="discussions" element={<Discussions />} />
                 <Route path="documents" element={<Documents />} />

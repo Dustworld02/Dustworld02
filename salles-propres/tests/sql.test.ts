@@ -582,3 +582,49 @@ describe("Pilotage (phase 4)", () => {
     });
   });
 });
+
+describe("Nettoyage et personnel (phase 5)", () => {
+  it("exige une procédure approuvée par signature et versionne toute modification", async () => {
+    await comme(ids.a, async () => {
+      const zone = (await un<{ id: string }>(`select id from zones where salle_id = $1 limit 1`, [salle1])).id;
+      const p = await un<{ id: string; site_id: string; version: number }>(`insert into procedures_nettoyage (org_id, salle_id, titre, zones) values ($1, $2, 'Nettoyage salle', $3) returning id, site_id, version`, [orgA, salle1, [zone]]);
+      expect(p.site_id).toBe(site1);
+      await expect(db.query(`insert into interventions_nettoyage (org_id, salle_id, zone_id, procedure_id, titre, date_prevue) values ($1, $2, $3, $4, 'Z01', '2030-01-01')`, [orgA, salle1, zone, p.id])).rejects.toThrow(/non approuvée/);
+      await expect(db.query(`update procedures_nettoyage set statut = 'approuvee' where id = $1`, [p.id])).rejects.toThrow(/[Ss]ignature/);
+      await db.query(`select signer('procedure', $1, 'approuve', 'OK')`, [p.id]);
+      await db.query(`update procedures_nettoyage set statut = 'approuvee' where id = $1`, [p.id]);
+      const v2 = await un<{ version: number; statut: string }>(`update procedures_nettoyage set titre = 'Nettoyage salle (rév.)' where id = $1 returning version, statut`, [p.id]);
+      expect(v2).toEqual({ version: 2, statut: "brouillon" });
+      await db.query(`select signer('procedure', $1, 'approuve', 'Révision')`, [p.id]);
+      await db.query(`update procedures_nettoyage set statut = 'approuvee' where id = $1`, [p.id]);
+    });
+  });
+
+  it("n'affecte une intervention qu'à une personne habilitée à la date prévue", async () => {
+    await comme(ids.a, async () => {
+      const zone = (await un<{ id: string }>(`select id from zones where salle_id = $1 and iso_repos = 7 limit 1`, [salle1])).id;
+      const proc = (await un<{ id: string }>(`select id from procedures_nettoyage where statut = 'approuvee' limit 1`)).id;
+      const personne = (await un<{ id: string }>(`insert into personnes (org_id, prenom, nom) values ($1, 'Sam', 'Martin') returning id`, [orgA])).id;
+      await db.query(`insert into habilitations (org_id, personne_id, type, classe_iso_max, date_obtention, date_expiration) values ($1, $2, 'nettoyage', 8, '2026-01-01', '2026-12-31')`, [orgA, personne]);
+      const i = (await un<{ id: string }>(`insert into interventions_nettoyage (org_id, salle_id, zone_id, procedure_id, titre, date_prevue) values ($1, $2, $3, $4, 'Z01', '2026-11-02') returning id`, [orgA, salle1, zone, proc])).id;
+      await expect(db.query(`update interventions_nettoyage set personne_id = $1 where id = $2`, [personne, i])).rejects.toThrow(/non habilitée/);
+      await db.query(`insert into habilitations (org_id, personne_id, type, classe_iso_max, date_obtention, date_expiration) values ($1, $2, 'acces_zone', 7, '2026-01-01', '2026-10-31')`, [orgA, personne]);
+      await expect(db.query(`update interventions_nettoyage set personne_id = $1 where id = $2`, [personne, i])).rejects.toThrow(/non habilitée/);
+      await db.query(`update habilitations set date_expiration = '2027-10-31' where personne_id = $1 and type = 'acces_zone'`, [personne]);
+      await expect(db.query(`update interventions_nettoyage set statut = 'realisee' where id = $1`, [i])).rejects.toThrow(/qui a réalisé/);
+      const r = await un<{ realise_le: string | null }>(`update interventions_nettoyage set personne_id = $1, statut = 'realisee', realise_le = '2026-11-02T08:00:00Z' where id = $2 returning realise_le`, [personne, i]);
+      expect(r.realise_le).toBeTruthy();
+      await expect(db.query(`insert into interventions_nettoyage (org_id, salle_id, zone_id, procedure_id, titre, date_prevue) values ($1, $2, $3, $4, 'Z01', '2026-11-02')`, [orgA, salle1, zone, proc])).rejects.toThrow(/duplicate|unique/);
+    });
+  });
+
+  it("réserve la gestion du personnel aux rôles autorisés et contrôle le compte lié", async () => {
+    await comme(ids.a, async () => {
+      await expect(db.query(`insert into personnes (org_id, prenom, nom, user_id) values ($1, 'X', 'Y', $2)`, [orgA, ids.d])).rejects.toThrow(/pas membre/);
+    });
+    await comme(ids.c, async () => {
+      expect(await nb(`select * from personnes`)).toBeGreaterThan(0);
+      await expect(db.query(`insert into personnes (org_id, prenom, nom) values ($1, 'X', 'Y')`, [orgA])).rejects.toThrow(/row-level security/);
+    });
+  });
+});

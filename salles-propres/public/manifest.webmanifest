@@ -1,0 +1,12 @@
+{
+  "name": "Salles Propres",
+  "short_name": "Salles Propres",
+  "description": "Gestion des salles propres et zones à atmosphère contrôlée",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#0a1830",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

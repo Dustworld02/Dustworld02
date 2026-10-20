@@ -6,6 +6,9 @@ import { ROLES_SYSTEME } from "../domain/permissions";
 import type { Nouveau, Point2D, Zone } from "./types";
 import { proposerEssais } from "../domain/qualification";
 import { limitesEssai } from "../domain/qualification";
+import { groupesDeZones } from "../domain/nettoyage/groupes";
+import { planifier } from "../domain/nettoyage/planning";
+import { completerCatalogue } from "./catalogueNettoyage";
 
 export const MOT_DE_PASSE_DEMO = "demo";
 
@@ -52,6 +55,7 @@ export async function creerJeuDemo(depot: DepotDemo): Promise<void> {
   await planDemo(depot, org, site.id, salle.id);
   await qualificationDemo(depot, org, salle.id);
   await pilotageDemo(depot, org, salle.id, ids);
+  await nettoyageDemo(depot, org, salle.id, ids);
 
   const doc = await depot.creer("documents", {
     org_id: org, titre: "Cahier des charges (URS) — salle d'assemblage", type_document: "urs", statut: "brouillon",
@@ -299,4 +303,105 @@ async function pilotageDemo(depot: DepotDemo, org: string, salleId: string, ids:
     { org_id: org, objet_type: "ecart", objet_id: ecart.id, objet_libelle: `${ecart.numero} ${ecart.titre}`, lien: `/ecarts/${ecart.id}`,
       contenu: "La balance a été déplacée le mois dernier pour libérer la hotte : c'est cohérent avec le début de la dérive." },
   ]);
+}
+
+/** Catalogue, procédures approuvées, personnel habilité, planning et une validation de nettoyage. */
+async function nettoyageDemo(depot: DepotDemo, org: string, salleId: string, ids: Record<string, string>): Promise<void> {
+  const salle = (await depot.lister("salles_propres", org)).find((x) => x.id === salleId)!;
+  const zones = await depot.lister("zones", org, { salle_id: salleId });
+  const groupes = groupesDeZones(salle.secteur, zones);
+  await completerCatalogue(depot, org, groupes.flatMap((g) => g.contenu.produits), groupes.flatMap((g) => g.contenu.consommables), [], []);
+  // Une partie du catalogue est déjà complétée par le service qualité, le reste reste « à compléter ».
+  const [produits, consommables] = await Promise.all([depot.lister("produits_nettoyage", org), depot.lister("consommables", org)]);
+  if (produits[0]) await depot.modifier("produits_nettoyage", produits[0].id, { fournisseur: "Fournisseur Exemple", reference: "DET-500", a_completer: false });
+  for (const c of consommables.filter((x) => x.type === "lingette")) {
+    await depot.modifier("consommables", c.id, { fournisseur: "Fournisseur Exemple", reference: `LP-${c.modele_cle?.slice(0, 6).toUpperCase()}`, unite: "sachet", stock: 14, seuil_alerte: 20, a_completer: false });
+  }
+
+  const procedures = await depot.creerPlusieurs("procedures_nettoyage", groupes.map((g) => ({
+    org_id: org, salle_id: salleId, categorie: g.categorie, titre: g.titre, zones: g.zones.map((z) => z.id), contenu: g.contenu,
+    gabarit_ref: { secteur: salle.secteur, niveau: g.niveau },
+  })));
+  for (const p of procedures) {
+    await depot.signer("procedure", p.id, "approuve", "Procédure revue avec l'équipe de nettoyage");
+    await depot.modifier("procedures_nettoyage", p.id, { statut: "approuvee" });
+  }
+
+  const [morgan, sam, alex, camille] = await depot.creerPlusieurs("personnes", [
+    { org_id: org, prenom: "Morgan", nom: "Hygiène", fonction: "Responsable nettoyage", user_id: ids.nettoyage },
+    { org_id: org, prenom: "Sam", nom: "Martin", fonction: "Agent de nettoyage", employeur: "prestataire", entreprise: "Net'Pro Services" },
+    { org_id: org, prenom: "Alex", nom: "Bernard", fonction: "Opérateur de production" },
+    { org_id: org, prenom: "Camille", nom: "Robert", fonction: "Opératrice", employeur: "interimaire", entreprise: "Intérim Exemple" },
+  ]);
+  const dans = (jours: number) => { const d = new Date(); d.setDate(d.getDate() + jours); return jourIso(d); };
+  await depot.creerPlusieurs("habilitations", [
+    { org_id: org, personne_id: morgan.id, type: "acces_zone", classe_iso_max: 5, date_obtention: dans(-400), date_expiration: dans(330), evaluateur: "Dominique Qualité", resultat: "Habillage et boîtes contact gants conformes" },
+    { org_id: org, personne_id: morgan.id, type: "nettoyage", classe_iso_max: 5, date_obtention: dans(-400), date_expiration: dans(330), evaluateur: "Dominique Qualité", resultat: "Observation au poste conforme" },
+    { org_id: org, personne_id: sam.id, type: "nettoyage", classe_iso_max: 7, date_obtention: dans(-335), date_expiration: dans(30), evaluateur: "Morgan Hygiène", resultat: "Observation au poste conforme" },
+    { org_id: org, personne_id: alex.id, type: "acces_zone", classe_iso_max: 8, date_obtention: dans(-60), date_expiration: dans(305), evaluateur: "Morgan Hygiène", resultat: "Accès limité à l'ISO 8 en attente de la qualification d'habillage" },
+    { org_id: org, personne_id: camille.id, type: "acces_zone", classe_iso_max: 7, date_obtention: dans(-400), date_expiration: dans(-35), evaluateur: "Morgan Hygiène", resultat: "Conforme" },
+  ]);
+  await depot.creerPlusieurs("formations", [
+    { org_id: org, personne_id: morgan.id, intitule: "Nettoyage et désinfection des salles propres", theme: "nettoyage_desinfection", organisme: "Organisme de formation", date_formation: dans(-420), duree_h: 14, date_recyclage: dans(310) },
+    { org_id: org, personne_id: morgan.id, intitule: "Biocontamination : maîtrise et surveillance", theme: "biocontamination", organisme: "Organisme de formation", date_formation: dans(-700), duree_h: 14, date_recyclage: dans(-5) },
+    { org_id: org, personne_id: sam.id, intitule: "L'essentiel de la salle propre", theme: "essentiel_salle_propre", organisme: "Formation interne", date_formation: dans(-340), duree_h: 3.5, date_recyclage: dans(25) },
+    { org_id: org, personne_id: alex.id, intitule: "L'essentiel de la salle propre", theme: "essentiel_salle_propre", organisme: "Formation interne", date_formation: dans(-62), duree_h: 3.5, date_recyclage: dans(303) },
+    { org_id: org, personne_id: camille.id, intitule: "Habillage ISO 7", theme: "habillage", organisme: "Formation interne", date_formation: dans(-401), duree_h: 2, date_recyclage: dans(-36) },
+  ]);
+
+  // Planning : trois semaines passées (réalisées sauf deux oublis) et deux semaines à venir.
+  const debut = new Date(); debut.setDate(debut.getDate() - 21); debut.setHours(12, 0, 0, 0);
+  const aujourdhui = jourIso(new Date());
+  const lots = (contenu: { produits: string[] }) => contenu.produits.slice(0, 2).map((c, i) => ({ produit: produits.find((x) => x.modele_cle === c)?.nom ?? c, lot: `L${2600 + i}-${c.length}` }));
+  const interventions: Nouveau<"interventions_nettoyage">[] = [];
+  let n = 0;
+  for (const p of procedures) {
+    for (const zoneId of p.zones) {
+      const z = zones.find((x) => x.id === zoneId)!;
+      for (const o of planifier(p.contenu, debut, 35)) {
+        const passe = o.date < aujourdhui;
+        const personne = (n++ % 3 === 0 && (z.iso_repos ?? 9) >= 7) ? sam.id : morgan.id;
+        interventions.push({
+          org_id: org, salle_id: salleId, zone_id: zoneId, procedure_id: p.id, date_prevue: o.date, moment: o.moment, surfaces: o.surfaces, titre: `${z.code} ${z.nom}`,
+          personne_id: personne,
+          ...(passe ? {
+            statut: "realisee" as const, realise_le: `${o.date}T${o.moment === "debut_poste" ? "07:20" : o.moment === "fin_poste" ? "17:40" : "12:30"}:00.000Z`,
+            duree_min: 15 + (n % 4) * 5, etapes_faites: p.contenu.etapes.map((e) => e.ordre), lots: lots(p.contenu),
+            anomalies: n % 23 === 0 ? "Sachet de lingettes entamé trouvé ouvert : jeté." : "",
+          } : {}),
+        });
+      }
+    }
+  }
+  // Deux oublis : le plus ancien reste « non réalisé », le plus récent est encore à faire (en retard).
+  const passees = interventions.filter((i) => i.statut === "realisee");
+  const aRemettre = (i: Nouveau<"interventions_nettoyage">) => Object.assign(i, { realise_le: null, duree_min: null, etapes_faites: [], lots: [], anomalies: "" });
+  if (passees.length > 10) {
+    aRemettre(Object.assign(passees[7], { statut: "non_realisee" as const }));
+    passees[7].anomalies = "Équipe réduite : nettoyage reporté au poste suivant.";
+    aRemettre(Object.assign(passees[passees.length - 2], { statut: "a_faire" as const }));
+  }
+  await depot.creerPlusieurs("interventions_nettoyage", interventions);
+
+  await depot.creerPlusieurs("materiel_nettoyage", [
+    { org_id: org, salle_id: salleId, libelle: "Chariot double seau inox", type: "chariot", couleur: "bleu", zones_dediees: "Salle de production, emballage", etat: "bon", date_mise_service: dans(-500) },
+    { org_id: org, salle_id: salleId, libelle: "Support de mop à plat", type: "support_mop", couleur: "bleu", zones_dediees: "Toutes zones ISO 7", etat: "use", date_mise_service: dans(-700), date_remplacement_prevue: dans(20) },
+    { org_id: org, salle_id: salleId, libelle: "Pulvérisateur SAS", type: "pulverisateur", couleur: "vert", zones_dediees: "SAS personnel et matériel", etat: "bon", date_mise_service: dans(-90) },
+  ]);
+
+  // Validation de l'efficacité du nettoyage de la salle de production (ATP avant / après).
+  const production = zones.find((z) => z.type_zone === "salle") ?? zones[0];
+  const procProd = procedures.find((p) => p.zones.includes(production.id) && p.categorie === "nettoyage")!;
+  const validation = await depot.creer("validations_nettoyage", {
+    org_id: org, salle_id: salleId, procedure_id: procProd.id, titre: `Validation du nettoyage — ${production.nom}`, date_validation: dans(-14),
+    criteres: "ATP après nettoyage < 150 RLU sur chaque surface ; réduction d'au moins 80 % par rapport à l'état avant nettoyage.", statut: "conforme",
+    conclusion: "Les trois essais consécutifs respectent les critères : la procédure est validée pour la salle de production.",
+  });
+  const luminometre = (await depot.lister("instruments", org)).find((i) => i.type === "luminometre");
+  const surfacesAtp: [string, number, number][] = [["Paillasse 1", 1840, 62], ["Paillasse 2", 2210, 95], ["Poignée de porte", 960, 41], ["Sol devant paillasse", 3120, 128]];
+  await depot.creerPlusieurs("resultats", surfacesAtp.flatMap(([lieu, avant, apres]) => (["avant", "après"] as const).map((moment) => ({
+    org_id: org, salle_id: salleId, zone_id: production.id, point_libre: `${lieu} — ${moment} nettoyage`, origine: "nettoyage" as const, milieu: "surface" as const, nature: "chimique" as const,
+    methode: "Luminomètre", parametre: "ATP-métrie", unite: "RLU", valeur: moment === "avant" ? avant : apres, limite_alerte: moment === "avant" ? null : 150, limite_action: moment === "avant" ? null : 300,
+    instrument_id: luminometre?.id ?? null, date_prelevement: `${dans(-14)}T10:00:00.000Z`, operateur: "Morgan Hygiène", validation_id: validation.id,
+  }))));
 }

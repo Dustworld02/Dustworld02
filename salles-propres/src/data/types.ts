@@ -435,6 +435,7 @@ export interface Resultat extends Trace {
   limite_action: number | null;
   verdict: VerdictResultat;
   commentaire: string;
+  validation_id: string | null;
 }
 
 // ---------------------------------------------------------------------
@@ -525,6 +526,140 @@ export interface Message extends Trace {
   archive: boolean;
 }
 
+// ---------------------------------------------------------------------
+// Phase 5 — nettoyage et personnel
+// ---------------------------------------------------------------------
+
+export interface ProduitNettoyage extends Trace {
+  nom: string;
+  famille: string;
+  fournisseur: string;
+  reference: string;
+  substance_active: string;
+  dilution: string;
+  temps_contact_min: number | null;
+  spectre: string;
+  rincage: boolean;
+  sterile: boolean;
+  compatibilites: string;
+  groupe_rotation: string;
+  peremption_solution_h: number | null;
+  fds_document_id: string | null;
+  modele_cle: string | null;
+  a_completer: boolean;
+  actif: boolean;
+}
+
+export interface Consommable extends Trace {
+  nom: string;
+  type: "lingette" | "mop" | "gant" | "tenue" | "autre";
+  matiere: string;
+  sterile: boolean;
+  preimpregne: string;
+  classe_iso_min: number | null;
+  fournisseur: string;
+  reference: string;
+  unite: string;
+  stock: number;
+  seuil_alerte: number;
+  modele_cle: string | null;
+  a_completer: boolean;
+  actif: boolean;
+}
+
+export interface ProcedureNettoyage extends Trace {
+  salle_id: string;
+  site_id: string | null;
+  categorie: "nettoyage" | "habillage";
+  titre: string;
+  zones: string[];
+  version: number;
+  statut: "brouillon" | "approuvee" | "perimee";
+  contenu: import("../domain/nettoyage/generation").ContenuProcedure;
+  gabarit_ref: { secteur: string; niveau: string } | null;
+}
+
+export interface Personne extends Trace {
+  nom: string;
+  prenom: string;
+  fonction: string;
+  employeur: "interne" | "prestataire" | "interimaire";
+  entreprise: string;
+  user_id: string | null;
+  actif: boolean;
+  notes: string;
+}
+
+export interface Habilitation extends Trace {
+  personne_id: string;
+  type: "acces_zone" | "habillage" | "nettoyage";
+  classe_iso_max: number | null;
+  grade_bpf: "A" | "B" | "C" | "D" | null;
+  date_obtention: string;
+  date_expiration: string | null;
+  evaluateur: string;
+  resultat: string;
+  document_id: string | null;
+}
+
+export interface Formation extends Trace {
+  personne_id: string;
+  intitule: string;
+  theme: string;
+  organisme: string;
+  date_formation: string;
+  duree_h: number | null;
+  date_recyclage: string | null;
+  document_id: string | null;
+}
+
+export interface LotUtilise {
+  produit: string;
+  lot: string;
+  preparation?: string;
+}
+
+export interface InterventionNettoyage extends Trace {
+  salle_id: string;
+  site_id: string | null;
+  zone_id: string;
+  procedure_id: string;
+  titre: string;
+  date_prevue: string;
+  moment: "debut_poste" | "fin_poste" | "journee";
+  surfaces: string[];
+  personne_id: string | null;
+  statut: "a_faire" | "realisee" | "non_realisee" | "reportee";
+  realise_le: string | null;
+  duree_min: number | null;
+  etapes_faites: number[];
+  lots: LotUtilise[];
+  anomalies: string;
+}
+
+export interface ValidationNettoyage extends Trace {
+  salle_id: string;
+  site_id: string | null;
+  procedure_id: string | null;
+  titre: string;
+  date_validation: string;
+  criteres: string;
+  statut: "planifiee" | "en_cours" | "conforme" | "non_conforme";
+  conclusion: string;
+}
+
+export interface MaterielNettoyage extends Trace {
+  salle_id: string | null;
+  libelle: string;
+  type: string;
+  couleur: string;
+  zones_dediees: string;
+  etat: "bon" | "use" | "hors_service";
+  date_mise_service: string | null;
+  date_remplacement_prevue: string | null;
+  notes: string;
+}
+
 /** Tables accessibles par l'interface générique du dépôt. */
 export interface Tables {
   roles: Role;
@@ -559,6 +694,15 @@ export interface Tables {
   colonnes_kanban: ColonneKanban;
   taches: Tache;
   messages: Message;
+  produits_nettoyage: ProduitNettoyage;
+  consommables: Consommable;
+  procedures_nettoyage: ProcedureNettoyage;
+  personnes: Personne;
+  habilitations: Habilitation;
+  formations: Formation;
+  interventions_nettoyage: InterventionNettoyage;
+  validations_nettoyage: ValidationNettoyage;
+  materiel_nettoyage: MaterielNettoyage;
 }
 
 export type NomTable = keyof Tables;
@@ -594,7 +738,16 @@ export interface ColonnesParDefaut {
   colonnes_kanban: "ordre" | "terminale";
   taches: "description" | "ordre" | "proprietaire" | "echeance" | "priorite" | "etiquettes" | "checklist" | "salle_id" | "objet_type" | "objet_id" | "lien" | "source_cle" | "termine_le";
   messages: "objet_type" | "objet_id" | "objet_libelle" | "lien" | "auteur" | "mentions" | "reponse_a" | "archive";
-  resultats: "zone_id" | "point_id" | "point_libre" | "origine" | "essai_id" | "methode" | "parametre" | "taille_um" | "unite" | "etat_occupation" | "instrument_id" | "date_prelevement" | "operateur" | "lot_milieu" | "germe" | "limite_alerte" | "limite_action" | "verdict" | "commentaire";
+  produits_nettoyage: "famille" | "fournisseur" | "reference" | "substance_active" | "dilution" | "temps_contact_min" | "spectre" | "rincage" | "sterile" | "compatibilites" | "groupe_rotation" | "peremption_solution_h" | "fds_document_id" | "modele_cle" | "a_completer" | "actif";
+  consommables: "type" | "matiere" | "sterile" | "preimpregne" | "classe_iso_min" | "fournisseur" | "reference" | "unite" | "stock" | "seuil_alerte" | "modele_cle" | "a_completer" | "actif";
+  procedures_nettoyage: "categorie" | "zones" | "version" | "statut" | "contenu" | "gabarit_ref";
+  personnes: "prenom" | "fonction" | "employeur" | "entreprise" | "user_id" | "actif" | "notes";
+  habilitations: "type" | "classe_iso_max" | "grade_bpf" | "date_obtention" | "date_expiration" | "evaluateur" | "resultat" | "document_id";
+  formations: "theme" | "organisme" | "date_formation" | "duree_h" | "date_recyclage" | "document_id";
+  interventions_nettoyage: "titre" | "moment" | "surfaces" | "personne_id" | "statut" | "realise_le" | "duree_min" | "etapes_faites" | "lots" | "anomalies";
+  validations_nettoyage: "procedure_id" | "date_validation" | "criteres" | "statut" | "conclusion";
+  materiel_nettoyage: "salle_id" | "type" | "couleur" | "zones_dediees" | "etat" | "date_mise_service" | "date_remplacement_prevue" | "notes";
+  resultats: "validation_id" | "zone_id" | "point_id" | "point_libre" | "origine" | "essai_id" | "methode" | "parametre" | "taille_um" | "unite" | "etat_occupation" | "instrument_id" | "date_prelevement" | "operateur" | "lot_milieu" | "germe" | "limite_alerte" | "limite_action" | "verdict" | "commentaire";
 }
 type DefautsDe<T> = T extends keyof ColonnesParDefaut ? ColonnesParDefaut[T] : never;
 export type Modification<T extends NomTable> = Partial<Omit<Tables[T], keyof Trace>>;

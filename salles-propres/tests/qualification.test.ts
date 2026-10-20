@@ -15,7 +15,7 @@ function resultat(point: string, taille: number, valeur: number): Resultat {
   return {
     ...trace, id: `${point}-${taille}-${valeur}`, salle_id: "s", site_id: "x", zone_id: "z", point_id: null, point_libre: point, origine: "qualification",
     essai_id: "e", milieu: "air", nature: "particulaire", methode: "", parametre: "", taille_um: taille, unite: "/m³", valeur, etat_occupation: "repos",
-    instrument_id: null, date_prelevement: "2026-10-01T10:00:00Z", operateur: "", lot_milieu: "", germe: "", limite_alerte: null, limite_action: null, verdict: "non_evalue", commentaire: "",
+    instrument_id: null, date_prelevement: "2026-10-01T10:00:00Z", operateur: "", lot_milieu: "", germe: "", limite_alerte: null, limite_action: null, verdict: "non_evalue", commentaire: "", validation_id: null,
   };
 }
 

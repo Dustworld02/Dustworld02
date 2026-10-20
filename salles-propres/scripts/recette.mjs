@@ -343,6 +343,63 @@ await verifier("Une mention dans une discussion notifie la personne citée", asy
   await connecter("Administrateur");
 });
 
+await verifier("Le générateur propose des procédures DM avec lingettes polyester et fréquences", async () => {
+  await page.goto(`${URL_APP}/#/nettoyage`);
+  await page.getByLabel("Salle propre").selectOption({ label: "Salle propre de recette" });
+  await page.getByRole("button", { name: "Générer depuis le gabarit du secteur" }).click();
+  const dialogue = page.getByRole("dialog");
+  await dialogue.getByText("Secteur Dispositifs médicaux").waitFor();
+  await capture("17-generateur-nettoyage");
+  await dialogue.getByRole("button", { name: /Créer \d+ procédure\(s\) en brouillon/ }).click();
+  await page.getByRole("row", { name: /Nettoyage — Salles \(ISO 7\)/ }).click();
+  await page.getByRole("dialog").getByText(/polyester/i).first().waitFor();
+  await page.getByRole("dialog").getByText("Fréquences").first().waitFor();
+  await capture("18-procedure-nettoyage");
+});
+
+await verifier("La procédure est approuvée par signature puis le planning est généré", async () => {
+  await page.getByRole("button", { name: "Approuver (signature)" }).click();
+  await page.getByLabel("Mot de passe (confirmation d'identité)").fill("demo");
+  await page.getByRole("dialog").getByRole("button", { name: "Signer" }).click();
+  await page.getByRole("row", { name: /Nettoyage — Salles \(ISO 7\).*Approuvée/ }).waitFor();
+  await page.getByRole("tab", { name: "Planning", exact: true }).click();
+  await page.getByLabel("Salle propre").selectOption({ label: "Salle propre de recette" });
+  await page.getByRole("button", { name: "Générer le planning de la période" }).click();
+  await page.getByText(/intervention\(s\) planifiée\(s\)/).waitFor();
+  await capture("19-planning-nettoyage");
+});
+
+await verifier("Le personnel signale les habilitations expirées et la matrice d'accès", async () => {
+  await page.goto(`${URL_APP}/#/personnel`);
+  await page.getByRole("tab", { name: /Échéances/ }).click();
+  await page.getByRole("row", { name: /Camille Robert.*Expirée/ }).first().waitFor();
+  await page.getByRole("tab", { name: "Matrice d'accès aux zones" }).click();
+  await page.getByLabel("Camille Robert Z03 non autorisé").waitFor();
+  await page.getByLabel("Morgan Hygiène Z03 autorisé").waitFor();
+  await capture("20-matrice-acces");
+});
+
+await verifier("Sur le terrain, le responsable nettoyage valide une intervention étape par étape", async () => {
+  await deconnecter();
+  await connecter("Responsable nettoyage");
+  await page.goto(`${URL_APP}/#/nettoyage?onglet=terrain`);
+  await page.getByLabel("Salle propre").selectOption({ label: "Salle propre assemblage cathéters" });
+  const aFaire = page.getByRole("button", { name: /À faire/ });
+  const avant = await aFaire.count();
+  if (!avant) throw new Error("Aucune intervention à faire aujourd'hui");
+  await aFaire.first().click();
+  const dialogue = page.getByRole("dialog");
+  const valider = dialogue.getByRole("button", { name: "Valider le nettoyage" });
+  if (await valider.isEnabled()) throw new Error("Validation possible sans cocher les étapes");
+  for (const c of await dialogue.getByRole("checkbox").all()) await c.check();
+  await capture("21-terrain");
+  await valider.click();
+  await dialogue.waitFor({ state: "detached" });
+  await page.waitForFunction((n) => [...document.querySelectorAll("button")].filter((b) => b.textContent?.includes("À faire")).length === n - 1, avant);
+  await deconnecter();
+  await connecter("Administrateur");
+});
+
 await verifier("L'opérateur n'a ni création de salle, ni configuration, ni journal", async () => {
   await deconnecter();
   await connecter("Opérateur");

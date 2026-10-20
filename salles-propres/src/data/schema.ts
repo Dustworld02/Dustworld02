@@ -114,10 +114,12 @@ export const META: Record<NomTable, MetaTable> = {
     defauts: {
       zone_id: null, point_id: null, point_libre: "", origine: "surveillance", essai_id: null, methode: "", parametre: "", taille_um: null, unite: "",
       etat_occupation: null, instrument_id: null, operateur: "", lot_milieu: "", germe: "", limite_alerte: null, limite_action: null, verdict: "non_evalue", commentaire: "",
+      validation_id: null,
     },
     rattachements: [
       salle(), zoneNull, { colonne: "point_id", table: "points_prelevement", suppression: "null" },
       { colonne: "essai_id", table: "essais", suppression: "cascade" }, { colonne: "instrument_id", table: "instruments", suppression: "null" },
+      { colonne: "validation_id", table: "validations_nettoyage", suppression: "null" },
     ],
   },
 
@@ -145,6 +147,54 @@ export const META: Record<NomTable, MetaTable> = {
     module: "discussions", portee: "org", suppression: 4,
     defauts: { objet_type: "general", objet_id: null, objet_libelle: "", lien: "", mentions: [], reponse_a: null, archive: false },
     rattachements: [{ colonne: "reponse_a", table: "messages", suppression: "null" }],
+  },
+
+  produits_nettoyage: {
+    module: "nettoyage_procedures", portee: "org",
+    defauts: { famille: "detergent", fournisseur: "", reference: "", substance_active: "", dilution: "", temps_contact_min: null, spectre: "", rincage: false, sterile: false, compatibilites: "", groupe_rotation: "", peremption_solution_h: null, fds_document_id: null, modele_cle: null, a_completer: false, actif: true },
+    rattachements: [{ colonne: "fds_document_id", table: "documents", suppression: "null" }],
+  },
+  consommables: {
+    module: "nettoyage_procedures", portee: "org",
+    defauts: { type: "lingette", matiere: "", sterile: false, preimpregne: "", classe_iso_min: null, fournisseur: "", reference: "", unite: "unité", stock: 0, seuil_alerte: 0, modele_cle: null, a_completer: false, actif: true },
+  },
+  procedures_nettoyage: {
+    module: "nettoyage_procedures", portee: "site",
+    defauts: { categorie: "nettoyage", zones: [], version: 1, statut: "brouillon", contenu: {}, gabarit_ref: null },
+    rattachements: [salle()],
+    signatures: { objetType: "procedure", colonneVersion: "version", exigences: [{ statut: "approuvee", signification: "approuve", portee: "" }] },
+  },
+  personnes: {
+    module: "personnel", portee: "org",
+    defauts: { prenom: "", fonction: "", employeur: "interne", entreprise: "", user_id: null, actif: true, notes: "" },
+  },
+  habilitations: {
+    module: "personnel", portee: "org",
+    defauts: { type: "acces_zone", classe_iso_max: null, grade_bpf: null, evaluateur: "", resultat: "", document_id: null, date_expiration: null },
+    rattachements: [{ colonne: "personne_id", table: "personnes", suppression: "cascade" }, { colonne: "document_id", table: "documents", suppression: "null" }],
+  },
+  formations: {
+    module: "personnel", portee: "org",
+    defauts: { theme: "autre", organisme: "", duree_h: null, date_recyclage: null, document_id: null },
+    rattachements: [{ colonne: "personne_id", table: "personnes", suppression: "cascade" }, { colonne: "document_id", table: "documents", suppression: "null" }],
+  },
+  interventions_nettoyage: {
+    module: "nettoyage_execution", portee: "site",
+    defauts: { titre: "", moment: "journee", surfaces: [], personne_id: null, statut: "a_faire", realise_le: null, duree_min: null, etapes_faites: [], lots: [], anomalies: "" },
+    rattachements: [
+      salle(), { colonne: "zone_id", table: "zones", suppression: "cascade" }, { colonne: "procedure_id", table: "procedures_nettoyage", suppression: "cascade" },
+      { colonne: "personne_id", table: "personnes", suppression: "null" },
+    ],
+  },
+  validations_nettoyage: {
+    module: "nettoyage_execution", portee: "site",
+    defauts: { procedure_id: null, criteres: "", statut: "planifiee", conclusion: "" },
+    rattachements: [salle(), { colonne: "procedure_id", table: "procedures_nettoyage", suppression: "null" }],
+  },
+  materiel_nettoyage: {
+    module: "nettoyage_procedures", portee: "org",
+    defauts: { salle_id: null, type: "autre", couleur: "", zones_dediees: "", etat: "bon", date_mise_service: null, date_remplacement_prevue: null, notes: "" },
+    rattachements: [{ colonne: "salle_id", table: "salles_propres", suppression: "null" }],
   },
 };
 

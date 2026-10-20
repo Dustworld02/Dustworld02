@@ -1,6 +1,7 @@
 import type { Modification, NomTable, Nouveau, Tables } from "./types";
 import { ErreurDepot } from "./depot";
 import { ajouterMois, instrumentValideLe, verdictResultat } from "../domain/mesures";
+import { personneHabilitee } from "../domain/personnel";
 
 /**
  * Règles métier appliquées par la base (déclencheurs SQL) et émulées
@@ -118,6 +119,38 @@ export const CONTROLES: Controle[] = [
     for (const c of ["contenu", "auteur", "objet_id", "mentions"]) {
       if (JSON.stringify(n[c]) !== JSON.stringify(a[c])) throw new ErreurDepot("Un message publié ne peut pas être modifié (seul l'archivage est possible)");
     }
+  },
+  // Procédures : toute modification d'une procédure approuvée crée une nouvelle version en brouillon.
+  (_ctx, table, n, a) => {
+    if (table !== "procedures_nettoyage" || !n || !a) return;
+    if (a.statut === "approuvee" && n.statut === "approuvee"
+      && (JSON.stringify(n.contenu) !== JSON.stringify(a.contenu) || n.titre !== a.titre || JSON.stringify(n.zones) !== JSON.stringify(a.zones))) {
+      n.version = Number(a.version) + 1;
+      n.statut = "brouillon";
+    }
+  },
+  // Interventions : procédure approuvée, personne habilitée, réalisation tracée.
+  (ctx, table, n, a) => {
+    if (table !== "interventions_nettoyage" || !n) return;
+    if (!a) {
+      const p = ctx.lignes("procedures_nettoyage").find((x) => x.id === n.procedure_id);
+      if (p?.statut !== "approuvee") throw new ErreurDepot("Procédure non approuvée : planification impossible");
+    }
+    if (n.personne_id && (!a || a.personne_id !== n.personne_id || a.statut !== n.statut)) {
+      const zone = ctx.lignes("zones").find((z) => z.id === n.zone_id) as unknown as Tables["zones"];
+      const habilitations = ctx.lignes("habilitations") as unknown as Tables["habilitations"][];
+      const date = String(n.realise_le ?? n.date_prevue).slice(0, 10);
+      if (!personneHabilitee(String(n.personne_id), zone, habilitations, date)) throw new ErreurDepot("Personne non habilitée pour cette zone à cette date");
+    }
+    if (n.statut === "realisee") {
+      if (!n.personne_id) throw new ErreurDepot("Indiquez qui a réalisé le nettoyage");
+      n.realise_le = n.realise_le ?? new Date().toISOString();
+    }
+  },
+  // Personne liée à un compte : le compte doit être membre.
+  (ctx, table, n) => {
+    if (table !== "personnes" || !n?.user_id) return;
+    if (!ctx.lignes("membres").some((m) => m.org_id === n.org_id && m.user_id === n.user_id)) throw new ErreurDepot("Rattachement invalide : cet utilisateur n'est pas membre de l'organisation");
   },
   // Tâches : horodatage de fin à l'entrée dans une colonne terminale.
   (ctx, table, n, a) => {

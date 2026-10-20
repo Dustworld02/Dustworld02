@@ -131,3 +131,45 @@ describe("Mode démo : pilotage (phase 4)", () => {
     await depot.modifier("messages", m.id, { archive: true });
   });
 });
+
+describe("Mode démo : nettoyage et personnel (phase 5)", () => {
+  it("contient des procédures approuvées, un planning et une validation", async () => {
+    const procedures = await depot.lister("procedures_nettoyage", org);
+    expect(procedures.length).toBeGreaterThan(3);
+    expect(procedures.every((p) => p.statut === "approuvee")).toBe(true);
+    expect(procedures.some((p) => p.categorie === "habillage")).toBe(true);
+    const interventions = await depot.lister("interventions_nettoyage", org);
+    const jour = new Date().toISOString().slice(0, 10);
+    expect(interventions.filter((i) => i.statut === "realisee").length).toBeGreaterThan(20);
+    expect(interventions.some((i) => i.statut === "a_faire" && i.date_prevue < jour)).toBe(true);
+    const [validation] = await depot.lister("validations_nettoyage", org);
+    expect((await depot.lister("resultats", org, { validation_id: validation.id })).length).toBe(8);
+  });
+
+  it("crée une nouvelle version en brouillon quand on modifie une procédure approuvée", async () => {
+    const [p] = await depot.lister("procedures_nettoyage", org);
+    const modifiee = await depot.modifier("procedures_nettoyage", p.id, { titre: `${p.titre} (rév.)` });
+    expect(modifiee.version).toBe(p.version + 1);
+    expect(modifiee.statut).toBe("brouillon");
+    await expect(depot.modifier("procedures_nettoyage", p.id, { statut: "approuvee" })).rejects.toThrow(/signature/i);
+    await expect(depot.creer("interventions_nettoyage", {
+      org_id: org, salle_id: p.salle_id, zone_id: p.zones[0], procedure_id: p.id, titre: "Test", date_prevue: "2030-01-01", moment: "journee",
+    })).rejects.toThrow(/non approuvée/);
+  });
+
+  it("refuse d'affecter une personne non habilitée ou à l'habilitation expirée", async () => {
+    const [i] = (await depot.lister("interventions_nettoyage", org)).filter((x) => x.statut === "a_faire");
+    const personnes = await depot.lister("personnes", org);
+    const camille = personnes.find((p) => p.prenom === "Camille")!;
+    await expect(depot.modifier("interventions_nettoyage", i.id, { personne_id: camille.id })).rejects.toThrow(/non habilitée/);
+    const morgan = personnes.find((p) => p.prenom === "Morgan")!;
+    await depot.modifier("interventions_nettoyage", i.id, { personne_id: morgan.id });
+    const faite = await depot.modifier("interventions_nettoyage", i.id, { statut: "realisee" });
+    expect(faite.realise_le).toBeTruthy();
+  });
+
+  it("réserve le personnel aux rôles qui y ont droit", async () => {
+    await connecter("operateur");
+    await expect(depot.creer("personnes", { org_id: org, prenom: "X", nom: "Y" })).rejects.toThrow(/droits insuffisants/);
+  });
+});

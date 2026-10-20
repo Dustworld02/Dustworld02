@@ -16,8 +16,11 @@ import { GRADES_BPF, type GradeBpf } from "../domain/referentiels/gradesBpf";
 import { libelleClasse } from "../domain/referentiels/classesIso";
 import { formatNombre, incoherencesZone, limitesMicrobio, limitesParticulaires, pointsPrelevementZone, volumeM3 } from "../domain/exigencesZone";
 import { LIBELLES_STATUTS } from "./Documents";
+import { useDonneesNettoyage } from "./nettoyage/donnees";
+import { ListeProcedures } from "./nettoyage/Procedures";
+import { PlanningNettoyage } from "./nettoyage/Planning";
 
-type OngletSalle = "zones" | "plan" | "equipements" | "qualification" | "contaminations" | "documents" | "discussion";
+type OngletSalle = "zones" | "plan" | "equipements" | "qualification" | "contaminations" | "nettoyage" | "documents" | "discussion";
 
 type EditionZone = Omit<Zone, "id" | "org_id" | "cree_le" | "cree_par" | "modifie_le" | "modifie_par" | "site_id"> & { id?: string };
 
@@ -135,6 +138,7 @@ export function SalleDetail() {
             { cle: "equipements" as const, libelle: "Équipements et mobilier" },
             ...(s.peut("qualification_protocoles", 1) ? [{ cle: "qualification" as const, libelle: "Qualification" }] : []),
             ...(s.peut("contamination_resultats", 1) ? [{ cle: "contaminations" as const, libelle: "Contaminations" }] : []),
+            ...(s.peut("nettoyage_procedures", 1) || s.peut("nettoyage_execution", 1) ? [{ cle: "nettoyage" as const, libelle: "Nettoyage" }] : []),
             ...(s.peut("documents", 1) ? [{ cle: "documents" as const, libelle: `Documents (${donnees.documents.length})` }] : []),
             ...(s.peut("discussions", 1) ? [{ cle: "discussion" as const, libelle: "Discussion" }] : []),
           ]}
@@ -147,6 +151,7 @@ export function SalleDetail() {
       {onglet === "equipements" && <EquipementsSalle salle={sp} />}
       {onglet === "qualification" && <QualificationSalle salleId={sp.id} />}
       {onglet === "contaminations" && <ContaminationsSalle salleId={sp.id} />}
+      {onglet === "nettoyage" && <NettoyageSalle salleId={sp.id} />}
       {onglet === "discussion" && <Carte titre="Discussion"><FilDiscussion objetType="salle" objetId={sp.id} objetLibelle={sp.nom} lien={`/salles/${sp.id}`} /></Carte>}
 
       {onglet === "zones" && <Carte
@@ -363,5 +368,17 @@ function ContaminationsSalle({ salleId }: { salleId: string }) {
       <MessageErreur erreur={erreur} />
       {donnees && <ListeResultats d={donnees} recharger={recharger} salleFixe={salleId} />}
     </>
+  );
+}
+
+function NettoyageSalle({ salleId }: { salleId: string }) {
+  const s = useSession();
+  const { donnees, erreur, recharger } = useDonneesNettoyage();
+  return (
+    <div className="grid gap-6">
+      <MessageErreur erreur={erreur} />
+      {donnees && s.peut("nettoyage_procedures", 1) && <Carte titre="Procédures de nettoyage et d'habillage"><ListeProcedures d={donnees} recharger={recharger} salleFixe={salleId} /></Carte>}
+      {donnees && s.peut("nettoyage_execution", 1) && <Carte titre="Planning"><PlanningNettoyage d={donnees} recharger={recharger} salleFixe={salleId} /></Carte>}
+    </div>
   );
 }

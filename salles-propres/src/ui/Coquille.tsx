@@ -12,7 +12,6 @@ interface Lien {
 }
 
 export const A_VENIR = [
-  { phase: 5, cle: "nettoyage", libelle: "Nettoyage, personnel", icone: "🧽" },
   { phase: 6, cle: "maintenance", libelle: "Maintenance, change control", icone: "🛠️" },
 ];
 
@@ -27,6 +26,8 @@ export function Coquille() {
     { vers: "/qualification", libelle: "Qualification", icone: "✅", visible: s.peut("qualification_protocoles", 1) || s.peut("qualification_execution", 1) },
     { vers: "/contaminations", libelle: "Contaminations", icone: "🔬", visible: s.peut("contamination_resultats", 1) || s.peut("contamination_tendances", 1) },
     { vers: "/instruments", libelle: "Instruments", icone: "📏", visible: s.peut("instruments", 1) },
+    { vers: "/nettoyage", libelle: "Nettoyage", icone: "🧽", visible: s.peut("nettoyage_procedures", 1) || s.peut("nettoyage_execution", 1) },
+    { vers: "/personnel", libelle: "Personnel", icone: "👥", visible: s.peut("personnel", 1) },
     { vers: "/ecarts", libelle: "Écarts et CAPA", icone: "⚠️", visible: s.peut("ecarts_capa", 1) },
     { vers: "/taches", libelle: "Tâches", icone: "📌", visible: s.peut("kanban", 1) },
     { vers: "/discussions", libelle: "Discussions", icone: "💬", visible: s.peut("discussions", 1) },

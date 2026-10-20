@@ -62,8 +62,7 @@ export function Taches() {
       lire("instruments", () => s.depot.lister("instruments", org)), lire("instruments", () => s.depot.lister("etalonnages", org)),
       lire("cta", () => s.depot.lister("filtres", org)), lire("cta", () => s.depot.lister("releves_filtres", org)), lire("ecarts_capa", () => s.depot.lister("capa", org)),
     ]);
-    // BRANCHEMENT_PHASE_5 : interventions de nettoyage non réalisées
-    const nettoyages: { id: string; titre: string; date_prevue: string; salle_id: string | null; statut: string }[] = [];
+    const nettoyages = await lire("nettoyage_execution", () => s.depot.lister("interventions_nettoyage", org));
     const sources = echeancesAPlanifier({
       zones, essais, periodicites: s.referentiels.periodicites, instruments, etalonnages, filtres: filtresAir, releves, capa, salles: donnees!.salles,
       nettoyagesEnRetard: nettoyages.filter((n) => n.statut === "a_faire" && n.date_prevue < jour).map((n) => ({ id: n.id, titre: n.titre, date: n.date_prevue, salle_id: n.salle_id, lien: "/nettoyage" })),
