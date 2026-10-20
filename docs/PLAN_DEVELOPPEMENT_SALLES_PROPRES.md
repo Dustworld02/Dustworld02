@@ -9,14 +9,23 @@ Version 4 — 20 octobre 2026
 | Phase | État | Où |
 |---|---|---|
 | 0 — Cadrage | Questions du §9 encore ouvertes ; hypothèse de travail : secteur pilote dispositifs médicaux | ce document |
-| 1 — Socle | **Livrée** (20 octobre 2026) | dossier `salles-propres/` |
-| 2 à 7 | À faire | — |
+| 1 — Socle | **Livrée** (20 octobre 2026) | `salles-propres/` |
+| 2 — Modélisation | **Livrée** : plan 2D, portes, CTA, bouches, filtres, équipements, mobilier, points, flux, cascade de pression | `salles-propres/` |
+| 3 — Qualification, instruments, résultats | **Livrée** : campagnes signées, classification A.1, échéancier, étalonnages, entrepôt de résultats | `salles-propres/` |
+| 4 — Écarts, CAPA, Kanban, discussions | **Livrée** : écarts automatiques, 5 pourquoi / Ishikawa, CAPA, Kanban, mentions, notifications | `salles-propres/` |
+| 5 — Nettoyage, personnel | **Livrée** : procédures générées par secteur et signées, planning, mode terrain hors ligne, validation, habilitations | `salles-propres/` |
+| 6 — Surveillance, maintenance, change control | **Livrée** : plan d'échantillonnage, règle de dérive, tendances, cartographie, rapport, ambiance / GTC, maintenance, change control, carnet sanitaire, énergie | `salles-propres/` |
+| 7 — Consolidation | **Livrée** : tableau de bord, revue périodique annuelle archivée en GED, exports CSV, chargement à la demande, dossier de validation | `salles-propres/docs/VALIDATION_LOGICIELLE.md` |
 
-Écarts assumés par rapport au texte du plan, décidés pendant la phase 1 :
+Reste à faire côté exploitation : mise en ligne et instance Supabase (§5 du dossier de validation), relecture du contenu des gabarits par une personne formée du secteur, réponses aux questions du §9.
+
+Écarts assumés par rapport au texte du plan :
 
 - **Hiérarchie** : Organisation → **Entreprise** → Site → **Salle propre** → Zone. Le niveau Entreprise permet de gérer les salles de plusieurs clients ; le secteur d'activité est porté par la salle propre (proposé par défaut depuis l'entreprise), conformément à la demande « sélectionner un secteur à la création d'une salle blanche pour une entreprise donnée ». Le bâtiment et l'étage sont des attributs de la salle plutôt qu'un niveau à part.
 - **Référentiels** : les tables normatives (ISO 14644-1, tableau A.1, Annexe 1) sont en lecture seule ; seules les périodicités et les types de documents sont personnalisables par organisation. Modifier une table normative doit rester un changement de version de l'outil, relu.
-- **Reportés** de la phase 1 : notifications e-mail, double authentification et politique de mot de passe (paramètres Supabase, à régler à la mise en service), restriction des documents par site, séparation imposée rédacteur / approbateur.
+- **Reportés** : notifications e-mail, double authentification et politique de mot de passe (paramètres Supabase, à régler à la mise en service), restriction des documents par site, séparation imposée rédacteur / approbateur, connexion directe à la GTC (import CSV à la place), vérification serveur du mot de passe à la signature (voir dossier de validation §6).
+- **Surveillance** : seule la règle « 3 alertes consécutives au même point » ouvre un écart automatiquement ; les règles statistiques (hausse continue, alertes fréquentes) sont des signaux à examiner, pour éviter de noyer le système d'écarts sous des faux positifs.
+- **Limites microbiologiques en zone ISO sans grade** (DM, micro-électronique) : l'ISO 14644 n'en fixe pas ; le plan proposé emprunte celles du grade BPF équivalent et le signale comme à confirmer.
 
 ---
 

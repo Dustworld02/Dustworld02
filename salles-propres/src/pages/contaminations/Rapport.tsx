@@ -7,6 +7,7 @@ import { LIBELLES_VERDICTS } from "../../domain/contamination";
 import { formatNombre } from "../../domain/exigencesZone";
 import { FREQUENCES_PRELEVEMENT, dateSuivante, resultatsDuPlan, signauxTendance, statistiques } from "../../domain/surveillance";
 import { libellePoint } from "./Resultats";
+import { LIBELLES_STATUTS_ECART } from "../Ecarts";
 
 const jour = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -139,7 +140,7 @@ export function RapportContamination() {
       <section className="mb-5">
         <h2 className="mb-2 text-sm font-bold uppercase text-navy-700">5. Signaux de dérive et écarts</h2>
         {signaux.length === 0 ? <p>Aucun signal de dérive.</p> : <ul className="list-disc pl-5">{signaux.map((sg) => <li key={sg.cle}>{sg.serie} : {sg.libelle}</li>)}</ul>}
-        {ecarts.length > 0 && <ul className="mt-2 list-disc pl-5">{ecarts.map((e) => <li key={e.id}><strong>{e.numero}</strong> {e.titre} — {e.statut.replace("_", " ")}</li>)}</ul>}
+        {ecarts.length > 0 && <ul className="mt-2 list-disc pl-5">{ecarts.map((e) => <li key={e.id}><strong>{e.numero}</strong> {e.titre} — {LIBELLES_STATUTS_ECART[e.statut].toLowerCase()}</li>)}</ul>}
       </section>
 
       <section className="mb-5">

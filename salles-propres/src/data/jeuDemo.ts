@@ -415,7 +415,10 @@ async function surveillanceMaintenanceDemo(depot: DepotDemo, org: string, salleI
     depot.lister("resultats", org, { salle_id: salleId }),
   ]);
   const dans = (jours: number) => { const d = new Date(); d.setDate(d.getDate() + jours); return jourIso(d); };
-  await depot.creerPlusieurs("plans_echantillonnage", proposerPlan(salleId, zones, points, dans(-182), resultats).map((l) => ({ ...l, org_id: org })));
+  // Lignes déjà suivies : historique de six mois ; nouvelles lignes : premier prélèvement dans quelques jours.
+  await depot.creerPlusieurs("plans_echantillonnage", proposerPlan(salleId, zones, points, dans(-182), resultats).map((l) => ({
+    ...l, org_id: org, date_debut: resultats.some((r) => r.point_id === l.point_id && r.parametre === l.parametre) ? l.date_debut : dans(3),
+  })));
 
   // Un mois de relevés d'ambiance (pression toutes les 6 h, température et humidité quotidiennes),
   // avec une baisse de pression de deux jours dans le SAS matériel.

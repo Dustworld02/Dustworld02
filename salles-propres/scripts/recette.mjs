@@ -425,7 +425,7 @@ await verifier("Les tendances, la cartographie et le rapport périodique s'affic
   await page.getByRole("img", { name: /Cartographie de contamination/ }).waitFor();
   await capture("24-cartographie");
   await page.goto(`${URL_APP}/#/contaminations/rapport`);
-  await page.getByLabel("Salle").selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByLabel("Salle", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
   await page.getByRole("heading", { name: "Rapport de surveillance de la contamination" }).waitFor();
   await page.getByText("Résultats par paramètre").waitFor();
   await capture("25-rapport-surveillance");
@@ -464,6 +464,34 @@ await verifier("Un changement majeur est approuvé par signature avec requalific
   await page.getByRole("dialog").getByRole("button", { name: "Déclarer réalisé" }).waitFor();
   await capture("29-change-control");
   await page.keyboard.press("Escape");
+});
+
+await verifier("Le tableau de bord synthétise les indicateurs et l'état de chaque salle", async () => {
+  await page.goto(`${URL_APP}/#/`);
+  await page.getByRole("heading", { name: "Tableau de bord" }).waitFor();
+  await page.getByText("Écarts ouverts").first().waitFor();
+  await page.getByText("Surveillance (30 j)").waitFor();
+  await page.getByRole("link", { name: /Salle propre assemblage cathéters.*Surveillance 30 j/ }).waitFor();
+  await page.getByText("À traiter en priorité").waitFor();
+  await capture("30-tableau-de-bord");
+});
+
+await verifier("La revue périodique est générée puis archivée dans la GED", async () => {
+  await page.goto(`${URL_APP}/#/revue`);
+  await page.getByLabel("Salle", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByRole("heading", { name: "Revue périodique de la salle propre" }).waitFor();
+  await page.getByText("8. Constats et conclusion").waitFor();
+  await capture("31-revue-periodique");
+  await page.getByRole("button", { name: "Archiver dans la GED" }).click();
+  await page.getByText("Revue archivée en brouillon dans la GED").waitFor();
+  await page.goto(`${URL_APP}/#/documents`);
+  await page.getByText(/Revue périodique — Salle propre assemblage cathéters/).first().waitFor();
+});
+
+await verifier("Les écarts s'exportent en CSV", async () => {
+  await page.goto(`${URL_APP}/#/ecarts`);
+  const [telechargement] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Exporter (CSV)" }).click()]);
+  if (!/^ecarts-.*\.csv$/.test(telechargement.suggestedFilename())) throw new Error(telechargement.suggestedFilename());
 });
 
 await verifier("L'opérateur n'a ni création de salle, ni configuration, ni journal", async () => {

@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useSession, nomUtilisateur } from "../session";
 import type { AnalyseCauses, Capa, Ecart, StatutEcart } from "../data/types";
-import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Saisie, Vide, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
+import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Saisie, Vide, ZoneTexte, formatDate, telechargerFichier, useAction, useDonnees } from "../ui/composants";
+import { versCsv } from "../domain/csv";
 import { Formulaire, GestionEntites, champsManquants, optionsDe, type DefinitionChamp } from "../ui/entites";
 import { FilDiscussion } from "../ui/discussion";
 import { ListeSignatures, ModaleSignature } from "../ui/signature";
@@ -57,7 +58,18 @@ export function Ecarts() {
 
   return (
     <>
-      <EnTete titre="Écarts et CAPA" sousTitre="Déviations détectées (automatiquement ou déclarées), analyse des causes, actions correctives et préventives, vérification d'efficacité." />
+      <EnTete
+        titre="Écarts et CAPA"
+        sousTitre="Déviations détectées (automatiquement ou déclarées), analyse des causes, actions correctives et préventives, vérification d'efficacité."
+        actions={<Bouton onClick={() => telechargerFichier(`ecarts-${jour}.csv`, versCsv(
+          ["Numéro", "Titre", "Origine", "Gravité", "Statut", "Salle", "Détecté le", "Clôturé le", "Cause racine", "CAPA", "CAPA efficaces"],
+          lignes.map((e) => {
+            const capa = (donnees?.capa ?? []).filter((c) => c.ecart_id === e.id);
+            return [e.numero, e.titre, LIBELLES_ORIGINES_ECART[e.origine], LIBELLES_GRAVITE[e.gravite], LIBELLES_STATUTS_ECART[e.statut], donnees?.salles.find((x) => x.id === e.salle_id)?.nom, e.date_detection, e.cloture_le,
+              e.analyse_causes?.cause_racine ?? "", capa.length, capa.filter((c) => c.statut === "efficace").length];
+          }),
+        ), "text/csv")}>Exporter (CSV)</Bouton>}
+      />
       <MessageErreur erreur={erreur} />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[

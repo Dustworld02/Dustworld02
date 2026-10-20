@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NavLink, Outlet } from "react-router";
 import { useSession } from "../session";
 import { Badge, Liste } from "./composants";
@@ -28,6 +29,7 @@ export function Coquille() {
     { vers: "/ecarts", libelle: "Écarts et CAPA", icone: "⚠️", visible: s.peut("ecarts_capa", 1) },
     { vers: "/taches", libelle: "Tâches", icone: "📌", visible: s.peut("kanban", 1) },
     { vers: "/discussions", libelle: "Discussions", icone: "💬", visible: s.peut("discussions", 1) },
+    { vers: "/revue", libelle: "Revue périodique", icone: "📊", visible: s.peut("contamination_tendances", 1) || s.peut("ecarts_capa", 3) },
     { vers: "/documents", libelle: "Documents", icone: "📄", visible: s.peut("documents", 1) },
     { vers: "/referentiels", libelle: "Référentiels", icone: "📚", visible: s.peut("referentiels", 1) },
     { vers: "/configuration", libelle: "Configuration", icone: "⚙️", visible: s.peut("configuration", 1) || s.peut("gabarits", 1) },
@@ -95,7 +97,7 @@ export function Coquille() {
           <button type="button" className="text-sm text-texte-2 hover:text-texte" onClick={() => void s.deconnecter()}>Déconnexion</button>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
-          <Outlet />
+          <Suspense fallback={<p className="text-texte-2">Chargement…</p>}><Outlet /></Suspense>
         </main>
       </div>
     </div>

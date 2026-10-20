@@ -19,6 +19,13 @@ const TABLES: Record<string, string> = {
   documents: "Document",
   versions_documents: "Version de document",
   signatures: "Signature",
+  portes: "Porte", ctas: "CTA", bouches: "Bouche", filtres: "Filtre", releves_filtres: "Relevé de filtre", equipements: "Équipement", mobilier: "Mobilier",
+  points_prelevement: "Point de prélèvement", flux: "Flux", notifications: "Notification", instruments: "Instrument", etalonnages: "Étalonnage",
+  campagnes_qualification: "Campagne de qualification", essais: "Essai", resultats: "Résultat", ecarts: "Écart", capa: "CAPA", colonnes_kanban: "Colonne du Kanban",
+  taches: "Tâche", messages: "Message", produits_nettoyage: "Produit de nettoyage", consommables: "Consommable", procedures_nettoyage: "Procédure de nettoyage",
+  personnes: "Personne", habilitations: "Habilitation", formations: "Formation", interventions_nettoyage: "Intervention de nettoyage",
+  validations_nettoyage: "Validation du nettoyage", materiel_nettoyage: "Matériel de nettoyage", plans_echantillonnage: "Plan d'échantillonnage",
+  releves_ambiance: "Relevé d'ambiance", gammes_maintenance: "Gamme de maintenance", interventions_maintenance: "Intervention de maintenance", changements: "Changement",
 };
 
 export function libelleTable(t: string): string {

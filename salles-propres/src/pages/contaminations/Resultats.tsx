@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSession } from "../../session";
 import type { EtatOccupation, Instrument, Etalonnage, PlanEchantillonnage, PointPrelevement, Resultat, SallePropre, Zone, Nouveau } from "../../data/types";
-import { Badge, Bandeau, Bouton, Champ, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, dateHeureLocale, formatDate, useAction } from "../../ui/composants";
+import { Badge, Bandeau, Bouton, Champ, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, dateHeureLocale, formatDate, telechargerFichier, useAction } from "../../ui/composants";
+import { versCsv } from "../../domain/csv";
 import {
   LIBELLES_MILIEUX, LIBELLES_NATURES, LIBELLES_ORIGINES, LIBELLES_VERDICTS, PARAMETRES, TON_VERDICT, dateFr, limitesSuggerees, lireCsv, nombreFr, type Parametre,
 } from "../../domain/contamination";
@@ -62,6 +63,11 @@ export function ListeResultats({ d, recharger, salleFixe }: { d: DonneesContamin
         <Badge ton="attention">{compte("alerte")} alerte(s)</Badge>
         <Badge ton="alerte">{compte("action")} action(s)</Badge>
         <span className="ml-auto flex gap-2">
+          <Bouton onClick={() => telechargerFichier(`resultats-${new Date().toISOString().slice(0, 10)}.csv`, versCsv(
+            ["Date", "Salle", "Zone", "Point", "Milieu", "Nature", "Paramètre", "Valeur", "Unité", "Limite d'alerte", "Limite d'action", "Verdict", "Origine", "État", "Opérateur", "Lot de milieu", "Germe", "Commentaire"],
+            liste.map((r) => [r.date_prelevement, nom(r.salle_id, d.salles), d.zones.find((z) => z.id === r.zone_id)?.code ?? "", libellePoint(r, d.points), LIBELLES_MILIEUX[r.milieu], LIBELLES_NATURES[r.nature],
+              r.parametre, r.valeur, r.unite, r.limite_alerte, r.limite_action, LIBELLES_VERDICTS[r.verdict], LIBELLES_ORIGINES[r.origine], r.etat_occupation, r.operateur, r.lot_milieu, r.germe, r.commentaire]),
+          ), "text/csv")}>Exporter (CSV)</Bouton>
           {ecriture && <Bouton onClick={() => setImporter(true)}>Importer un fichier CSV</Bouton>}
           {ecriture && <Bouton variante="principal" onClick={() => setSaisie(true)}>+ Saisir un résultat</Bouton>}
         </span>

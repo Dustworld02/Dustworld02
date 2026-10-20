@@ -1,33 +1,77 @@
+import { lazy, useEffect } from "react";
 import { HashRouter, Route, Routes, Navigate } from "react-router";
 import { FournisseurSession } from "./session";
 import { Coquille } from "./ui/Coquille";
 import { Connexion } from "./pages/Connexion";
 import { CreationOrganisation } from "./pages/CreationOrganisation";
 import { Accueil } from "./pages/Accueil";
-import { Entreprises } from "./pages/Entreprises";
-import { SallesPropres } from "./pages/SallesPropres";
-import { AssistantSalle } from "./pages/AssistantSalle";
-import { SalleDetail } from "./pages/SalleDetail";
-import { Documents } from "./pages/Documents";
-import { Referentiels } from "./pages/Referentiels";
-import { Configuration } from "./pages/Configuration";
-import { Journal } from "./pages/Journal";
-import { TraitementAir, CtaDetail } from "./pages/TraitementAir";
-import { Equipements } from "./pages/Equipements";
-import { Instruments } from "./pages/Instruments";
-import { Contaminations } from "./pages/contaminations/Contaminations";
-import { RapportContamination } from "./pages/contaminations/Rapport";
-import { Qualification } from "./pages/qualification/Qualification";
-import { AssistantCampagne } from "./pages/qualification/AssistantCampagne";
-import { CampagneDetail } from "./pages/qualification/CampagneDetail";
-import { ImpressionCampagne } from "./pages/qualification/ImpressionCampagne";
-import { Ecarts, EcartDetail } from "./pages/Ecarts";
-import { Taches } from "./pages/Taches";
-import { Discussions } from "./pages/Discussions";
-import { Nettoyage } from "./pages/nettoyage/Nettoyage";
-import { Personnel } from "./pages/Personnel";
-import { Maintenance } from "./pages/Maintenance";
-import { CarnetSanitaire } from "./pages/CarnetSanitaire";
+
+// Pages chargées à la demande ; toutes sont préchargées en arrière-plan après le démarrage
+// pour rester disponibles hors ligne (mode terrain).
+const CHARGEURS = {
+  Entreprises: () => import("./pages/Entreprises").then((m) => ({ default: m.Entreprises })),
+  SallesPropres: () => import("./pages/SallesPropres").then((m) => ({ default: m.SallesPropres })),
+  AssistantSalle: () => import("./pages/AssistantSalle").then((m) => ({ default: m.AssistantSalle })),
+  SalleDetail: () => import("./pages/SalleDetail").then((m) => ({ default: m.SalleDetail })),
+  Documents: () => import("./pages/Documents").then((m) => ({ default: m.Documents })),
+  Referentiels: () => import("./pages/Referentiels").then((m) => ({ default: m.Referentiels })),
+  Configuration: () => import("./pages/Configuration").then((m) => ({ default: m.Configuration })),
+  Journal: () => import("./pages/Journal").then((m) => ({ default: m.Journal })),
+  TraitementAir: () => import("./pages/TraitementAir").then((m) => ({ default: m.TraitementAir })),
+  CtaDetail: () => import("./pages/TraitementAir").then((m) => ({ default: m.CtaDetail })),
+  Equipements: () => import("./pages/Equipements").then((m) => ({ default: m.Equipements })),
+  Instruments: () => import("./pages/Instruments").then((m) => ({ default: m.Instruments })),
+  Contaminations: () => import("./pages/contaminations/Contaminations").then((m) => ({ default: m.Contaminations })),
+  RapportContamination: () => import("./pages/contaminations/Rapport").then((m) => ({ default: m.RapportContamination })),
+  Qualification: () => import("./pages/qualification/Qualification").then((m) => ({ default: m.Qualification })),
+  AssistantCampagne: () => import("./pages/qualification/AssistantCampagne").then((m) => ({ default: m.AssistantCampagne })),
+  CampagneDetail: () => import("./pages/qualification/CampagneDetail").then((m) => ({ default: m.CampagneDetail })),
+  ImpressionCampagne: () => import("./pages/qualification/ImpressionCampagne").then((m) => ({ default: m.ImpressionCampagne })),
+  Ecarts: () => import("./pages/Ecarts").then((m) => ({ default: m.Ecarts })),
+  EcartDetail: () => import("./pages/Ecarts").then((m) => ({ default: m.EcartDetail })),
+  Taches: () => import("./pages/Taches").then((m) => ({ default: m.Taches })),
+  Discussions: () => import("./pages/Discussions").then((m) => ({ default: m.Discussions })),
+  Nettoyage: () => import("./pages/nettoyage/Nettoyage").then((m) => ({ default: m.Nettoyage })),
+  Personnel: () => import("./pages/Personnel").then((m) => ({ default: m.Personnel })),
+  Maintenance: () => import("./pages/Maintenance").then((m) => ({ default: m.Maintenance })),
+  CarnetSanitaire: () => import("./pages/CarnetSanitaire").then((m) => ({ default: m.CarnetSanitaire })),
+  RevuePeriodique: () => import("./pages/RevuePeriodique").then((m) => ({ default: m.RevuePeriodique })),
+};
+const Entreprises = lazy(CHARGEURS.Entreprises);
+const SallesPropres = lazy(CHARGEURS.SallesPropres);
+const AssistantSalle = lazy(CHARGEURS.AssistantSalle);
+const SalleDetail = lazy(CHARGEURS.SalleDetail);
+const Documents = lazy(CHARGEURS.Documents);
+const Referentiels = lazy(CHARGEURS.Referentiels);
+const Configuration = lazy(CHARGEURS.Configuration);
+const Journal = lazy(CHARGEURS.Journal);
+const TraitementAir = lazy(CHARGEURS.TraitementAir);
+const CtaDetail = lazy(CHARGEURS.CtaDetail);
+const Equipements = lazy(CHARGEURS.Equipements);
+const Instruments = lazy(CHARGEURS.Instruments);
+const Contaminations = lazy(CHARGEURS.Contaminations);
+const RapportContamination = lazy(CHARGEURS.RapportContamination);
+const Qualification = lazy(CHARGEURS.Qualification);
+const AssistantCampagne = lazy(CHARGEURS.AssistantCampagne);
+const CampagneDetail = lazy(CHARGEURS.CampagneDetail);
+const ImpressionCampagne = lazy(CHARGEURS.ImpressionCampagne);
+const Ecarts = lazy(CHARGEURS.Ecarts);
+const EcartDetail = lazy(CHARGEURS.EcartDetail);
+const Taches = lazy(CHARGEURS.Taches);
+const Discussions = lazy(CHARGEURS.Discussions);
+const Nettoyage = lazy(CHARGEURS.Nettoyage);
+const Personnel = lazy(CHARGEURS.Personnel);
+const Maintenance = lazy(CHARGEURS.Maintenance);
+const CarnetSanitaire = lazy(CHARGEURS.CarnetSanitaire);
+const RevuePeriodique = lazy(CHARGEURS.RevuePeriodique);
+
+function Prechargement() {
+  useEffect(() => {
+    const t = window.setTimeout(() => { for (const charger of Object.values(CHARGEURS)) void charger(); }, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
+  return null;
+}
 
 function Ecran({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-full items-center justify-center p-6 text-texte-2">{children}</div>;
@@ -44,6 +88,7 @@ export function App() {
         if (etat === "sans_org") return <CreationOrganisation />;
         return (
           <HashRouter>
+            <Prechargement />
             <Routes>
               <Route element={<Coquille />}>
                 <Route index element={<Accueil />} />
@@ -67,6 +112,7 @@ export function App() {
                 <Route path="nettoyage" element={<Nettoyage />} />
                 <Route path="personnel" element={<Personnel />} />
                 <Route path="maintenance" element={<Maintenance />} />
+                <Route path="revue" element={<RevuePeriodique />} />
                 <Route path="taches" element={<Taches />} />
                 <Route path="discussions" element={<Discussions />} />
                 <Route path="documents" element={<Documents />} />

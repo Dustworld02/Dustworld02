@@ -157,7 +157,7 @@ function CreationDocument({ salles, objetParDefaut, onFermer, onCree }: {
   );
 }
 
-async function deposerVersion(s: ReturnType<typeof useSession>, documentId: string, fichier: File, commentaire: string) {
+export async function deposerVersion(s: ReturnType<typeof useSession>, documentId: string, fichier: File, commentaire: string) {
   const org = s.org!.id;
   const chemin = `${org}/${documentId}/${crypto.randomUUID()}-${nomFichierSur(fichier.name)}`;
   await s.depot.deposerFichier(chemin, fichier);

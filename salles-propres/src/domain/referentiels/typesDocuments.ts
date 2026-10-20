@@ -13,5 +13,6 @@ export const TYPES_DOCUMENTS_DEFAUT: TypeDocument[] = [
   { cle: "procedure", libelle: "Procédure / mode opératoire", validiteMois: 36 },
   { cle: "plan", libelle: "Plan", validiteMois: null },
   { cle: "urs", libelle: "Cahier des charges (URS)", validiteMois: null },
+  { cle: "revue_periodique", libelle: "Revue périodique", validiteMois: 12 },
   { cle: "autre", libelle: "Autre", validiteMois: null },
 ];

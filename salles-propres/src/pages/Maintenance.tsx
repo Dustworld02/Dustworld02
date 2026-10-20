@@ -5,6 +5,7 @@ import type { Changement, EvaluationChangement, GammeMaintenance, InterventionMa
 import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Onglets, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
 import { Formulaire, GestionEntites, optionsDe, type DefinitionChamp } from "../ui/entites";
 import { ListeSignatures, ModaleSignature } from "../ui/signature";
+import { LIBELLES_STATUTS_CAMPAGNE } from "../domain/qualification";
 import { CATEGORIES_CHANGEMENT, IMPACTS_CHANGEMENT, STATUTS_CHANGEMENT, etatGamme, requalificationSuggeree } from "../domain/maintenance";
 
 const TON_GAMME = { en_retard: "alerte", a_echeance: "attention", a_jour: "ok" } as const;
@@ -254,7 +255,7 @@ function DetailChangement({ d, changement: c, recharger, onFermer }: { d: Donnee
                   </Liste>
                 </Champ>
                 {c.salle_id && s.peut("qualification_protocoles", 2) && !campagne && <Bouton onClick={() => navigate(`/qualification/nouvelle?salle=${c.salle_id}`)}>Préparer la campagne</Bouton>}
-                {campagneLiee && <Link className="text-sm text-navy-700 underline" to={`/qualification/${campagneLiee.id}`}>ouvrir la campagne ({campagneLiee.statut.replace("_", " ")})</Link>}
+                {campagneLiee && <Link className="text-sm text-navy-700 underline" to={`/qualification/${campagneLiee.id}`}>ouvrir la campagne ({(LIBELLES_STATUTS_CAMPAGNE[campagneLiee.statut] ?? campagneLiee.statut).toLowerCase()})</Link>}
               </div>
               {requalif && campagneLiee?.statut !== "cloturee" && <p className="mt-2 text-xs text-texte-2">La clôture du changement sera possible une fois la campagne clôturée.</p>}
             </Carte>

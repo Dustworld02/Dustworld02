@@ -27,7 +27,7 @@ export function Taches() {
     return { colonnes: colonnes.sort((a, b) => a.ordre - b.ordre), taches, salles };
   }, [org]);
   const [vue, setVue] = useState<"tableau" | "calendrier">("tableau");
-  const [filtres, setFiltres] = useState({ texte: "", moi: false, retard: false, etiquette: "", salle: "" });
+  const [filtres, setFiltres] = useState({ texte: "", moi: parametres.get("vue") === "moi", retard: false, etiquette: "", salle: "" });
   const [ouverte, setOuverte] = useState<string | null>(parametres.get("carte"));
   const [creation, setCreation] = useState<string | null>(null);
   const [gestionColonnes, setGestionColonnes] = useState(false);

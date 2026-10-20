@@ -88,3 +88,27 @@ describe("Maintenance, change control et énergie", () => {
     expect(energieCta({ puissance_ventilateur_kw: null, debit_nominal_m3h: null, debit_reduit_m3h: null, heures_nominal_jour: null, heures_reduit_jour: null })).toBeNull();
   });
 });
+
+describe("Export CSV", () => {
+  it("échappe les séparateurs et utilise la virgule décimale", async () => {
+    const { versCsv } = await import("../src/domain/csv");
+    expect(versCsv(["a", "b"], [["x;y", 1.5], [null, true]])).toBe('﻿a;b\r\n"x;y";1,5\r\n;oui\r\n');
+  });
+});
+
+describe("Tableau de bord", () => {
+  it("synthétise une salle : conformité, nettoyage, écarts, ambiance", async () => {
+    const { syntheseSalles } = await import("../src/domain/tableauDeBord");
+    const salle = { ...trace, id: "s", nom: "Salle" } as never;
+    const maintenant = new Date("2026-10-20T12:00:00Z");
+    const recent = (j: number) => `2026-10-${String(j).padStart(2, "0")}T09:00:00Z`;
+    const [x] = syntheseSalles({
+      salles: [salle], zones: [zone({})], essais: [], periodicites: [],
+      resultats: [res(2, "conforme", 10), res(16, "alerte", 11), res(1, "conforme", 12), res(3, "non_evalue", 13), res(9, "action", 1, { date_prelevement: "2026-08-01T09:00:00Z" })],
+      interventions: [{ salle_id: "s", date_prevue: "2026-10-15", statut: "realisee" }, { salle_id: "s", date_prevue: "2026-10-16", statut: "a_faire" }, { salle_id: "s", date_prevue: "2026-10-25", statut: "a_faire" }] as never,
+      ecarts: [{ salle_id: "s", statut: "ouvert" }, { salle_id: "s", statut: "cloture" }] as never,
+      releves: [{ zone_id: "z", grandeur: "pression", valeur: 20, date_mesure: recent(18) }, { zone_id: "z", grandeur: "pression", valeur: 30, date_mesure: recent(18) }] as never,
+    }, 30, maintenant);
+    expect(x).toMatchObject({ resultats: 4, excursions: 1, conformite: 66.7, nettoyagesPrevus: 2, nettoyagesFaits: 1, ecartsOuverts: 1, ambianceHorsLimites: 1, qualification: null });
+  });
+});
