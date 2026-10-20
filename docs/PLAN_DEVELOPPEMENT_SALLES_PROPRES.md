@@ -1,6 +1,6 @@
 # Plan de développement — Outil de gestion des salles propres et ZAC
 
-Version 2 — 20 octobre 2026
+Version 3 — 20 octobre 2026
 
 ---
 
@@ -31,7 +31,7 @@ Ce n'est pas le cas pour un laboratoire, un atelier micro-électronique ou une Z
 
 ### 0.3 Ne pas tout construire en même temps
 
-Le périmètre demandé représente 8 modules métier plus un socle. Les enchaîner dans le bon ordre est ce qui évite de refaire. L'ordre proposé en §7 est dicté par les dépendances de données : tout repose sur le référentiel « site → zones → classes → équipements ». Il doit exister avant la qualification, qui doit exister avant le nettoyage validé, etc.
+Le périmètre demandé représente 8 modules métier, un socle et une bibliothèque de gabarits par secteur (§4.0). Les enchaîner dans le bon ordre est ce qui évite de refaire. L'ordre proposé en §7 est dicté par les dépendances de données : tout repose sur le référentiel « site → zones → classes → équipements ». Il doit exister avant la qualification, qui doit exister avant le nettoyage validé, etc.
 
 ---
 
@@ -118,6 +118,8 @@ Entités principales et liens. Tout objet porte `créé_par / créé_le / modifi
 ```
 Organisation
  └─ Site
+     ├─ Secteur d'activité (pharma stérile, pharma non stérile, dispositifs médicaux, micro-électronique, hôpital,
+     │   biotech/laboratoire, cosmétique, agroalimentaire, aérospatial/optique) + gabarit appliqué et sa version
      └─ Bâtiment / Étage
          └─ Zone (salle, SAS personnel, SAS matériel, passe-plat, zone de pesée, couloir propre…)
              ├─ Classification : classe ISO au repos / en activité, grade BPF, classe NF S 90-351
@@ -184,11 +186,74 @@ Discussion : fil rattaché à n'importe quel objet, messages horodatés, mention
 Document : fichier versionné, type (protocole, rapport, certificat, FDS, procédure, plan…), objet(s) lié(s), statut (brouillon / en revue / approuvé / périmé), date de validité
 Personnel : habilitations (zones autorisées, classes), formations (habillage, comportement, nettoyage), échéances de recyclage
 Utilisateur, Rôle, Permission (§8)
+
+Secteur d'activité
+ ├─ Référentiels par défaut (BPF Annexe 1, ISO 13485, ISO 14644-8, NF S 90-351, ISO 22716…), vocabulaire (grade / classe / zone)
+ ├─ Gabarits (versionnés, éditables par l'administrateur, exportables / importables en JSON)
+ │   ├─ Types de zones et classes par défaut (ex. DM : salle de production ISO 7, SAS ISO 8, zone d'emballage ISO 8)
+ │   ├─ Règles de dérivation : fréquence de nettoyage, fréquence de surveillance, périodicité des essais
+ │   │   = f(secteur, type de zone, classe ISO / grade, état d'activité)
+ │   ├─ Procédures de nettoyage types : produits, consommables (lingettes, mops), techniques, ordre, matériel dédié
+ │   ├─ Procédures d'habillage types par classe, plan d'échantillonnage type, catalogue d'essais type
+ │   ├─ Modèles de documents (protocole, rapport, procédure, carnet sanitaire) avec la terminologie du secteur
+ │   └─ Colonnes Kanban et cartes de démarrage (ex. « Qualification initiale », « Rédiger le plan de nettoyage »)
+ └─ Objet généré : porte « généré depuis gabarit X vY », modifiable, re-synchronisable sur demande
 ```
 
 ---
 
 ## 4. Modules fonctionnels
+
+### 4.0 Secteur d'activité et gabarits métier (assistant de création d'une salle)
+
+À la création d'une salle propre pour une entreprise, l'utilisateur choisit un **secteur d'activité**. Ce choix pré-remplit l'ensemble des modules avec des contenus adaptés, tous modifiables. L'objectif : démarrer avec une base crédible en quelques minutes, pas avec des tables vides.
+
+**Secteurs livrés en v1** (liste extensible dans le panneau de configuration) :
+
+| Secteur | Référentiels par défaut | Spécificités injectées |
+|---|---|---|
+| Pharma stérile | BPF Annexe 1 (grades A à D), ISO 14644 | Rotation désinfectants + sporicide, limites microbio Annexe 1, habillage grade B, surveillance en activité renforcée |
+| Pharma non stérile / cosmétique | BPF, ISO 22716 | Classes D / ISO 8, microbio moins fréquente, focus résidus de nettoyage |
+| Dispositifs médicaux | ISO 13485, ISO 14644, ISO 14698 | Salles ISO 7/8, bioburden produit, lingettes polyester, traçabilité lots de produits de nettoyage |
+| Micro-électronique / semi-conducteurs | ISO 14644-1/-8/-9, ESD | AMC (COV, acides, bases), eau déionisée + IPA, pas de sporicide, matériel antistatique, classes ISO 3 à 6 |
+| Hôpital (PUI, bloc, stérilisation) | NF S 90-351, BPP | Classes de risque 1 à 4, carnet sanitaire de l'air, bionettoyage, zones 1 à 4 |
+| Biotech / laboratoire (P2, P3) | ISO 14644-7, EN 12469, arrêtés confinement | PSM, pression négative, décontamination, déchets |
+| Agroalimentaire (zones ultra-propres) | ISO 22000, HACCP | Désinfection alimentaire, sans résidu, fréquences par poste |
+| Aérospatial / optique / mécanique | ISO 14644-9, ECSS-Q-ST-70 | Propreté particulaire des surfaces, dépôt, outils dédiés, pas de microbio |
+
+**Ce que le gabarit génère à la création** (et uniquement si le module est activé pour l'entreprise) :
+
+1. **Zones types** proposées avec leur classe par défaut (ex. DM : SAS personnel ISO 8, SAS matériel ISO 8, salle de production ISO 7, zone d'emballage ISO 8) ; l'utilisateur coche, renomme, change les classes. Les limites particulaires et microbio en découlent.
+2. **Procédures de nettoyage** par type de zone, déjà renseignées :
+   - consommables suggérés selon classe et secteur (ex. DM ISO 7 : lingettes polyester tricoté non pelucheuses, pré-imprégnées IPA 70 % ; micro-élec ISO 5 : polyester scellé, eau DI ; pharma grade A/B : stériles irradiées) ;
+   - produits suggérés (détergent, désinfectant, sporicide si secteur stérile, rotation) avec dilutions et temps de contact à confirmer par la FDS fournisseur ;
+   - techniques : surfaces en **S** avec chevauchement unidirectionnel, sols en **bandes parallèles** (mop plat), du plus propre vers le plus sale, du haut vers le bas, une face de lingette par passage ; schémas inclus ;
+   - ordre des opérations et matériel dédié par zone (code couleur) ;
+   - **fréquences calculées** par la règle de dérivation (voir ci-dessous).
+3. **Procédures d'habillage** par SAS et par classe, avec la liste de tenue du secteur.
+4. **Plan d'échantillonnage** type (natures mesurées, fréquences, limites) et **catalogue d'essais** de qualification pré-coché avec périodicités.
+5. **Modèles de documents** à la terminologie du secteur (grade pour la pharma, classe de risque pour l'hôpital).
+6. **Kanban de démarrage** avec les cartes du parcours de mise en service.
+
+**Règle de dérivation des fréquences** (exemple pour dispositifs médicaux, modifiable dans la configuration) :
+
+| Type de zone | Classe | Sols | Surfaces de travail | Murs / plafonds | Désinfection complète |
+|---|---|---|---|---|---|
+| Salle de production | ISO 7 | chaque poste | début et fin de poste | hebdomadaire | mensuelle |
+| Salle de production | ISO 8 | quotidien | début de poste | mensuelle | trimestrielle |
+| SAS personnel / matériel | ISO 8 | quotidien | quotidien | mensuelle | trimestrielle |
+| Zone d'emballage | ISO 8 | quotidien | début de poste | mensuelle | trimestrielle |
+
+La règle produit aussi la fréquence de surveillance (ex. DM ISO 7 : particulaire mensuel, microbio air et surfaces hebdomadaires en activité) et la périodicité des essais (ISO 14644-2 par défaut, resserrée pour les secteurs stériles).
+
+**Traçabilité et mise à jour** : chaque objet généré garde la référence du gabarit et de sa version. Quand un gabarit évolue (nouvelle version de l'Annexe 1, changement de fournisseur de lingettes), l'outil propose zone par zone d'appliquer la mise à jour ou de conserver la version locale ; les objets déjà approuvés passent par le change control.
+
+**Gabarits d'entreprise** : l'administrateur peut créer son propre gabarit à partir d'une salle existante (« enregistrer comme gabarit »), afin que la deuxième salle de la même entreprise démarre avec ses procédures à elle, pas avec le générique du secteur.
+
+**Deux limites à annoncer clairement dans l'outil** :
+
+- un gabarit est un **point de départ**, pas une procédure validée : les produits, dilutions et temps de contact doivent être confirmés par les FDS et la validation du nettoyage du site, et l'entreprise reste responsable de ses procédures ;
+- le contenu des gabarits est un travail de rédaction métier distinct du développement (§7, phase « Contenu ») et doit être relu par une personne formée du secteur.
 
 ### 4.1 Modélisation de la salle (plan 2D interactif)
 
@@ -269,7 +334,8 @@ Tous les résultats de mesure, quelle que soit leur origine (qualification, surv
 
 ### 4.7 Nettoyage de A à Z
 
-- **Référentiel produits** : fiche (famille, spectre, dilution, temps de contact, matériaux compatibles, FDS, rotation désinfectants, péremption des solutions préparées).
+- **Point de départ** : les procédures, produits, consommables et fréquences sont pré-générés par le gabarit du secteur (§4.0), puis ajustés ici.
+- **Référentiel produits et consommables** : fiche (famille, spectre, dilution, temps de contact, matériaux compatibles, FDS, rotation désinfectants, péremption des solutions préparées) ; consommables (lingettes par matière : polyester tricoté, polyester-cellulose, microfibre ; stériles ou non ; pré-imprégnées ; mops plats, têtes jetables) avec classes d'usage recommandées.
 - **Procédures** par type de zone et classe : étapes ordonnées, matériel dédié (couleur/zone), fréquence (quotidien, hebdo, mensuel, après intervention), sens de nettoyage, contrôle attendu.
 - **Planning** généré depuis les fréquences ; interventions attribuées ; mode terrain tablette (grandes cases, hors ligne, synchronisation).
 - **Enregistrement** : qui, quand, produit et lot, durée, anomalie constatée, signature.
@@ -368,6 +434,7 @@ Les durées sont indicatives, pour une personne à temps plein assistée par gé
 
 - Projet, authentification, utilisateurs, rôles, **panneau de configuration** et matrice de droits (§8).
 - Référentiels : classes ISO, grades BPF, périodicités, catalogue d'essais, types de documents.
+- **Secteurs d'activité et moteur de gabarits** (§4.0) : structure générique (un gabarit = description JSON versionnée des objets à créer + règles de dérivation), assistant de création d'une salle avec choix du secteur. En phase 1, le gabarit ne génère que les zones types et leurs classes ; chaque phase suivante ajoute sa part (procédures de nettoyage en phase 5, plan d'échantillonnage en phase 6…).
 - Modèle site → bâtiment → zones (sans plan 2D encore) avec classification et exigences par zone.
 - Journal d'audit, signature électronique simple, GED minimale (dépôt, version, lien à un objet).
 - Livrable : on peut créer son site, ses zones avec leurs classes, inviter des utilisateurs avec des droits différents, déposer des documents.
@@ -415,7 +482,14 @@ Les durées sont indicatives, pour une personne à temps plein assistée par gé
 - Revue périodique annuelle générée, exports, performances, accessibilité tablette.
 - Si contexte GxP : dossier de validation du logiciel (spécifications, tests, procédure d'exploitation), gel des versions.
 
-Total indicatif : 24 à 31 semaines. Les phases 4 et 5 peuvent être inversées si le nettoyage est plus urgent que les CAPA.
+### Phase transverse — Contenu des gabarits (3 à 4 semaines, en parallèle des phases 2 à 6)
+
+- Rédaction du contenu métier par secteur : zones types, procédures de nettoyage (produits, lingettes, techniques, ordre), habillage, plans d'échantillonnage, règles de fréquence, modèles de documents.
+- Priorité : le secteur de votre site pilote d'abord, complet et relu ; les autres secteurs ensuite, en commençant par les plus proches (DM puis pharma non stérile, par exemple).
+- Relecture par une personne formée du secteur ; mention « point de départ, à valider » dans tous les objets générés.
+- Livrable : bibliothèque de gabarits v1 importée dans l'outil, exportable en JSON.
+
+Total indicatif : 27 à 35 semaines (le contenu des gabarits se fait en parallèle, mais c'est du temps de rédaction, pas de développement). Les phases 4 et 5 peuvent être inversées si le nettoyage est plus urgent que les CAPA.
 
 ---
 
@@ -427,6 +501,7 @@ Total indicatif : 24 à 31 semaines. Les phases 4 et 5 peuvent être inversées 
 - Utilisateurs : invitation par e-mail, activation/désactivation, rôle(s), sites autorisés, réinitialisation de mot de passe.
 - Rôles et matrice de droits (ci-dessous), rôles personnalisés.
 - Référentiels : classes, grades, limites par défaut, périodicités, catalogue d'essais, familles de produits, types de documents, colonnes du Kanban, modèles de documents.
+- **Secteurs et gabarits** : bibliothèque des gabarits par secteur, versions, édition des règles de dérivation (fréquences), duplication, création d'un gabarit d'entreprise depuis une salle existante, import/export JSON, choix des modules activés par entreprise.
 - Notifications : qui reçoit quoi (échéances, écarts, mentions), délais d'anticipation.
 - Sécurité : politique de mot de passe, double authentification, durée de session, ré-authentification à la signature.
 - Sauvegarde : export JSON complet, planification, restauration.
@@ -440,6 +515,7 @@ Niveaux : `—` aucun, `L` lecture, `E` écriture, `V` validation/approbation, `
 |---|---|---|---|---|---|---|---|
 | Configuration, utilisateurs | A | L | — | — | — | — | — |
 | Référentiels normatifs | A | V | L | L | L | L | L |
+| Secteurs et gabarits | A | V | L | L | E (nettoyage) | — | L |
 | Sites, zones, plan 2D | A | V | E | L | L | L | L |
 | CTA, filtres | A | L | E | E | — | — | L |
 | Qualification : protocoles | A | V | E | E | — | — | L |
@@ -468,7 +544,8 @@ Règles transverses : un utilisateur ne voit que ses sites ; une permission peut
 3. **Nombre de sites et d'utilisateurs** attendus à 12 mois : dimensionne l'hébergement et la gestion multi-sites.
 4. **Reprise de l'existant** : y a-t-il des données à reprendre (résultats de qualification anciens, procédures Word) ? Prévoir un lot d'import.
 5. **Terrain** : les opérateurs auront-ils des tablettes en zone ? Sinon, le mode hors ligne peut être repoussé.
-6. **Lien avec l'application Gestion Nettoyage existante** : réutiliser ses modules Stocks, Matériel, Personnel, Planning (code en vanilla JS) en les portant, ou repartir de zéro ? Mon avis : repartir de zéro sur le nouveau socle en reprenant la logique métier et les impressions, pas le code.
+6. **Secteurs prioritaires** : quel est le secteur de votre site pilote, et quels secteurs vos clients ou vos autres sites couvrent-ils à 12 mois ? Le contenu des gabarits se rédige dans cet ordre.
+7. **Lien avec l'application Gestion Nettoyage existante** : réutiliser ses modules Stocks, Matériel, Personnel, Planning (code en vanilla JS) en les portant, ou repartir de zéro ? Mon avis : repartir de zéro sur le nouveau socle en reprenant la logique métier et les impressions, pas le code.
 
 ---
 
@@ -477,6 +554,7 @@ Règles transverses : un utilisateur ne voit que ses sites ; une permission peut
 | Risque | Parade |
 |---|---|
 | Périmètre trop large, rien d'utilisable avant des mois | Phases livrables, site pilote réel dès la phase 1 |
+| Gabarits sectoriels inexacts (mauvaise lingette, mauvaise fréquence) pris pour des procédures validées | Relecture métier par secteur, mention « point de départ » sur chaque objet généré, validation du nettoyage obligatoire avant usage officiel |
 | Référentiels normatifs mal transcrits | Tables modifiables, relecture par une personne formée (les formations ASPEC ISO 14644-1 & 2 et qualification des locaux sont le bon niveau) |
 | Outil utilisé comme enregistrement officiel sans être validé | Mention explicite dans l'outil, phase 7 décidée en connaissance de cause |
 | Éditeur de plan 2D trop ambitieux | Commencer par des rectangles sur grille et un fond d'image ; les polygones libres viennent ensuite |
