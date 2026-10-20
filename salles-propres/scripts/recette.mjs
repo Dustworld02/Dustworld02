@@ -345,7 +345,7 @@ await verifier("Une mention dans une discussion notifie la personne citée", asy
 
 await verifier("Le générateur propose des procédures DM avec lingettes polyester et fréquences", async () => {
   await page.goto(`${URL_APP}/#/nettoyage`);
-  await page.getByLabel("Salle propre").selectOption({ label: "Salle propre de recette" });
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre de recette" });
   await page.getByRole("button", { name: "Générer depuis le gabarit du secteur" }).click();
   const dialogue = page.getByRole("dialog");
   await dialogue.getByText("Secteur Dispositifs médicaux").waitFor();
@@ -363,7 +363,7 @@ await verifier("La procédure est approuvée par signature puis le planning est 
   await page.getByRole("dialog").getByRole("button", { name: "Signer" }).click();
   await page.getByRole("row", { name: /Nettoyage — Salles \(ISO 7\).*Approuvée/ }).waitFor();
   await page.getByRole("tab", { name: "Planning", exact: true }).click();
-  await page.getByLabel("Salle propre").selectOption({ label: "Salle propre de recette" });
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre de recette" });
   await page.getByRole("button", { name: "Générer le planning de la période" }).click();
   await page.getByText(/intervention\(s\) planifiée\(s\)/).waitFor();
   await capture("19-planning-nettoyage");
@@ -383,7 +383,7 @@ await verifier("Sur le terrain, le responsable nettoyage valide une intervention
   await deconnecter();
   await connecter("Responsable nettoyage");
   await page.goto(`${URL_APP}/#/nettoyage?onglet=terrain`);
-  await page.getByLabel("Salle propre").selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
   const aFaire = page.getByRole("button", { name: /À faire/ });
   const avant = await aFaire.count();
   if (!avant) throw new Error("Aucune intervention à faire aujourd'hui");
@@ -398,6 +398,72 @@ await verifier("Sur le terrain, le responsable nettoyage valide une intervention
   await page.waitForFunction((n) => [...document.querySelectorAll("button")].filter((b) => b.textContent?.includes("À faire")).length === n - 1, avant);
   await deconnecter();
   await connecter("Administrateur");
+});
+
+await verifier("Le plan d'échantillonnage liste les prélèvements dus et la saisie ouvre un écart de dérive", async () => {
+  await page.goto(`${URL_APP}/#/contaminations?onglet=plan`);
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByText("Prélèvements à réaliser").waitFor();
+  await capture("22-plan-echantillonnage");
+  await page.getByRole("button", { name: /Saisir Boîte contact.*P03/ }).click();
+  await page.getByLabel(/^Valeur/).fill("18");
+  await page.getByRole("dialog").getByRole("button", { name: "Enregistrer" }).click();
+  await page.getByRole("dialog").waitFor({ state: "detached" });
+  await page.goto(`${URL_APP}/#/ecarts`);
+  await attendreTexte("Dérive : 3 résultats consécutifs hors limite d'alerte — P03");
+});
+
+await verifier("Les tendances, la cartographie et le rapport périodique s'affichent", async () => {
+  await page.goto(`${URL_APP}/#/contaminations?onglet=tendances`);
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByText("Signaux de dérive").waitFor();
+  await page.getByRole("button", { name: /P03 — Boîte contact/ }).first().waitFor();
+  await page.getByText("Dérive", { exact: true }).first().waitFor();
+  await capture("23-tendances");
+  await page.getByRole("tab", { name: "Cartographie" }).click();
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByRole("img", { name: /Cartographie de contamination/ }).waitFor();
+  await capture("24-cartographie");
+  await page.goto(`${URL_APP}/#/contaminations/rapport`);
+  await page.getByLabel("Salle").selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByRole("heading", { name: "Rapport de surveillance de la contamination" }).waitFor();
+  await page.getByText("Résultats par paramètre").waitFor();
+  await capture("25-rapport-surveillance");
+});
+
+await verifier("La CTA affiche l'énergie, le carnet sanitaire et l'ambiance des zones", async () => {
+  await page.goto(`${URL_APP}/#/traitement-air`);
+  await page.getByText("CTA-01 Salle d'assemblage").first().click();
+  await page.getByText("Énergie de ventilation (estimation)").waitFor();
+  await page.getByText("Gain du mode réduit").waitFor();
+  await page.getByRole("button", { name: "Carnet sanitaire" }).click();
+  await page.getByRole("heading", { name: "Carnet sanitaire de l'installation de traitement d'air" }).waitFor();
+  await page.getByText("Visite semestrielle de la CTA").first().waitFor();
+  await capture("26-carnet-sanitaire");
+  await page.goto(`${URL_APP}/#/traitement-air`);
+  await page.getByRole("tab", { name: "Ambiance des zones (GTC)" }).click();
+  await page.getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByText("Synthèse des zones").waitFor();
+  await page.getByText(/hors limites/).first().waitFor();
+  await capture("27-ambiance");
+});
+
+await verifier("Un changement majeur est approuvé par signature avec requalification requise", async () => {
+  await page.goto(`${URL_APP}/#/maintenance`);
+  await page.getByText("Visite semestrielle de la CTA").first().waitFor();
+  await capture("28-maintenance");
+  await page.getByRole("tab", { name: /Change control/ }).click();
+  await page.getByText("Remplacement des filtres terminaux H14").click();
+  const dialogue = page.getByRole("dialog");
+  await dialogue.getByText("Évaluation d'impact").waitFor();
+  if (!(await dialogue.getByLabel("Requalification requise avant clôture").isChecked())) throw new Error("Requalification non cochée");
+  await dialogue.getByRole("button", { name: "Approuver (signature)" }).click();
+  await page.getByLabel("Mot de passe (confirmation d'identité)").fill("demo");
+  await page.getByRole("dialog").getByRole("button", { name: "Signer" }).click();
+  await page.getByRole("dialog").getByText("Approuvé", { exact: true }).first().waitFor();
+  await page.getByRole("dialog").getByRole("button", { name: "Déclarer réalisé" }).waitFor();
+  await capture("29-change-control");
+  await page.keyboard.press("Escape");
 });
 
 await verifier("L'opérateur n'a ni création de salle, ni configuration, ni journal", async () => {

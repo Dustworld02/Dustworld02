@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSession } from "../../session";
-import type { EtatOccupation, Instrument, Etalonnage, PointPrelevement, Resultat, SallePropre, Zone, Nouveau } from "../../data/types";
-import { Badge, Bandeau, Bouton, Champ, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, formatDate, useAction } from "../../ui/composants";
+import type { EtatOccupation, Instrument, Etalonnage, PlanEchantillonnage, PointPrelevement, Resultat, SallePropre, Zone, Nouveau } from "../../data/types";
+import { Badge, Bandeau, Bouton, Champ, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, dateHeureLocale, formatDate, useAction } from "../../ui/composants";
 import {
   LIBELLES_MILIEUX, LIBELLES_NATURES, LIBELLES_ORIGINES, LIBELLES_VERDICTS, PARAMETRES, TON_VERDICT, dateFr, limitesSuggerees, lireCsv, nombreFr, type Parametre,
 } from "../../domain/contamination";
@@ -16,6 +16,7 @@ export interface DonneesContamination {
   resultats: Resultat[];
   instruments: Instrument[];
   etalonnages: Etalonnage[];
+  plans: PlanEchantillonnage[];
 }
 
 export function libellePoint(r: Resultat, points: PointPrelevement[]): string {
@@ -104,11 +105,17 @@ export function ChoixInstrument({ instruments, etalonnages, date, valeur, onChan
   );
 }
 
-function SaisieResultat({ d, salleParDefaut, onFermer }: { d: DonneesContamination; salleParDefaut?: string; onFermer: (ok: boolean) => void }) {
+/** Clé du paramètre usuel correspondant à un libellé enregistré. */
+export function cleParametre(libelle: string): string | undefined {
+  return PARAMETRES.find((x) => x.libelle === libelle || x.cle === libelle)?.cle;
+}
+
+export function SaisieResultat({ d, salleParDefaut, plan, onFermer }: { d: DonneesContamination; salleParDefaut?: string; plan?: PlanEchantillonnage; onFermer: (ok: boolean) => void }) {
   const s = useSession();
   const [v, setV] = useState({
-    salle_id: salleParDefaut ?? "", zone_id: "", point_id: "", point_libre: "", parametre: "air_p05", etat: "activite" as EtatOccupation,
-    date: new Date().toISOString().slice(0, 16), valeur: null as number | null, alerte: null as number | null, action: null as number | null,
+    salle_id: plan?.salle_id ?? salleParDefaut ?? "", zone_id: plan?.zone_id ?? "", point_id: plan?.point_id ?? "", point_libre: "",
+    parametre: (plan && cleParametre(plan.parametre)) ?? "air_p05", etat: (plan?.etat_occupation ?? "activite") as EtatOccupation,
+    date: dateHeureLocale(), valeur: null as number | null, alerte: plan?.limite_alerte ?? null as number | null, action: plan?.limite_action ?? null as number | null,
     instrument_id: null as string | null, operateur: s.utilisateur?.nom_complet ?? "", lot_milieu: "", germe: "", origine: "surveillance", commentaire: "",
   });
   const action = useAction();
@@ -134,7 +141,7 @@ function SaisieResultat({ d, salleParDefaut, onFermer }: { d: DonneesContaminati
       origine: v.origine as Resultat["origine"], milieu: p.milieu, nature: p.nature, methode: p.methode, parametre: p.libelle, taille_um: p.taille_um ?? null,
       unite: p.unite, valeur: v.valeur!, etat_occupation: v.etat, instrument_id: v.instrument_id, date_prelevement: dateIso, operateur: v.operateur,
       lot_milieu: p.nature === "microbiologique" ? v.lot_milieu : "", germe: p.nature === "microbiologique" ? v.germe : "",
-      limite_alerte: v.alerte, limite_action: v.action, commentaire: v.commentaire,
+      limite_alerte: v.alerte, limite_action: v.action, commentaire: v.commentaire, plan_id: plan?.id ?? null,
     });
     onFermer(true);
   });
@@ -146,7 +153,7 @@ function SaisieResultat({ d, salleParDefaut, onFermer }: { d: DonneesContaminati
   return (
     <Modale
       large
-      titre="Saisir un résultat"
+      titre={plan ? `Saisir un résultat — ${plan.parametre}` : "Saisir un résultat"}
       onFermer={() => onFermer(false)}
       pied={<>
         {verdict && <span className="mr-auto">Verdict : <Badge ton={TON_VERDICT[verdict]}>{LIBELLES_VERDICTS[verdict]}</Badge></span>}

@@ -9,6 +9,7 @@ import { limitesEssai } from "../domain/qualification";
 import { groupesDeZones } from "../domain/nettoyage/groupes";
 import { planifier } from "../domain/nettoyage/planning";
 import { completerCatalogue } from "./catalogueNettoyage";
+import { proposerPlan } from "../domain/surveillance";
 
 export const MOT_DE_PASSE_DEMO = "demo";
 
@@ -56,6 +57,7 @@ export async function creerJeuDemo(depot: DepotDemo): Promise<void> {
   await qualificationDemo(depot, org, salle.id);
   await pilotageDemo(depot, org, salle.id, ids);
   await nettoyageDemo(depot, org, salle.id, ids);
+  await surveillanceMaintenanceDemo(depot, org, salle.id);
 
   const doc = await depot.creer("documents", {
     org_id: org, titre: "Cahier des charges (URS) — salle d'assemblage", type_document: "urs", statut: "brouillon",
@@ -404,4 +406,71 @@ async function nettoyageDemo(depot: DepotDemo, org: string, salleId: string, ids
     methode: "Luminomètre", parametre: "ATP-métrie", unite: "RLU", valeur: moment === "avant" ? avant : apres, limite_alerte: moment === "avant" ? null : 150, limite_action: moment === "avant" ? null : 300,
     instrument_id: luminometre?.id ?? null, date_prelevement: `${dans(-14)}T10:00:00.000Z`, operateur: "Morgan Hygiène", validation_id: validation.id,
   }))));
+}
+
+/** Plan d'échantillonnage, relevés d'ambiance, maintenance et change control. */
+async function surveillanceMaintenanceDemo(depot: DepotDemo, org: string, salleId: string): Promise<void> {
+  const [zones, points, ctas, equipements, resultats] = await Promise.all([
+    depot.lister("zones", org, { salle_id: salleId }), depot.lister("points_prelevement", org, { salle_id: salleId }), depot.lister("ctas", org), depot.lister("equipements", org, { salle_id: salleId }),
+    depot.lister("resultats", org, { salle_id: salleId }),
+  ]);
+  const dans = (jours: number) => { const d = new Date(); d.setDate(d.getDate() + jours); return jourIso(d); };
+  await depot.creerPlusieurs("plans_echantillonnage", proposerPlan(salleId, zones, points, dans(-182), resultats).map((l) => ({ ...l, org_id: org })));
+
+  // Un mois de relevés d'ambiance (pression toutes les 6 h, température et humidité quotidiennes),
+  // avec une baisse de pression de deux jours dans le SAS matériel.
+  const alea = generateur(7);
+  const releves: Nouveau<"releves_ambiance">[] = [];
+  for (let h = 30 * 24; h >= 0; h -= 6) {
+    const date = new Date(Date.now() - h * 3600000);
+    date.setMinutes(0, 0, 0);
+    for (const z of zones) {
+      const consigne = z.pression_pa ?? 15;
+      const excursion = z.type_zone === "sas_materiel" && h <= 12 * 24 && h > 10 * 24;
+      releves.push({ org_id: org, zone_id: z.id, grandeur: "pression", valeur: Math.round((excursion ? consigne - 9 : consigne + (alea() - 0.5) * 4) * 10) / 10, date_mesure: date.toISOString(), source: "gtc" });
+      if (h % 24 === 0) {
+        releves.push({ org_id: org, zone_id: z.id, grandeur: "temperature", valeur: Math.round((20.5 + alea() * 2) * 10) / 10, date_mesure: date.toISOString(), source: "gtc" });
+        releves.push({ org_id: org, zone_id: z.id, grandeur: "hr", valeur: Math.round(42 + alea() * 12), date_mesure: date.toISOString(), source: "gtc" });
+      }
+    }
+  }
+  await depot.creerPlusieurs("releves_ambiance", releves);
+
+  const cta = ctas[0];
+  const hotte = equipements.find((e) => e.type === "hotte_flux");
+  const [visite, prefiltres, portes, psm] = await depot.creerPlusieurs("gammes_maintenance", [
+    { org_id: org, cta_id: cta.id, libelle: "Visite semestrielle de la CTA", periodicite_mois: 6, date_debut: dans(-400), prestataire: "Clim Services", duree_h: 4, impact_requalification: true,
+      operations: ["Contrôle des courroies et paliers du ventilateur", "Nettoyage des batteries et du bac de condensats", "Contrôle de l'humidificateur", "Relevé des pertes de charge des filtres", "Vérification des consignes de débit et de pression"] },
+    { org_id: org, cta_id: cta.id, libelle: "Remplacement des préfiltres G4", periodicite_mois: 3, date_debut: dans(-200), prestataire: "Clim Services", duree_h: 1,
+      operations: ["Remplacer les préfiltres", "Noter la perte de charge du filtre neuf", "Éliminer les filtres usagés en sac fermé"] },
+    { org_id: org, salle_id: salleId, libelle: "Contrôle des portes asservies des SAS", periodicite_mois: 6, date_debut: dans(-150), prestataire: "Service technique", duree_h: 1,
+      operations: ["Vérifier l'interverrouillage", "Contrôler les joints", "Tester l'alarme de porte ouverte"] },
+    ...(hotte ? [{ org_id: org, salle_id: salleId, equipement_id: hotte.id, libelle: "Contrôle annuel de la hotte à flux laminaire", periodicite_mois: 12, date_debut: dans(20), prestataire: "Prestataire agréé", duree_h: 3, impact_requalification: true,
+      operations: ["Vitesse et uniformité du flux", "Test d'intégrité du filtre HEPA", "Comptage particulaire"] }] : []),
+  ]);
+  await depot.creerPlusieurs("interventions_maintenance", [
+    { org_id: org, gamme_id: visite.id, cta_id: cta.id, titre: visite.libelle, date_prevue: dans(-190), statut: "realisee", date_realisation: dans(-188), intervenant: "Clim Services",
+      compte_rendu: "Courroie retendue, bac de condensats nettoyé, humidificateur détartré. Pertes de charge conformes.", remise_en_service: "Pressions des zones vérifiées après redémarrage : conformes." },
+    { org_id: org, gamme_id: prefiltres.id, cta_id: cta.id, titre: prefiltres.libelle, date_prevue: dans(-110), statut: "realisee", date_realisation: dans(-110), intervenant: "Clim Services", compte_rendu: "4 préfiltres G4 remplacés, Δp neuf 45 Pa." },
+    { org_id: org, gamme_id: portes.id, salle_id: salleId, titre: portes.libelle, date_prevue: dans(9), intervenant: "Service technique" },
+    { org_id: org, cta_id: cta.id, type: "corrective", titre: "Alarme pression SAS matériel", date_prevue: dans(-11), statut: "realisee", date_realisation: dans(-10), intervenant: "Service technique",
+      compte_rendu: "Registre de reprise du SAS matériel bloqué en position ouverte : moteur de registre remplacé.", remise_en_service: "Pression revenue à la consigne (15 Pa) en 20 min, surveillée 24 h." },
+  ]);
+  void psm;
+
+  const balance = await depot.creer("changements", {
+    org_id: org, titre: "Ajout d'une seconde paillasse d'assemblage et déplacement de la balance", categorie: "implantation", type: "mineur", salle_id: salleId, demandeur: "Responsable production",
+    description: "Installation de la paillasse 2 en salle de production ; la balance est déplacée contre la paillasse.", justification: "Augmentation de capacité de la ligne d'assemblage.",
+    evaluation: { nettoyage: true, surveillance: true, documents: true, commentaire: "Mettre à jour le plan de nettoyage et ajouter un point de prélèvement de surface sur la paillasse 2." },
+    plan_actions: "1. Installer la paillasse.\n2. Mettre à jour la procédure de nettoyage de la salle.\n3. Ajouter le point P03 au plan d'échantillonnage.", date_cible: dans(-60), statut: "en_evaluation",
+  });
+  await depot.signer("changement", balance.id, "approuve", "Impact limité au nettoyage et à la surveillance", "approbation");
+  await depot.modifier("changements", balance.id, { statut: "approuve" });
+  await depot.modifier("changements", balance.id, { statut: "realise", realise_le: dans(-55) });
+  await depot.creer("changements", {
+    org_id: org, titre: "Remplacement des filtres terminaux H14 de la salle de production", categorie: "traitement_air", type: "majeur", salle_id: salleId, demandeur: "Responsable technique",
+    description: "Filtres terminaux en place depuis 6 ans ; perte de charge en hausse.", justification: "Fin de vie des filtres, risque de fuite.",
+    evaluation: { qualification: true, maintenance: true, commentaire: "Test d'intégrité des filtres neufs, mesure des débits et classification particulaire à refaire." },
+    requalification_requise: true, date_cible: dans(45), statut: "en_evaluation",
+  });
 }

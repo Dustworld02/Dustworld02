@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useSession } from "../session";
 import type { Cta, EtageCta, Filtre } from "../data/types";
-import { Badge, Bandeau, Bouton, Carte, EnTete, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, formatDate, useAction, useDonnees } from "../ui/composants";
+import { Badge, Bandeau, Bouton, Carte, EnTete, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, dateHeureLocale, formatDate, useAction, useDonnees, Onglets, Champ } from "../ui/composants";
 import { Formulaire, GestionEntites, champsManquants, optionsDe, type DefinitionChamp } from "../ui/entites";
 import { Courbe } from "../ui/graphique";
 import { CLASSES_FILTRES, STATUTS_CTA, TYPES_BOUCHES, TYPES_ETAGES } from "../domain/libelles";
 import { etatFiltre, type Statut } from "../domain/aeraulique";
 import { formatNombre } from "../domain/exigencesZone";
+import { energieCta } from "../domain/maintenance";
+import { AmbianceZones } from "./Ambiance";
 
 const TON_STATUT: Record<Statut, "ok" | "attention" | "alerte" | "neutre" | "info"> = { ok: "ok", attention: "attention", alerte: "alerte", inconnu: "neutre", info: "info" };
 
@@ -32,6 +34,7 @@ export function TraitementAir() {
   const s = useSession();
   const org = s.org!.id;
   const naviguer = useNavigate();
+  const [onglet, setOnglet] = useState<"ctas" | "ambiance">(() => (window.location.hash.includes("onglet=ambiance") ? "ambiance" : "ctas"));
   const { donnees, erreur, recharger } = useDonnees(async () => {
     const [ctas, sites, filtres, releves, bouches] = await Promise.all([
       s.depot.lister("ctas", org), s.depot.lister("sites", org), s.depot.lister("filtres", org), s.depot.lister("releves_filtres", org), s.depot.lister("bouches", org),
@@ -45,9 +48,11 @@ export function TraitementAir() {
   };
   return (
     <>
-      <EnTete titre="Traitement d'air" sousTitre="Centrales de traitement d'air, étages de filtration, filtres terminaux et relevés de perte de charge." />
+      <EnTete titre="Traitement d'air" sousTitre="Centrales de traitement d'air, étages de filtration, filtres terminaux, relevés de perte de charge et ambiance des zones." />
       <MessageErreur erreur={erreur} />
-      <GestionEntites
+      <Onglets actif={onglet} onChange={setOnglet} onglets={[{ cle: "ctas", libelle: "Centrales" }, { cle: "ambiance", libelle: "Ambiance des zones (GTC)" }]} />
+      {onglet === "ambiance" && <AmbianceZones />}
+      {onglet === "ctas" && <GestionEntites
         table="ctas"
         lignes={donnees?.ctas ?? null}
         recharger={recharger}
@@ -68,7 +73,7 @@ export function TraitementAir() {
           { libelle: "Filtres", rendu: (c) => { const n = alertes(c); return n ? <Badge ton="alerte">{n} à traiter</Badge> : <Badge ton="ok">OK</Badge>; } },
         ]}
         vide="Aucune CTA. Créez-en une, puis reliez-lui les bouches de soufflage depuis le plan des salles."
-      />
+      />}
     </>
   );
 }
@@ -124,7 +129,10 @@ export function CtaDetail() {
       <EnTete
         titre={cta.nom}
         sousTitre={<>{donnees.sites.find((x) => x.id === cta.site_id)?.nom}{cta.localisation && ` · ${cta.localisation}`} · <Link to="/traitement-air" className="text-navy-700 hover:underline">toutes les CTA</Link></>}
-        actions={ecriture && <Bouton onClick={() => { action.effacer(); setEdition({ ...cta }); }}>Modifier</Bouton>}
+        actions={<>
+          <Link to={`/traitement-air/${cta.id}/carnet`}><Bouton>Carnet sanitaire</Bouton></Link>
+          {ecriture && <Bouton onClick={() => { action.effacer(); setEdition({ ...cta }); }}>Modifier</Bouton>}
+        </>}
       />
       <MessageErreur erreur={edition ? null : action.erreur} />
       <div className="mb-4 grid gap-4 lg:grid-cols-3">
@@ -176,6 +184,8 @@ export function CtaDetail() {
           {ecriture && <Bouton className="mt-2" onClick={() => setEtages([...listeEtages, { type: "filtre", libelle: "", classe: "" }])}>+ Étage</Bouton>}
         </Carte>
       </div>
+
+      <CarteEnergie cta={cta} />
 
       <Carte titre="Zones desservies" className="mb-4">
         {donnees.bouches.length === 0 ? <p className="text-sm text-texte-2">Aucune bouche reliée. Sur le plan d'une salle, posez des bouches et choisissez cette CTA.</p> : (
@@ -256,7 +266,7 @@ function RelevesFiltre({ filtre, onFermer }: { filtre: Filtre; onFermer: () => v
   const org = s.org!.id;
   const { donnees, recharger } = useDonnees(() => s.depot.lister("releves_filtres", org, { filtre_id: filtre.id }), [org, filtre.id]);
   const [dp, setDp] = useState<number | null>(null);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 16));
+  const [date, setDate] = useState(dateHeureLocale());
   const [commentaire, setCommentaire] = useState("");
   const action = useAction();
   const releves = [...(donnees ?? [])].sort((a, b) => b.date_releve.localeCompare(a.date_releve));
@@ -290,5 +300,28 @@ function RelevesFiltre({ filtre, onFermer }: { filtre: Filtre; onFermer: () => v
         </table>
       </TableauDefilant>
     </Modale>
+  );
+}
+
+const CLE_PRIX = "salles-propres:prix-kwh";
+
+function CarteEnergie({ cta }: { cta: Cta }) {
+  const [prix, setPrix] = useState<number | null>(() => {
+    try { const v = localStorage.getItem(CLE_PRIX); return v ? Number(v) : 0.2; } catch { return 0.2; }
+  });
+  const bilan = energieCta(cta, prix);
+  const majPrix = (v: number | null) => { setPrix(v); try { if (v != null) localStorage.setItem(CLE_PRIX, String(v)); } catch { /* stockage indisponible */ } };
+  return (
+    <Carte titre="Énergie de ventilation (estimation)" className="mb-4">
+      {!bilan ? <p className="text-sm text-texte-2">Renseignez la puissance du ventilateur et les heures de fonctionnement (bouton Modifier) pour estimer la consommation.</p> : (
+        <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_160px] md:items-end">
+          <div><div className="text-xs text-texte-2">Consommation annuelle</div><div className="text-xl font-bold text-navy-900">{formatNombre(bilan.kwhAn)} kWh</div>{bilan.coutAn != null && <div className="text-sm">≈ {formatNombre(bilan.coutAn)} €/an</div>}</div>
+          <div><div className="text-xs text-texte-2">Sans débit réduit</div><div className="text-lg font-semibold">{formatNombre(bilan.kwhAnSansReduit)} kWh</div></div>
+          <div><div className="text-xs text-texte-2">Gain du mode réduit</div><div className="text-lg font-semibold text-emerald-700">{formatNombre(bilan.economieKwh)} kWh{bilan.economieCout != null && ` · ${formatNombre(bilan.economieCout)} €`}</div></div>
+          <Champ libelle="Prix (€/kWh)"><SaisieNombre valeur={prix} onChange={majPrix} /></Champ>
+          <p className="text-xs text-texte-2 md:col-span-4">Ventilateurs seuls, loi de similitude (P ∝ Q³) au débit réduit, plancher de 20 % pour les pertes moteur et variateur. Le mode réduit hors activité doit être validé : retour à la classe au repos dans le temps de récupération mesuré.</p>
+        </div>
+      )}
+    </Carte>
   );
 }

@@ -114,10 +114,10 @@ export const META: Record<NomTable, MetaTable> = {
     defauts: {
       zone_id: null, point_id: null, point_libre: "", origine: "surveillance", essai_id: null, methode: "", parametre: "", taille_um: null, unite: "",
       etat_occupation: null, instrument_id: null, operateur: "", lot_milieu: "", germe: "", limite_alerte: null, limite_action: null, verdict: "non_evalue", commentaire: "",
-      validation_id: null,
+      validation_id: null, plan_id: null,
     },
     rattachements: [
-      salle(), zoneNull, { colonne: "point_id", table: "points_prelevement", suppression: "null" },
+      salle(), zoneNull, { colonne: "point_id", table: "points_prelevement", suppression: "null" }, { colonne: "plan_id", table: "plans_echantillonnage", suppression: "null" },
       { colonne: "essai_id", table: "essais", suppression: "cascade" }, { colonne: "instrument_id", table: "instruments", suppression: "null" },
       { colonne: "validation_id", table: "validations_nettoyage", suppression: "null" },
     ],
@@ -195,6 +195,44 @@ export const META: Record<NomTable, MetaTable> = {
     module: "nettoyage_procedures", portee: "org",
     defauts: { salle_id: null, type: "autre", couleur: "", zones_dediees: "", etat: "bon", date_mise_service: null, date_remplacement_prevue: null, notes: "" },
     rattachements: [{ colonne: "salle_id", table: "salles_propres", suppression: "null" }],
+  },
+  plans_echantillonnage: {
+    module: "contamination_resultats", portee: "site", ecriture: 3, suppression: 3,
+    defauts: { zone_id: null, point_id: null, methode: "", unite: "", taille_um: null, etat_occupation: null, frequence: "hebdomadaire", limite_alerte: null, limite_action: null, actif: true, notes: "" },
+    rattachements: [salle(), { colonne: "zone_id", table: "zones", suppression: "cascade" }, { colonne: "point_id", table: "points_prelevement", suppression: "cascade" }],
+  },
+  releves_ambiance: { module: "cta", portee: "site", defauts: { source: "manuel" }, rattachements: [{ colonne: "zone_id", table: "zones", suppression: "cascade", site: true }] },
+  gammes_maintenance: {
+    module: "maintenance", portee: "site",
+    defauts: { cta_id: null, salle_id: null, equipement_id: null, periodicite_mois: 12, operations: [], prestataire: "", duree_h: null, impact_requalification: false, actif: true, notes: "" },
+    rattachements: [
+      { colonne: "cta_id", table: "ctas", suppression: "cascade", site: true }, { colonne: "salle_id", table: "salles_propres", suppression: "cascade", site: true },
+      { colonne: "equipement_id", table: "equipements", suppression: "cascade" },
+    ],
+  },
+  interventions_maintenance: {
+    module: "maintenance", portee: "site",
+    defauts: {
+      gamme_id: null, cta_id: null, salle_id: null, equipement_id: null, type: "preventive", date_realisation: null, intervenant: "", statut: "planifiee",
+      compte_rendu: "", remise_en_service: "", changement_id: null, ecart_id: null,
+    },
+    rattachements: [
+      { colonne: "cta_id", table: "ctas", suppression: "cascade", site: true }, { colonne: "salle_id", table: "salles_propres", suppression: "cascade", site: true },
+      { colonne: "equipement_id", table: "equipements", suppression: "cascade" }, { colonne: "gamme_id", table: "gammes_maintenance", suppression: "null" },
+      { colonne: "changement_id", table: "changements", suppression: "null" }, { colonne: "ecart_id", table: "ecarts", suppression: "null" },
+    ],
+  },
+  changements: {
+    module: "maintenance", portee: "org", numero: "CC",
+    defauts: {
+      numero: null, description: "", justification: "", categorie: "autre", type: "mineur", salle_id: null, demandeur: "", evaluation: {}, requalification_requise: false,
+      campagne_id: null, plan_actions: "", date_cible: null, statut: "brouillon", realise_le: null, cloture_le: null, conclusion: "",
+    },
+    rattachements: [{ colonne: "salle_id", table: "salles_propres", suppression: "null" }, { colonne: "campagne_id", table: "campagnes_qualification", suppression: "null" }],
+    signatures: {
+      objetType: "changement", colonneVersion: null,
+      exigences: [{ statut: "approuve", signification: "approuve", portee: "approbation" }, { statut: "cloture", signification: "approuve", portee: "cloture" }],
+    },
   },
 };
 

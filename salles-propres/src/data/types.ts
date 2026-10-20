@@ -436,6 +436,7 @@ export interface Resultat extends Trace {
   verdict: VerdictResultat;
   commentaire: string;
   validation_id: string | null;
+  plan_id: string | null;
 }
 
 // ---------------------------------------------------------------------
@@ -660,6 +661,107 @@ export interface MaterielNettoyage extends Trace {
   notes: string;
 }
 
+// ---------------------------------------------------------------------
+// Phase 6 — surveillance, ambiance, maintenance, change control
+// ---------------------------------------------------------------------
+
+export type FrequencePrelevement = "quotidien" | "hebdomadaire" | "bimensuel" | "mensuel" | "trimestriel" | "semestriel" | "annuel";
+
+export interface PlanEchantillonnage extends Trace {
+  salle_id: string;
+  site_id: string | null;
+  zone_id: string | null;
+  point_id: string | null;
+  parametre: string;
+  milieu: Milieu;
+  nature: NatureContamination;
+  methode: string;
+  unite: string;
+  taille_um: number | null;
+  etat_occupation: EtatOccupation | null;
+  frequence: FrequencePrelevement;
+  limite_alerte: number | null;
+  limite_action: number | null;
+  date_debut: string;
+  actif: boolean;
+  notes: string;
+}
+
+export type GrandeurAmbiance = "pression" | "temperature" | "hr";
+
+export interface ReleveAmbiance extends Trace {
+  zone_id: string;
+  site_id: string | null;
+  grandeur: GrandeurAmbiance;
+  valeur: number;
+  date_mesure: string;
+  source: "manuel" | "gtc" | "import";
+}
+
+export interface GammeMaintenance extends Trace {
+  site_id: string | null;
+  cta_id: string | null;
+  salle_id: string | null;
+  equipement_id: string | null;
+  libelle: string;
+  periodicite_mois: number;
+  operations: string[];
+  prestataire: string;
+  duree_h: number | null;
+  impact_requalification: boolean;
+  date_debut: string;
+  actif: boolean;
+  notes: string;
+}
+
+export interface InterventionMaintenance extends Trace {
+  site_id: string | null;
+  gamme_id: string | null;
+  cta_id: string | null;
+  salle_id: string | null;
+  equipement_id: string | null;
+  type: "preventive" | "corrective";
+  titre: string;
+  date_prevue: string;
+  date_realisation: string | null;
+  intervenant: string;
+  statut: "planifiee" | "realisee" | "annulee";
+  compte_rendu: string;
+  remise_en_service: string;
+  changement_id: string | null;
+  ecart_id: string | null;
+}
+
+export interface EvaluationChangement {
+  qualification?: boolean;
+  nettoyage?: boolean;
+  surveillance?: boolean;
+  documents?: boolean;
+  formation?: boolean;
+  maintenance?: boolean;
+  commentaire?: string;
+}
+
+export interface Changement extends Trace {
+  numero: string | null;
+  titre: string;
+  description: string;
+  justification: string;
+  categorie: "installation" | "traitement_air" | "procede" | "nettoyage" | "implantation" | "documentation" | "fournisseur" | "autre";
+  type: "mineur" | "majeur";
+  salle_id: string | null;
+  demandeur: string;
+  evaluation: EvaluationChangement;
+  requalification_requise: boolean;
+  campagne_id: string | null;
+  plan_actions: string;
+  date_cible: string | null;
+  statut: "brouillon" | "en_evaluation" | "approuve" | "realise" | "cloture" | "refuse";
+  realise_le: string | null;
+  cloture_le: string | null;
+  conclusion: string;
+}
+
 /** Tables accessibles par l'interface générique du dépôt. */
 export interface Tables {
   roles: Role;
@@ -703,6 +805,11 @@ export interface Tables {
   interventions_nettoyage: InterventionNettoyage;
   validations_nettoyage: ValidationNettoyage;
   materiel_nettoyage: MaterielNettoyage;
+  plans_echantillonnage: PlanEchantillonnage;
+  releves_ambiance: ReleveAmbiance;
+  gammes_maintenance: GammeMaintenance;
+  interventions_maintenance: InterventionMaintenance;
+  changements: Changement;
 }
 
 export type NomTable = keyof Tables;
@@ -747,7 +854,12 @@ export interface ColonnesParDefaut {
   interventions_nettoyage: "titre" | "moment" | "surfaces" | "personne_id" | "statut" | "realise_le" | "duree_min" | "etapes_faites" | "lots" | "anomalies";
   validations_nettoyage: "procedure_id" | "date_validation" | "criteres" | "statut" | "conclusion";
   materiel_nettoyage: "salle_id" | "type" | "couleur" | "zones_dediees" | "etat" | "date_mise_service" | "date_remplacement_prevue" | "notes";
-  resultats: "validation_id" | "zone_id" | "point_id" | "point_libre" | "origine" | "essai_id" | "methode" | "parametre" | "taille_um" | "unite" | "etat_occupation" | "instrument_id" | "date_prelevement" | "operateur" | "lot_milieu" | "germe" | "limite_alerte" | "limite_action" | "verdict" | "commentaire";
+  plans_echantillonnage: "zone_id" | "point_id" | "methode" | "unite" | "taille_um" | "etat_occupation" | "frequence" | "limite_alerte" | "limite_action" | "actif" | "notes";
+  releves_ambiance: "source";
+  gammes_maintenance: "cta_id" | "salle_id" | "equipement_id" | "periodicite_mois" | "operations" | "prestataire" | "duree_h" | "impact_requalification" | "actif" | "notes";
+  interventions_maintenance: "gamme_id" | "cta_id" | "salle_id" | "equipement_id" | "type" | "date_prevue" | "date_realisation" | "intervenant" | "statut" | "compte_rendu" | "remise_en_service" | "changement_id" | "ecart_id";
+  changements: "numero" | "description" | "justification" | "categorie" | "type" | "salle_id" | "demandeur" | "evaluation" | "requalification_requise" | "campagne_id" | "plan_actions" | "date_cible" | "statut" | "realise_le" | "cloture_le" | "conclusion";
+  resultats: "validation_id" | "plan_id" | "zone_id" | "point_id" | "point_libre" | "origine" | "essai_id" | "methode" | "parametre" | "taille_um" | "unite" | "etat_occupation" | "instrument_id" | "date_prelevement" | "operateur" | "lot_milieu" | "germe" | "limite_alerte" | "limite_action" | "verdict" | "commentaire";
 }
 type DefautsDe<T> = T extends keyof ColonnesParDefaut ? ColonnesParDefaut[T] : never;
 export type Modification<T extends NomTable> = Partial<Omit<Tables[T], keyof Trace>>;

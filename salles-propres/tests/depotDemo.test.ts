@@ -173,3 +173,45 @@ describe("Mode démo : nettoyage et personnel (phase 5)", () => {
     await expect(depot.creer("personnes", { org_id: org, prenom: "X", nom: "Y" })).rejects.toThrow(/droits insuffisants/);
   });
 });
+
+describe("Mode démo : surveillance et maintenance (phase 6)", () => {
+  it("contient un plan d'échantillonnage, des relevés d'ambiance, des gammes et des changements", async () => {
+    expect((await depot.lister("plans_echantillonnage", org)).length).toBeGreaterThan(5);
+    expect((await depot.lister("releves_ambiance", org)).length).toBeGreaterThan(400);
+    expect((await depot.lister("gammes_maintenance", org)).length).toBeGreaterThanOrEqual(3);
+    const changements = await depot.lister("changements", org);
+    expect(changements.map((c) => c.statut).sort()).toEqual(["en_evaluation", "realise"]);
+  });
+
+  it("ouvre un écart de dérive à la troisième alerte consécutive au point P03", async () => {
+    const p03 = (await depot.lister("points_prelevement", org)).find((p) => p.code === "P03")!;
+    const [salle] = await depot.lister("salles_propres", org);
+    const avant = (await depot.lister("ecarts", org)).filter((e) => e.objet_id === p03.id).length;
+    await depot.creer("resultats", {
+      org_id: org, salle_id: salle.id, zone_id: p03.zone_id, point_id: p03.id, milieu: "surface", nature: "microbiologique", parametre: "Boîte contact Ø 55 mm", unite: "UFC/boîte",
+      valeur: 18, limite_alerte: 15, limite_action: 25, date_prelevement: new Date().toISOString(),
+    });
+    const apres = (await depot.lister("ecarts", org)).filter((e) => e.objet_id === p03.id);
+    expect(apres.length).toBe(avant + 1);
+    expect(apres.at(-1)!.titre).toMatch(/^Dérive : 3 résultats consécutifs/);
+  });
+
+  it("exige la requalification avant de clôturer un changement qui la demande", async () => {
+    const cc = (await depot.lister("changements", org)).find((c) => c.statut === "en_evaluation")!;
+    await expect(depot.modifier("changements", cc.id, { statut: "approuve" })).rejects.toThrow(/signature/i);
+    await depot.signer("changement", cc.id, "approuve", "", "approbation");
+    await depot.modifier("changements", cc.id, { statut: "approuve" });
+    await depot.modifier("changements", cc.id, { statut: "realise" });
+    await depot.signer("changement", cc.id, "approuve", "", "cloture");
+    await expect(depot.modifier("changements", cc.id, { statut: "cloture", conclusion: "OK" })).rejects.toThrow(/requalification/);
+    const [campagne] = (await depot.lister("campagnes_qualification", org)).filter((c) => c.statut === "cloturee");
+    await depot.modifier("changements", cc.id, { campagne_id: campagne.id });
+    await depot.modifier("changements", cc.id, { statut: "cloture", conclusion: "OK" });
+    await expect(depot.modifier("changements", cc.id, { titre: "X" })).rejects.toThrow(/clôturé/);
+  });
+
+  it("refuse une intervention réalisée sans compte rendu", async () => {
+    const [i] = (await depot.lister("interventions_maintenance", org)).filter((x) => x.statut === "planifiee");
+    await expect(depot.modifier("interventions_maintenance", i.id, { statut: "realisee" })).rejects.toThrow(/Compte rendu/);
+  });
+});

@@ -212,6 +212,12 @@ export function formatDate(iso: string | null | undefined, avecHeure = false): s
     : d.toLocaleDateString("fr-FR");
 }
 
+/** Valeur d'un champ datetime-local à l'heure locale (toISOString donnerait l'heure UTC). */
+export function dateHeureLocale(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function telechargerFichier(nom: string, contenu: string, type = "application/json"): void {
   const url = URL.createObjectURL(new Blob([contenu], { type }));
   const a = document.createElement("a");

@@ -159,6 +159,35 @@ export const CONTROLES: Controle[] = [
     if (colonne?.terminale) { if (!a || a.colonne_id !== n.colonne_id) n.termine_le = new Date().toISOString(); }
     else n.termine_le = null;
   },
+  // Maintenance : l'équipement appartient à la salle ; intervention réalisée documentée.
+  (ctx, table, n) => {
+    if ((table !== "gammes_maintenance" && table !== "interventions_maintenance") || !n) return;
+    if (n.equipement_id) {
+      const eq = ctx.lignes("equipements").find((e) => e.id === n.equipement_id);
+      if (!eq || eq.salle_id !== n.salle_id) throw new ErreurDepot("Rattachement invalide : l'équipement doit appartenir à la salle choisie");
+    }
+    if (table === "interventions_maintenance" && n.statut === "realisee") {
+      n.date_realisation = n.date_realisation ?? new Date().toISOString().slice(0, 10);
+      if (!String(n.compte_rendu ?? "").trim()) throw new ErreurDepot("Compte rendu obligatoire pour une intervention réalisée");
+    }
+  },
+  // Change control : figé une fois clôturé, requalification exigée avant clôture.
+  (ctx, table, n, a) => {
+    if (table !== "changements") return;
+    if (!n) {
+      if (a && ["approuve", "realise", "cloture"].includes(String(a.statut))) throw new ErreurDepot("Un changement approuvé ne peut pas être supprimé");
+      return;
+    }
+    if (a && (a.statut === "cloture" || a.statut === "refuse")) throw new ErreurDepot("Changement clôturé : modification impossible");
+    if (n.statut === "realise" && a?.statut !== "realise") n.realise_le = n.realise_le ?? new Date().toISOString().slice(0, 10);
+    if (n.statut === "cloture" && a?.statut !== "cloture") {
+      if (!String(n.conclusion ?? "").trim()) throw new ErreurDepot("Clôture impossible : conclusion obligatoire");
+      if (n.requalification_requise && !ctx.lignes("campagnes_qualification").some((c) => c.id === n.campagne_id && c.statut === "cloturee")) {
+        throw new ErreurDepot("Clôture impossible : la requalification demandée n'est pas clôturée");
+      }
+      n.cloture_le = n.cloture_le ?? new Date().toISOString().slice(0, 10);
+    }
+  },
 ];
 
 export const REACTIONS: Reaction[] = [
@@ -198,6 +227,25 @@ export const REACTIONS: Reaction[] = [
         origine: "qualification", salle_id: (campagne?.salle_id as string) ?? null, objet_type: "essai", objet_id: n.id as string,
         lien: `/qualification/${n.campagne_id}`, date_detection: String(n.date_realisation ?? new Date().toISOString()).slice(0, 10), detecte_par: String(n.realise_par ?? ""),
       });
+    }
+    // Dérive : trois résultats de surveillance consécutifs hors limite d'alerte au même point.
+    if (table === "resultats" && !a && n.point_id && n.origine === "surveillance" && (n.verdict === "alerte" || n.verdict === "action")) {
+      const derniers = ctx.lignes("resultats")
+        .filter((r) => r.point_id === n.point_id && r.parametre === n.parametre && r.origine === "surveillance")
+        .sort((x, y) => String(y.date_prelevement).localeCompare(String(x.date_prelevement)) || String(y.cree_le).localeCompare(String(x.cree_le)))
+        .slice(0, 3);
+      if (derniers.length === 3 && derniers.every((r) => r.verdict === "alerte" || r.verdict === "action")) {
+        const code = String(ctx.lignes("points_prelevement").find((p) => p.id === n.point_id)?.code ?? "");
+        const titre = `Dérive : 3 résultats consécutifs hors limite d'alerte — ${code} (${n.parametre || n.nature})`;
+        const ouvert = ctx.lignes("ecarts").some((e) => e.org_id === org && e.objet_type === "point" && e.objet_id === n.point_id && e.titre === titre && e.statut !== "cloture" && e.statut !== "annule");
+        if (!ouvert) {
+          ctx.inserer("ecarts", {
+            org_id: org, titre, automatique: true, gravite: "mineure", origine: "surveillance", salle_id: n.salle_id as string, objet_type: "point", objet_id: n.point_id as string,
+            description: `Les trois derniers résultats au point ${code} dépassent la limite d'alerte (dernier : ${n.valeur} ${n.unite}). Rechercher une cause commune (nettoyage, flux, comportement, équipement).`,
+            lien: "/contaminations?onglet=tendances", date_detection: String(n.date_prelevement).slice(0, 10), detecte_par: String(n.operateur ?? ""),
+          });
+        }
+      }
     }
     if (table === "etalonnages" && n.conforme === false && (!a || a.conforme !== false)) {
       const instrument = ctx.lignes("instruments").find((i) => i.id === n.instrument_id);

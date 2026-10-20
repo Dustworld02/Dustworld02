@@ -11,10 +11,6 @@ interface Lien {
   visible: boolean;
 }
 
-export const A_VENIR = [
-  { phase: 6, cle: "maintenance", libelle: "Maintenance, change control", icone: "🛠️" },
-];
-
 export function Coquille() {
   const s = useSession();
   const liens: Lien[] = [
@@ -28,6 +24,7 @@ export function Coquille() {
     { vers: "/instruments", libelle: "Instruments", icone: "📏", visible: s.peut("instruments", 1) },
     { vers: "/nettoyage", libelle: "Nettoyage", icone: "🧽", visible: s.peut("nettoyage_procedures", 1) || s.peut("nettoyage_execution", 1) },
     { vers: "/personnel", libelle: "Personnel", icone: "👥", visible: s.peut("personnel", 1) },
+    { vers: "/maintenance", libelle: "Maintenance, changements", icone: "🛠️", visible: s.peut("maintenance", 1) },
     { vers: "/ecarts", libelle: "Écarts et CAPA", icone: "⚠️", visible: s.peut("ecarts_capa", 1) },
     { vers: "/taches", libelle: "Tâches", icone: "📌", visible: s.peut("kanban", 1) },
     { vers: "/discussions", libelle: "Discussions", icone: "💬", visible: s.peut("discussions", 1) },
@@ -57,20 +54,6 @@ export function Coquille() {
               className={({ isActive }) => `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${isActive ? "bg-white/10 font-semibold text-white" : "hover:bg-white/5"}`}
             >
               <span aria-hidden>{l.icone}</span>{l.libelle}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="mt-2 px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-navy-100/50">À venir</div>
-        <nav className="flex flex-col gap-0.5 p-2 pt-0">
-          {A_VENIR.map((m) => (
-            <NavLink
-              key={m.cle}
-              to={`/a-venir/${m.cle}`}
-              className={({ isActive }) => `flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] ${isActive ? "bg-white/10 text-white" : "text-navy-100/60 hover:bg-white/5"}`}
-            >
-              <span aria-hidden className="opacity-70">{m.icone}</span>
-              <span className="flex-1">{m.libelle}</span>
-              <span className="text-[10px]">P{m.phase}</span>
             </NavLink>
           ))}
         </nav>

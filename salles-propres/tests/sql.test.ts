@@ -628,3 +628,65 @@ describe("Nettoyage et personnel (phase 5)", () => {
     });
   });
 });
+
+describe("Surveillance, maintenance et change control (phase 6)", () => {
+  it("ouvre un écart de dérive après trois alertes consécutives au même point, une seule fois", async () => {
+    await comme(ids.a, async () => {
+      const zone = (await un<{ id: string }>(`select id from zones where salle_id = $1 limit 1`, [salle1])).id;
+      const point = (await un<{ id: string }>(`insert into points_prelevement (org_id, salle_id, zone_id, code, natures, x, y) values ($1, $2, $3, 'PD1', '{surface}', 1, 1) returning id`, [orgA, salle1, zone])).id;
+      const plan = (await un<{ id: string; site_id: string }>(`insert into plans_echantillonnage (org_id, salle_id, point_id, parametre, milieu, nature) values ($1, $2, $3, 'Boîte contact', 'surface', 'microbiologique') returning id, site_id`, [orgA, salle1, point]));
+      expect(plan.site_id).toBe(site1);
+      const inserer = (jour: number, valeur: number) => db.query(
+        `insert into resultats (org_id, salle_id, point_id, plan_id, milieu, nature, parametre, valeur, limite_alerte, limite_action, date_prelevement) values ($1, $2, $3, $4, 'surface', 'microbiologique', 'Boîte contact', $5, 3, 50, $6)`,
+        [orgA, salle1, point, plan.id, valeur, `2026-09-0${jour}T09:00:00Z`]);
+      await inserer(1, 4);
+      await inserer(2, 5);
+      expect(await nb(`select * from ecarts where objet_id = $1`, [point])).toBe(0);
+      await inserer(3, 6);
+      const e = await un<{ titre: string; origine: string; automatique: boolean }>(`select titre, origine, automatique from ecarts where objet_id = $1`, [point]);
+      expect(e.titre).toContain("Dérive : 3 résultats consécutifs");
+      expect(e).toMatchObject({ origine: "surveillance", automatique: true });
+      await inserer(4, 7);
+      expect(await nb(`select * from ecarts where objet_id = $1`, [point])).toBe(1);
+    });
+  });
+
+  it("rattache gammes et interventions à une CTA ou une salle et documente les interventions", async () => {
+    await comme(ids.a, async () => {
+      await expect(db.query(`insert into gammes_maintenance (org_id, libelle) values ($1, 'X')`, [orgA])).rejects.toThrow(/Rattachement obligatoire/);
+      const cta = (await un<{ id: string }>(`select id from ctas limit 1`)).id;
+      const g = await un<{ id: string; site_id: string }>(`insert into gammes_maintenance (org_id, cta_id, libelle, periodicite_mois) values ($1, $2, 'Visite', 6) returning id, site_id`, [orgA, cta]);
+      expect(g.site_id).toBe(site1);
+      const eq = (await un<{ id: string }>(`insert into equipements (org_id, salle_id, type, libelle) values ($1, $2, 'psm', 'PSM') returning id`, [orgA, salle1])).id;
+      await expect(db.query(`insert into gammes_maintenance (org_id, salle_id, equipement_id, libelle) values ($1, $2, $3, 'X')`, [orgA, salle2, eq])).rejects.toThrow(/équipement doit appartenir/);
+      const i = (await un<{ id: string }>(`insert into interventions_maintenance (org_id, gamme_id, cta_id, titre) values ($1, $2, $3, 'Visite') returning id`, [orgA, g.id, cta])).id;
+      await expect(db.query(`update interventions_maintenance set statut = 'realisee' where id = $1`, [i])).rejects.toThrow(/Compte rendu obligatoire/);
+      const r = await un<{ date_realisation: string }>(`update interventions_maintenance set statut = 'realisee', compte_rendu = 'OK' where id = $1 returning date_realisation`, [i]);
+      expect(r.date_realisation).toBeTruthy();
+    });
+  });
+
+  it("approuve et clôture un changement par signature, après la requalification demandée", async () => {
+    await comme(ids.a, async () => {
+      const c = await un<{ id: string; numero: string }>(`insert into changements (org_id, titre, salle_id, requalification_requise) values ($1, 'Filtres H14', $2, true) returning id, numero`, [orgA, salle1]);
+      expect(c.numero).toMatch(/^CC-\d{4}-\d{3}$/);
+      await expect(db.query(`update changements set statut = 'approuve' where id = $1`, [c.id])).rejects.toThrow(/[Ss]ignature/);
+      await db.query(`select signer('changement', $1, 'approuve', 'OK', 'approbation')`, [c.id]);
+      await db.query(`update changements set statut = 'approuve' where id = $1`, [c.id]);
+      await expect(db.query(`delete from changements where id = $1`, [c.id])).rejects.toThrow(/approuvé ne peut pas être supprimé/);
+      await db.query(`update changements set statut = 'realise' where id = $1`, [c.id]);
+      await db.query(`select signer('changement', $1, 'approuve', 'OK', 'cloture')`, [c.id]);
+      await expect(db.query(`update changements set statut = 'cloture', conclusion = 'Filtres posés' where id = $1`, [c.id])).rejects.toThrow(/requalification/);
+      const camp = (await un<{ id: string }>(`select id from campagnes_qualification where statut = 'cloturee' limit 1`).catch(() => undefined))?.id;
+      expect(camp).toBeDefined();
+      {
+        await db.query(`update changements set campagne_id = $1 where id = $2`, [camp, c.id]);
+        await db.query(`update changements set statut = 'cloture', conclusion = 'Filtres posés, requalification conforme' where id = $1`, [c.id]);
+        await expect(db.query(`update changements set titre = 'X' where id = $1`, [c.id])).rejects.toThrow(/clôturé/);
+      }
+    });
+    await comme(ids.b, async () => {
+      expect(await nb(`select * from changements`)).toBe(0);
+    });
+  });
+});

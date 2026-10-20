@@ -12,7 +12,7 @@ export interface Option {
 export interface DefinitionChamp {
   cle: string;
   libelle: string;
-  type: "texte" | "nombre" | "date" | "dateheure" | "liste" | "zone_texte" | "case" | "multiple";
+  type: "texte" | "nombre" | "date" | "dateheure" | "liste" | "zone_texte" | "case" | "multiple" | "lignes";
   options?: Option[];
   requis?: boolean;
   aide?: string;
@@ -78,6 +78,9 @@ export function Formulaire({ champs, valeurs, onChange, lectureSeule, uneColonne
             );
             break;
           }
+          case "lignes":
+            saisie = <ZoneTexte disabled={desactive} rows={4} value={Array.isArray(v) ? (v as string[]).join("\n") : ""} onChange={(e) => maj(c.cle, e.target.value.split("\n"))} placeholder="Une ligne par élément" />;
+            break;
           case "zone_texte":
             saisie = <ZoneTexte disabled={desactive} value={(v as string) ?? ""} onChange={(e) => maj(c.cle, e.target.value)} />;
             break;
@@ -92,7 +95,7 @@ export function Formulaire({ champs, valeurs, onChange, lectureSeule, uneColonne
             saisie = <Saisie disabled={desactive} value={(v as string) ?? ""} onChange={(e) => maj(c.cle, e.target.value)} />;
         }
         return (
-          <Champ key={c.cle} libelle={`${c.libelle}${c.requis ? " *" : ""}`} aide={c.type === "case" ? undefined : c.aide} className={c.large || c.type === "zone_texte" || c.type === "multiple" ? "md:col-span-2" : ""}>
+          <Champ key={c.cle} libelle={`${c.libelle}${c.requis ? " *" : ""}`} aide={c.type === "case" ? undefined : c.aide} className={c.large || c.type === "zone_texte" || c.type === "multiple" || c.type === "lignes" ? "md:col-span-2" : ""}>
             {saisie}
           </Champ>
         );
@@ -168,7 +171,8 @@ export function GestionEntites<T extends NomTable>({
   const manquants = edition ? champsManquants(champs, edition.valeurs) : [];
 
   const enregistrer = () => action.executer(async () => {
-    const valeurs = avantEnregistrement ? avantEnregistrement(edition!.valeurs) : edition!.valeurs;
+    const brutes = Object.fromEntries(Object.entries(edition!.valeurs).map(([k, v]) => [k, champs.find((c) => c.cle === k)?.type === "lignes" && Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : v]));
+    const valeurs = avantEnregistrement ? avantEnregistrement(brutes) : brutes;
     const propres: Record<string, unknown> = {};
     for (const c of champs) if (c.cle in valeurs) propres[c.cle] = valeurs[c.cle];
     if (edition!.id) await s.depot.modifier(table, edition!.id, propres as Modification<T>);

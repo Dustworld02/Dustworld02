@@ -4,6 +4,7 @@ import { useSession, nomUtilisateur } from "../session";
 import type { ColonneKanban, Tache } from "../data/types";
 import { Badge, Bandeau, Bouton, Champ, EnTete, Liste, MessageErreur, Modale, Onglets, Saisie, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
 import { Avatar, FilDiscussion } from "../ui/discussion";
+import { echeancesPhase6 } from "../domain/maintenance";
 import { echeancesAPlanifier, ordreEntre } from "../domain/echeances";
 
 const PRIORITES = { basse: "Basse", normale: "Normale", haute: "Haute", urgente: "Urgente" } as const;
@@ -67,6 +68,15 @@ export function Taches() {
       zones, essais, periodicites: s.referentiels.periodicites, instruments, etalonnages, filtres: filtresAir, releves, capa, salles: donnees!.salles,
       nettoyagesEnRetard: nettoyages.filter((n) => n.statut === "a_faire" && n.date_prevue < jour).map((n) => ({ id: n.id, titre: n.titre, date: n.date_prevue, salle_id: n.salle_id, lien: "/nettoyage" })),
     });
+    const [gammes, interventionsMaint, changements, plans, resultats, ctas, equipements] = await Promise.all([
+      lire("maintenance", () => s.depot.lister("gammes_maintenance", org)), lire("maintenance", () => s.depot.lister("interventions_maintenance", org)),
+      lire("maintenance", () => s.depot.lister("changements", org)), lire("contamination_resultats", () => s.depot.lister("plans_echantillonnage", org)),
+      lire("contamination_resultats", () => s.depot.lister("resultats", org)), lire("cta", () => s.depot.lister("ctas", org)), lire("installations", () => s.depot.lister("equipements", org)),
+    ]);
+    sources.push(...echeancesPhase6({
+      gammes, interventions: interventionsMaint, changements, plans, resultats,
+      libelleObjet: (g) => (g.cta_id ? ctas.find((c) => c.id === g.cta_id)?.nom : equipements.find((e) => e.id === g.equipement_id)?.libelle ?? donnees!.salles.find((x) => x.id === g.salle_id)?.nom) ?? "",
+    }));
     const existantes = new Set(taches.map((t) => t.source_cle).filter(Boolean));
     const nouvelles = sources.filter((x) => !existantes.has(x.source_cle));
     const premiere = donnees!.colonnes.find((c) => !c.terminale) ?? donnees!.colonnes[0];

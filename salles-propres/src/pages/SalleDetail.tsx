@@ -9,6 +9,7 @@ import { EquipementsSalle } from "./Equipements";
 import { Echeancier, ListeCampagnes, useDonneesQualification } from "./qualification/Qualification";
 import { ListeResultats } from "./contaminations/Resultats";
 import { useDonneesContamination } from "./contaminations/Contaminations";
+import { Cartographie, PlanSurveillance } from "./contaminations/Surveillance";
 import { libelleSecteur } from "./Entreprises";
 import { LIBELLES_TYPES_ZONES, type TypeZone } from "../domain/secteurs/types";
 import { gabaritDepuisZones, MENTION_POINT_DE_DEPART } from "../domain/secteurs/generation";
@@ -362,11 +363,16 @@ function QualificationSalle({ salleId }: { salleId: string }) {
 }
 
 function ContaminationsSalle({ salleId }: { salleId: string }) {
+  const s = useSession();
   const { donnees, erreur, recharger } = useDonneesContamination(salleId);
   return (
     <>
       <MessageErreur erreur={erreur} />
-      {donnees && <ListeResultats d={donnees} recharger={recharger} salleFixe={salleId} />}
+      {donnees && <div className="grid gap-6">
+        {s.peut("contamination_tendances", 1) && <Carte titre="Cartographie (90 derniers jours)"><Cartographie d={donnees} salleFixe={salleId} /></Carte>}
+        <Carte titre="Plan d'échantillonnage"><PlanSurveillance d={donnees} recharger={recharger} salleFixe={salleId} /></Carte>
+        <Carte titre="Résultats"><ListeResultats d={donnees} recharger={recharger} salleFixe={salleId} /></Carte>
+      </div>}
     </>
   );
 }
