@@ -1,10 +1,12 @@
 # Plan de développement — Outil de gestion des salles propres et ZAC
 
-Version 1 — 20 octobre 2026
+Version 2 — 20 octobre 2026
 
 ---
 
 ## 0. Lire ceci d'abord : trois décisions qui conditionnent tout le reste
+
+**Décisions prises le 20 octobre 2026** : application hébergée dès la v1 (§0.1) et piste d'audit + signatures conçues dans le socle (§0.2). Les paragraphes ci-dessous gardent l'argumentaire pour mémoire.
 
 ### 0.1 Le fichier unique + localStorage ne tient pas pour ce projet
 
@@ -17,7 +19,7 @@ L'application `index.html` actuelle (Gestion Nettoyage) fonctionne sans serveur.
 
 Tout cela suppose plusieurs personnes connectées sur des postes différents. Avec localStorage, un « utilisateur » n'est qu'un libellé : n'importe qui ouvrant le fichier voit et modifie tout. Les droits seraient purement cosmétiques, et un auditeur le verrait immédiatement.
 
-**Recommandation : application web hébergée dès la v1**, avec une base de données et une authentification réelles (détail en §6). Garder l'approche « fichier unique » ferait perdre du temps : il faudrait tout refaire au moment du passage multi-utilisateurs.
+**Décision : application web hébergée dès la v1**, avec une base de données et une authentification réelles (détail en §6). L'approche « fichier unique » est abandonnée pour ce projet.
 
 ### 0.2 Statut réglementaire : outil de pilotage ou système GxP ?
 
@@ -25,7 +27,7 @@ Si l'outil devient **l'enregistrement officiel** des qualifications, des nettoya
 
 Ce n'est pas le cas pour un laboratoire, un atelier micro-électronique ou une ZAC hospitalière hors pharmacie à usage intérieur, où les exigences sont plus souples.
 
-**Recommandation : concevoir la piste d'audit et les signatures dès le socle (phase 1), c'est peu coûteux à ce stade et très coûteux après. Mais annoncer la v1 comme outil de pilotage, les documents signés restant la référence réglementaire. La validation CSV du logiciel est une phase à part (phase 7), à décider plus tard selon le secteur.**
+**Décision : la piste d'audit et les signatures sont conçues dès le socle (phase 1).** La v1 reste annoncée comme outil de pilotage, les documents signés restant la référence réglementaire. La validation CSV du logiciel est une phase à part (phase 7), à décider plus tard selon le secteur.
 
 ### 0.3 Ne pas tout construire en même temps
 
@@ -92,6 +94,7 @@ Les limites surfaces (UFC/boîte contact) et gants sont aussi à stocker. Chaque
 ### 2.3 Autres référentiels à prévoir
 
 - ISO 14644-2 (surveillance, périodicité des essais), 14644-3 (méthodes d'essai), 14644-4 (conception), 14644-5 (exploitation : habillage, nettoyage), 14644-7 (dispositifs séparatifs : isolateurs, PSM), 14644-16 (énergie), 14644-17 (taux de dépôt particulaire) ;
+- contamination chimique et surfaces : ISO 14644-8 (contamination moléculaire aéroportée, AMC : acides, bases, condensables, dopants, COV), 14644-9 (propreté particulaire des surfaces), 14644-10 (propreté chimique des surfaces), 14644-13 (nettoyage des surfaces), 14644-15 (dégazage des matériaux) ;
 - ISO 14698-1/2 (biocontamination), NF S 90-351 (établissements de santé : classes de risque 1 à 4, zones 1 à 4), EN 12469 (PSM), EN 1822 (filtres HEPA/ULPA H13/H14/U15…) ;
 - FD S 90-351 carnet sanitaire de l'air.
 
@@ -132,7 +135,15 @@ CTA (centrale de traitement d'air)
  ├─ Caractéristiques : débit nominal, étages de filtration (G4/F7/F9/H13…), recyclage/air neuf, batteries, humidif.
  ├─ Réseaux : gaines → bouches (zones desservies) → cascade de pression déduite
  ├─ Filtres : référence, classe EN 1822, date de pose, Δp, échéance de remplacement, test d'intégrité
- └─ Instruments : sondes Δp, T°, HR, étalonnages
+ └─ Sondes fixes : Δp, T°, HR (ce sont des Instruments, ci-dessous)
+
+Instrument (parc métrologique)
+ ├─ Identité : type (compteur particulaire, biocollecteur, anémomètre, manomètre, sonde T°/HR, luminomètre ATP,
+ │             analyseur COV / AMC, conductimètre…), marque, modèle, n° de série, plage, résolution, incertitude
+ ├─ Étalonnage : périodicité, dernier certificat (document GED), prochaine échéance, statut (valide / à étalonner / hors service)
+ ├─ Localisation / affectation, prêt, maintenance
+ └─ Résultats produits par cet instrument (lien inverse : permet de retrouver tous les résultats impactés par un
+    étalonnage non conforme et d'ouvrir l'écart correspondant)
 
 Qualification
  ├─ Objet qualifié : zone, CTA, équipement (ou « salle entière » = jeu de zones)
@@ -145,10 +156,19 @@ Essai (catalogue ISO 14644-3 + spécifiques équipement)
  ├─ Points mesurés, valeurs, état d'occupation (au repos / en activité / après construction)
  └─ Verdict calculé + validé par un humain
 
-Surveillance environnementale
- ├─ Plan d'échantillonnage (points, fréquence, méthode, limites alerte/action)
- ├─ Prélèvements et résultats, tendances, dérives
- └─ Dépassement → Écart automatique
+Suivi des contaminations (entrepôt unique de tous les résultats de mesure)
+ ├─ Résultat : date/heure, zone, point de prélèvement (sur le plan), instrument (étalonnage valide exigé),
+ │   opérateur, état d'occupation (repos / activité)
+ │   ├─ Milieu : AIR (aérien) / SURFACE / GANTS-TENUE / LIQUIDE (eau, solutions)
+ │   ├─ Nature : PARTICULAIRE (particules/m³ par taille, taux de dépôt ISO 14644-17, propreté surface ISO 14644-9)
+ │   │           MICROBIOLOGIQUE (UFC/m³, UFC/boîte contact, UFC/écouvillon, identification des germes, ATP en RLU)
+ │   │           CHIMIQUE (AMC ISO 14644-8 : COV, acides, bases, condensables ; résidus de surface ISO 14644-10 ;
+ │   │                     résidus de produits de nettoyage ; endotoxines ; TOC / conductivité des eaux)
+ │   ├─ Méthode, unité, valeur(s), limite d'alerte, limite d'action, verdict (conforme / alerte / action)
+ │   └─ Origine : qualification (essai), surveillance de routine, validation de nettoyage, investigation d'écart
+ ├─ Plan d'échantillonnage (points, fréquence, méthode, limites alerte/action, par nature et par milieu)
+ ├─ Séries temporelles par point / zone / nature / milieu → tendances, dérives, comparaison repos vs activité
+ └─ Dépassement ou dérive → Écart automatique → CAPA
 
 Écart / Déviation → Analyse de cause → CAPA (actions, propriétaire, échéance, vérification d'efficacité, clôture)
 
@@ -184,7 +204,7 @@ Utilisateur, Rôle, Permission (§8)
 - Fiche CTA avec schéma simplifié des étages (préfiltre → batteries → filtre fin → ventilateur → gaines → filtres terminaux).
 - Filtres : échéances de remplacement, Δp relevées (saisie manuelle ou import), alerte quand la Δp dépasse le seuil de colmatage.
 - Test d'intégrité des filtres terminaux (DEHS / Emery, fuite maximale admissible) rattaché à la qualification.
-- Instruments de mesure et leur **étalonnage** : un essai ne peut pas être validé avec un instrument dont l'étalonnage est périmé.
+- Instruments de mesure et étalonnage : voir §4.4, le parc métrologique y est géré avec les résultats qu'il produit.
 - **Carnet sanitaire de l'air** : généré automatiquement depuis les données (description des installations, maintenances, contrôles, résultats), imprimable ; c'est un livrable que l'ASPEC traite comme un sujet à part entière.
 
 ### 4.3 Qualification pas à pas (salle et équipements)
@@ -201,12 +221,38 @@ Démarche guidée sous forme d'**assistant** :
 
 Essais du catalogue initial (ISO 14644-3) : comptage particulaire (classification), débit et vitesse d'air, pression différentielle, intégrité des filtres, visualisation des flux (fumée, vidéo jointe), temps de récupération / décontamination, étanchéité de l'enceinte, température et humidité, électrostatique, éclairage et bruit (optionnels). Pour les équipements : QC/QI/QO/QP avec URS, FAT/SAT, et essais spécifiques (PSM : vitesse frontale, flux descendant, test KI-Discus ; isolateur : test de fuite, intégrité gants, cycle de décontamination).
 
-### 4.4 Surveillance environnementale
+### 4.4 Instruments, étalonnage et suivi des contaminations
 
-- Plan d'échantillonnage par zone (points sur le plan, méthodes, fréquences, limites alerte/action) ; générateur du nombre de points selon ISO 14644-1 A.1.
-- Saisie ou import des résultats (particulaire, air microbio, surfaces, gants), identification des germes.
-- Tendances par point et par zone ; règles de dérive (ex. 3 alertes consécutives = action).
-- Dépassement → écart automatique → CAPA.
+Un seul module, parce que les deux sujets sont liés : une mesure ne vaut que par l'instrument qui l'a produite, et un étalonnage non conforme doit permettre de retrouver toutes les mesures à remettre en cause.
+
+**Instruments et étalonnage**
+
+- Parc métrologique : fiche par instrument (type, série, plage, incertitude), affectation, état.
+- Étalonnage : périodicité, certificat déposé en GED, échéance, alerte à 30 jours, blocage : un résultat ne peut être saisi ni un essai validé avec un instrument périmé ou hors service.
+- Étalonnage non conforme : l'outil liste tous les résultats produits depuis le dernier étalonnage conforme et propose d'ouvrir un écart d'impact.
+- Prestataires d'étalonnage et métrologie interne (étalons de référence, raccordement).
+
+**Entrepôt unique des résultats (air et surfaces)**
+
+Tous les résultats de mesure, quelle que soit leur origine (qualification, surveillance de routine, validation de nettoyage, investigation), sont enregistrés dans une même structure, classés selon deux axes :
+
+| Milieu \ Nature | Particulaire | Microbiologique | Chimique |
+|---|---|---|---|
+| **Air (aérien)** | particules/m³ par taille (0,5 µm, 5 µm…), classification ISO | UFC/m³ (biocollecteur), boîtes de sédimentation (UFC/4 h), identification | AMC ISO 14644-8 : COV, acides, bases, condensables ; gaz spécifiques (H₂O₂ résiduel après décontamination) |
+| **Surface** | propreté particulaire ISO 14644-9, taux de dépôt ISO 14644-17 (témoins), contrôle visuel | boîtes contact (UFC/25 cm²), écouvillons, ATP (RLU) | résidus ISO 14644-10, résidus de détergent/désinfectant, endotoxines, TOC |
+| **Gants / tenue** | — | empreintes de gants (UFC/5 doigts), tenue | — |
+| **Liquides** | — | eau, solutions préparées (UFC/ml) | conductivité, TOC |
+
+- Chaque résultat porte : zone, point sur le plan, milieu, nature, méthode, unité, valeur, état d'occupation, instrument, opérateur, limites alerte et action héritées de la zone (modifiables par point), verdict calculé.
+- Saisie manuelle, import CSV (compteur, biocollecteur, luminomètre, laboratoire externe), ou alimentation automatique par les essais de qualification et les validations de nettoyage.
+- Plan d'échantillonnage par zone et par nature : points, fréquences, méthodes, limites ; générateur du nombre de points particulaires selon ISO 14644-1 A.1 ; fréquences microbio selon le grade (Annexe 1).
+
+**Évolution et suivi des contaminations**
+
+- Courbes par point, par zone, par nature et par milieu, avec limites d'alerte et d'action tracées ; comparaison au repos / en activité ; comparaison avant / après nettoyage.
+- Règles de dérive configurables : n alertes consécutives, tendance croissante sur k mesures, récurrence d'un même germe, dépassement d'un seuil cumulé ; chaque déclenchement crée un écart.
+- Cartographie de contamination sur le plan 2D : chaque point coloré selon son dernier verdict et sa tendance, filtrable par nature (particulaire / microbio / chimique). Permet de repérer une source (porte, équipement, poste de travail).
+- Rapport de surveillance mensuel et annuel généré ; revue des tendances intégrée à la revue périodique.
 
 ### 4.5 Écarts et CAPA
 
@@ -257,7 +303,7 @@ Le catalogue ASPEC consacre une large place au comportement, à l'habillage et �
 
 ### 4.12 Tableau de bord et rapports
 
-- État de qualification par zone (carte colorée), échéances à 30/60/90 jours, CAPA ouvertes, dérives de surveillance, nettoyages non réalisés, filtres à remplacer, étalonnages périmés, formations à recycler.
+- État de qualification par zone (carte colorée), échéances à 30/60/90 jours, CAPA ouvertes, dérives de contamination par nature (particulaire / microbio / chimique), nettoyages non réalisés, filtres à remplacer, étalonnages périmés, formations à recycler.
 - Exports PDF/CSV ; rapport de revue périodique (annuel) généré.
 
 ### 4.13 Performance énergétique (optionnel, phase 6)
@@ -271,10 +317,10 @@ L'ASPEC propose une formation dédiée (ISO 14644-16). Mesures simples : consign
 | Formation ASPEC | Fonctionnalité correspondante dans l'outil | Déjà dans votre demande ? |
 |---|---|---|
 | L'essentiel de la salle propre, e-learning contaminants et comportement | Module personnel, habilitations, formations (§4.8) | Non |
-| ISO 14644-1 & 2 classification et surveillance | Tables de classes, générateur de points, échéancier (§2, §4.4) | Partiellement |
-| Métrologie et essais, tests d'intégrité filtres, visualisation des flux | Catalogue d'essais 14644-3, instruments et étalonnage (§4.3) | Partiellement |
+| ISO 14644-1 & 2 classification et surveillance | Tables de classes, générateur de points, échéancier, suivi particulaire (§2, §4.4) | Partiellement |
+| Métrologie et essais, tests d'intégrité filtres, visualisation des flux | Catalogue d'essais 14644-3 (§4.3), parc métrologique et étalonnage (§4.4) | Partiellement |
 | Qualification des locaux et traitement d'air (QC/QI/QO/QP) | Assistant de qualification (§4.3) | Oui |
-| Biocontamination, stratégie d'échantillonnage | Surveillance environnementale (§4.4) | Non |
+| Biocontamination, stratégie d'échantillonnage | Suivi des contaminations microbio air / surfaces / gants, plan d'échantillonnage, tendances (§4.4) | Non |
 | Nettoyage et désinfection (produits, techniques, validation) | Module nettoyage complet avec validation (§4.7) | Oui, la validation du nettoyage manquait |
 | Carnet sanitaire de l'air | Génération du carnet depuis les données CTA (§4.2) | Non |
 | PSM, isolateurs, bonnes pratiques | Qualification d'équipements séparatifs (§4.3) | Partiellement |
@@ -337,6 +383,8 @@ Les durées sont indicatives, pour une personne à temps plein assistée par gé
 ### Phase 3 — Qualification (4 à 5 semaines)
 
 - Assistant de qualification (zones, CTA, équipements), modèles de protocole, exécution des essais avec verdicts calculés, écarts, rapport PDF, circuit d'approbation.
+- **Entrepôt unique des résultats** (§4.4) construit ici, car les essais de qualification sont ses premiers producteurs : structure milieu × nature, limites héritées des zones, lien obligatoire à un instrument étalonné.
+- Parc métrologique complet : étalonnages, blocage des instruments périmés, impact d'un étalonnage non conforme.
 - Échéancier des requalifications, tableau de bord de l'état de qualification.
 - Import CSV de résultats de compteur particulaire.
 - Livrable : une campagne de qualification initiale complète, du protocole au rapport signé, sur le site pilote.
@@ -354,9 +402,10 @@ Les durées sont indicatives, pour une personne à temps plein assistée par gé
 - Habilitations et formations du personnel (§4.8), car elles conditionnent les affectations.
 - Livrable : un mois complet de nettoyage planifié, exécuté et enregistré sur le site pilote, avec sa validation.
 
-### Phase 6 — Surveillance, maintenance, change control (3 à 4 semaines)
+### Phase 6 — Suivi des contaminations, maintenance, change control (4 semaines)
 
-- Plan d'échantillonnage, résultats, tendances, dérives → écarts.
+- Plan d'échantillonnage par nature et par milieu, saisie et imports de routine (biocollecteur, luminomètre, laboratoire externe, analyseur AMC).
+- Courbes d'évolution, règles de dérive, cartographie de contamination sur le plan, rapports mensuel et annuel.
 - Maintenance préventive, carnet sanitaire de l'air généré, change control → requalification.
 - Imports depuis GTC/sondes (CSV, puis API si disponible).
 - Module énergie optionnel.
@@ -366,7 +415,7 @@ Les durées sont indicatives, pour une personne à temps plein assistée par gé
 - Revue périodique annuelle générée, exports, performances, accessibilité tablette.
 - Si contexte GxP : dossier de validation du logiciel (spécifications, tests, procédure d'exploitation), gel des versions.
 
-Total indicatif : 23 à 30 semaines. Les phases 4 et 5 peuvent être inversées si le nettoyage est plus urgent que les CAPA.
+Total indicatif : 24 à 31 semaines. Les phases 4 et 5 peuvent être inversées si le nettoyage est plus urgent que les CAPA.
 
 ---
 
@@ -392,10 +441,12 @@ Niveaux : `—` aucun, `L` lecture, `E` écriture, `V` validation/approbation, `
 | Configuration, utilisateurs | A | L | — | — | — | — | — |
 | Référentiels normatifs | A | V | L | L | L | L | L |
 | Sites, zones, plan 2D | A | V | E | L | L | L | L |
-| CTA, filtres, instruments | A | L | E | E | — | — | L |
+| CTA, filtres | A | L | E | E | — | — | L |
 | Qualification : protocoles | A | V | E | E | — | — | L |
 | Qualification : exécution, résultats | A | V | L | E | — | — | L |
-| Surveillance environnementale | A | V | L | E | L | E (saisie) | L |
+| Instruments, étalonnage | A | L | E | E | L | — | L |
+| Suivi des contaminations : résultats, plans d'échantillonnage | A | V | L | E | E | E (saisie) | L |
+| Suivi des contaminations : tendances, rapports | A | V | L | L | L | — | L |
 | Écarts et CAPA | A | V | E | E | E | E (déclarer) | L |
 | Kanban | A | E | E | E | E | E (ses cartes) | L |
 | Nettoyage : produits, procédures | A | V | L | — | E | L | L |
