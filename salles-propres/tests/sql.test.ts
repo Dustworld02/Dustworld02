@@ -498,3 +498,87 @@ describe("Qualification et résultats (phase 3)", () => {
     });
   });
 });
+
+describe("Pilotage (phase 4)", () => {
+  it("ouvre un écart automatique sur dépassement de la limite d'action", async () => {
+    await comme(ids.a, async () => {
+      await db.query(`insert into resultats (org_id, salle_id, milieu, nature, parametre, valeur, limite_alerte, limite_action, origine) values ($1, $2, 'gants', 'microbiologique', 'Empreinte de gants', 8, 3, 5, 'surveillance')`, [orgA, salle1]);
+      const e = await un<{ titre: string; automatique: boolean; numero: string; origine: string }>(`select * from ecarts where objet_type = 'resultat' order by cree_le desc limit 1`);
+      expect(e).toMatchObject({ automatique: true, origine: "surveillance" });
+      expect(e.titre).toContain("Empreinte de gants");
+      expect(e.numero).toMatch(/^EC-\d{4}-\d{3}$/);
+    });
+  });
+
+  it("contrôle les CAPA et la clôture de l'écart", async () => {
+    await comme(ids.a, async () => {
+      const ecart = (await un<{ id: string }>(`insert into ecarts (org_id, titre) values ($1, 'Test') returning id`, [orgA])).id;
+      const capa = (await un<{ id: string; numero: string }>(`insert into capa (org_id, ecart_id, action, proprietaire) values ($1, $2, 'Action', $3) returning id, numero`, [orgA, ecart, ids.c]));
+      expect(capa.numero).toMatch(/^CAPA-/);
+      const notif = await un<{ texte: string }>(`select texte from notifications where destinataire = $1 order by cree_le desc limit 1`, [ids.c]).catch(() => null);
+      expect(notif).toBeUndefined(); // RLS : l'administrateur ne lit pas les notifications d'autrui
+      await db.query(`update ecarts set statut = 'a_verifier', conclusion = 'OK' where id = $1`, [ecart]);
+      await expect(db.query(`update ecarts set statut = 'cloture' where id = $1`, [ecart])).rejects.toThrow(/Signature|CAPA/);
+      await db.query(`select signer('ecart', $1, 'approuve', '', 'cloture')`, [ecart]);
+      await expect(db.query(`update ecarts set statut = 'cloture' where id = $1`, [ecart])).rejects.toThrow(/CAPA/);
+      await db.query(`update capa set statut = 'realisee' where id = $1`, [capa.id]);
+      await db.query(`update capa set statut = 'efficace' where id = $1`, [capa.id]);
+      await db.query(`update ecarts set statut = 'cloture' where id = $1`, [ecart]);
+      await expect(db.query(`update ecarts set titre = 'X' where id = $1`, [ecart])).rejects.toThrow(/clôturé/);
+      await expect(db.query(`update capa set preuve = 'X' where id = $1`, [capa.id])).rejects.toThrow(/clôturé/);
+      await expect(db.query(`delete from ecarts where id = $1`, [ecart])).rejects.toThrow(/clôturé/);
+    });
+    await comme(ids.c, async () => {
+      const n = await un<{ texte: string; lien: string }>(`select texte, lien from notifications order by cree_le desc limit 1`);
+      expect(n.texte).toContain("Action CAPA assignée");
+    });
+  });
+
+  it("réserve la vérification d'efficacité au niveau validation", async () => {
+    const capa = await comme(ids.a, async () => {
+      const ecart = (await un<{ id: string }>(`insert into ecarts (org_id, titre) values ($1, 'Test 2') returning id`, [orgA])).id;
+      return (await un<{ id: string }>(`insert into capa (org_id, ecart_id, action, statut) values ($1, $2, 'Action', 'realisee') returning id`, [orgA, ecart])).id;
+    });
+    await comme(ids.c, async () => {
+      await expect(db.query(`update capa set statut = 'efficace' where id = $1`, [capa])).rejects.toThrow(/niveau validation/);
+    });
+  });
+
+  it("conserve les messages et notifie les personnes mentionnées", async () => {
+    await comme(ids.a, async () => {
+      const m = (await un<{ id: string; auteur: string }>(`insert into messages (org_id, contenu, mentions, auteur) values ($1, 'Bonjour @C', $2, $3) returning id, auteur`, [orgA, [ids.c], ids.b]));
+      expect(m.auteur).toBe(ids.a);
+      await expect(db.query(`update messages set contenu = 'modifié' where id = $1`, [m.id])).rejects.toThrow(/ne peut pas être modifié/);
+      await db.query(`update messages set archive = true where id = $1`, [m.id]);
+      await expect(db.query(`delete from messages where id = $1`, [m.id])).rejects.toThrow(/jamais supprimés/);
+    });
+    await comme(ids.c, async () => {
+      const n = await un<{ texte: string }>(`select texte from notifications where type = 'mention' limit 1`);
+      expect(n.texte).toContain("vous mentionne");
+    });
+  });
+
+  it("horodate la fin d'une tâche entrant dans une colonne terminale", async () => {
+    await comme(ids.a, async () => {
+      const afaire = (await un<{ id: string }>(`insert into colonnes_kanban (org_id, libelle, ordre) values ($1, 'À faire', 1) returning id`, [orgA])).id;
+      const fini = (await un<{ id: string }>(`insert into colonnes_kanban (org_id, libelle, ordre, terminale) values ($1, 'Terminé', 2, true) returning id`, [orgA])).id;
+      const t = (await un<{ id: string }>(`insert into taches (org_id, colonne_id, titre, source_cle) values ($1, $2, 'T', 'capa:x') returning id`, [orgA, afaire])).id;
+      await expect(db.query(`insert into taches (org_id, colonne_id, titre, source_cle) values ($1, $2, 'T bis', 'capa:x')`, [orgA, afaire])).rejects.toThrow(/unique|duplicate/i);
+      const r = await un<{ termine_le: string | null }>(`update taches set colonne_id = $2 where id = $1 returning termine_le`, [t, fini]);
+      expect(r.termine_le).not.toBeNull();
+      await expect(db.query(`delete from colonnes_kanban where id = $1`, [fini])).rejects.toThrow();
+    });
+  });
+
+  it("ouvre un écart pour un essai non conforme et pour un étalonnage non conforme", async () => {
+    await comme(ids.a, async () => {
+      const instrument = (await un<{ id: string }>(`insert into instruments (org_id, libelle) values ($1, 'Sonde') returning id`, [orgA])).id;
+      await db.query(`insert into etalonnages (org_id, instrument_id, date_etalonnage, conforme) values ($1, $2, '2026-05-01', false)`, [orgA, instrument]);
+      expect(await nb(`select * from ecarts where objet_type = 'instrument' and objet_id = $1`, [instrument])).toBe(1);
+      const c = (await un<{ id: string }>(`insert into campagnes_qualification (org_id, salle_id, titre) values ($1, $2, 'Q2') returning id`, [orgA, salle1])).id;
+      await db.query(`insert into essais (org_id, campagne_id, cle_essai, libelle, statut, verdict) values ($1, $2, 'visualisation_flux', 'Flux', 'realise', 'non_conforme')`, [orgA, c]);
+      const e = await un<{ lien: string; origine: string }>(`select lien, origine from ecarts where objet_type = 'essai' order by cree_le desc limit 1`);
+      expect(e).toEqual({ lien: `/qualification/${c}`, origine: "qualification" });
+    });
+  });
+});

@@ -4,6 +4,7 @@ import { useSession } from "../../session";
 import type { CampagneQualification, Essai, EtatOccupation, MesureEssai, Resultat, Signature, StatutCampagne, Zone } from "../../data/types";
 import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, formatDate, useAction, useDonnees } from "../../ui/composants";
 import { ListeSignatures, ModaleSignature } from "../../ui/signature";
+import { FilDiscussion } from "../../ui/discussion";
 import { ChoixInstrument } from "../contaminations/Resultats";
 import {
   LIBELLES_ETATS, LIBELLES_STATUTS_CAMPAGNE, LIBELLES_VERDICTS_CAMPAGNE, essaiQualitatif, limitesEssai, verdictCampagnePropose, verdictClassification, verdictMesures,
@@ -181,6 +182,9 @@ export function CampagneDetail() {
           </Carte>
           <Carte titre="Signatures">
             <ListeSignatures signatures={donnees.signatures} />
+          </Carte>
+          <Carte titre="Discussion">
+            <FilDiscussion objetType="campagne" objetId={c.id} objetLibelle={`${c.numero} ${c.titre}`} lien={`/qualification/${c.id}`} hauteur="max-h-72" />
           </Carte>
         </div>
       </div>

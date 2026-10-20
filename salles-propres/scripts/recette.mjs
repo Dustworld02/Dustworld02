@@ -293,6 +293,56 @@ await verifier("Un résultat saisi au-delà de la limite d'alerte est classé en
   await capture("14-resultats");
 });
 
+await verifier("Un écart automatique a été ouvert pour le dépassement sur les gants", async () => {
+  await page.goto(`${URL_APP}/#/ecarts`);
+  await page.getByText("Dépassement de la limite d'action : Empreinte de gants").first().waitFor();
+});
+
+await verifier("L'écart analysé passe en CAPA en cours", async () => {
+  await page.getByText("Dérive des boîtes contact au point P03").click();
+  await page.getByLabel("Cause racine retenue").waitFor();
+  await page.getByRole("button", { name: "Lancer les CAPA" }).click();
+  await page.getByText("Les propriétaires réalisent leurs actions").waitFor();
+  await capture("15-ecart");
+});
+
+await verifier("Une carte se déplace par glisser-déposer d'une colonne à l'autre", async () => {
+  await page.goto(`${URL_APP}/#/taches`);
+  const carte = page.locator("article", { hasText: "Former les nouveaux opérateurs" });
+  await carte.dragTo(page.getByRole("region", { name: "En cours" }));
+  await page.getByRole("region", { name: "En cours" }).locator("article", { hasText: "Former les nouveaux opérateurs" }).waitFor();
+  await page.reload();
+  await page.getByRole("region", { name: "En cours" }).locator("article", { hasText: "Former les nouveaux opérateurs" }).waitFor();
+});
+
+await verifier("Les échéances deviennent des cartes, sans doublon", async () => {
+  await page.getByRole("button", { name: "Générer les cartes d'échéance" }).click();
+  await page.getByText(/carte\(s\) créée\(s\) à partir des échéances/).waitFor();
+  await page.locator("article", { hasText: "Requalification — Salle propre assemblage cathéters" }).waitFor();
+  await page.locator("article", { hasText: "Étalonnage : Micromanomètre" }).waitFor();
+  await page.getByRole("button", { name: "Générer les cartes d'échéance" }).click();
+  await page.getByText("Aucune nouvelle échéance à planifier.").waitFor();
+  await capture("16-kanban");
+});
+
+await verifier("Une mention dans une discussion notifie la personne citée", async () => {
+  await page.goto(`${URL_APP}/#/discussions`);
+  const zone = page.getByLabel("Nouveau message");
+  await zone.fill("Point qualification demain, @Alex");
+  await page.getByRole("option", { name: /Alex Métrologue/ }).click();
+  await zone.press("End");
+  await zone.type("merci de préparer le compteur.");
+  await page.getByRole("button", { name: "Envoyer" }).click();
+  await page.getByText("merci de préparer le compteur.").waitFor();
+  await deconnecter();
+  await connecter("Qualificateur");
+  await page.getByRole("button", { name: /Notifications \([1-9]/ }).click();
+  await page.getByText("Camille Admin vous mentionne").first().click();
+  await page.waitForURL(/discussions/);
+  await deconnecter();
+  await connecter("Administrateur");
+});
+
 await verifier("L'opérateur n'a ni création de salle, ni configuration, ni journal", async () => {
   await deconnecter();
   await connecter("Opérateur");

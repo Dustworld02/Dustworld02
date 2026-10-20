@@ -437,6 +437,94 @@ export interface Resultat extends Trace {
   commentaire: string;
 }
 
+// ---------------------------------------------------------------------
+// Phase 4 — écarts, CAPA, tâches, discussions
+// ---------------------------------------------------------------------
+
+export type StatutEcart = "ouvert" | "en_analyse" | "capa_en_cours" | "a_verifier" | "cloture" | "annule";
+
+export interface AnalyseCauses {
+  pourquoi?: string[];
+  ishikawa?: Partial<Record<"methode" | "milieu" | "main_oeuvre" | "materiel" | "matiere" | "mesure", string>>;
+  cause_racine?: string;
+}
+
+export interface Ecart extends Trace {
+  numero: string | null;
+  titre: string;
+  description: string;
+  origine: "qualification" | "surveillance" | "nettoyage" | "audit" | "etalonnage" | "reclamation" | "maintenance" | "autre";
+  gravite: "mineure" | "majeure" | "critique";
+  salle_id: string | null;
+  objet_type: string | null;
+  objet_id: string | null;
+  lien: string;
+  date_detection: string;
+  detecte_par: string;
+  impact: string;
+  analyse_causes: AnalyseCauses;
+  statut: StatutEcart;
+  conclusion: string;
+  cloture_le: string | null;
+  automatique: boolean;
+}
+
+export interface Capa extends Trace {
+  numero: string | null;
+  ecart_id: string | null;
+  type: "corrective" | "preventive";
+  action: string;
+  proprietaire: string | null;
+  echeance: string | null;
+  statut: "a_faire" | "en_cours" | "realisee" | "efficace" | "non_efficace" | "annulee";
+  realisee_le: string | null;
+  preuve: string;
+  verification_prevue: string | null;
+  verification_resultat: string;
+  verifie_le: string | null;
+}
+
+export interface ColonneKanban extends Trace {
+  libelle: string;
+  ordre: number;
+  terminale: boolean;
+}
+
+export interface ElementChecklist {
+  texte: string;
+  fait: boolean;
+}
+
+export interface Tache extends Trace {
+  colonne_id: string;
+  titre: string;
+  description: string;
+  ordre: number;
+  proprietaire: string | null;
+  echeance: string | null;
+  priorite: "basse" | "normale" | "haute" | "urgente";
+  etiquettes: string[];
+  checklist: ElementChecklist[];
+  salle_id: string | null;
+  objet_type: string | null;
+  objet_id: string | null;
+  lien: string;
+  source_cle: string | null;
+  termine_le: string | null;
+}
+
+export interface Message extends Trace {
+  objet_type: string;
+  objet_id: string | null;
+  objet_libelle: string;
+  lien: string;
+  auteur: string;
+  contenu: string;
+  mentions: string[];
+  reponse_a: string | null;
+  archive: boolean;
+}
+
 /** Tables accessibles par l'interface générique du dépôt. */
 export interface Tables {
   roles: Role;
@@ -466,6 +554,11 @@ export interface Tables {
   campagnes_qualification: CampagneQualification;
   essais: Essai;
   resultats: Resultat;
+  ecarts: Ecart;
+  capa: Capa;
+  colonnes_kanban: ColonneKanban;
+  taches: Tache;
+  messages: Message;
 }
 
 export type NomTable = keyof Tables;
@@ -496,6 +589,11 @@ export interface ColonnesParDefaut {
   etalonnages: "prochaine_echeance" | "organisme" | "numero_certificat" | "conforme" | "document_id" | "commentaire";
   campagnes_qualification: "numero" | "type_campagne" | "etapes" | "objectif" | "responsable" | "prestataire" | "date_debut" | "date_fin" | "statut" | "verdict" | "conclusion" | "version";
   essais: "ordre" | "reference" | "cible_type" | "cible_id" | "cible_libelle" | "etat_occupation" | "critere" | "critere_min" | "critere_max" | "unite" | "instrument_id" | "date_realisation" | "realise_par" | "statut" | "verdict" | "mesures" | "commentaire";
+  ecarts: "numero" | "description" | "origine" | "gravite" | "salle_id" | "objet_type" | "objet_id" | "lien" | "date_detection" | "detecte_par" | "impact" | "analyse_causes" | "statut" | "conclusion" | "cloture_le" | "automatique";
+  capa: "numero" | "ecart_id" | "type" | "proprietaire" | "echeance" | "statut" | "realisee_le" | "preuve" | "verification_prevue" | "verification_resultat" | "verifie_le";
+  colonnes_kanban: "ordre" | "terminale";
+  taches: "description" | "ordre" | "proprietaire" | "echeance" | "priorite" | "etiquettes" | "checklist" | "salle_id" | "objet_type" | "objet_id" | "lien" | "source_cle" | "termine_le";
+  messages: "objet_type" | "objet_id" | "objet_libelle" | "lien" | "auteur" | "mentions" | "reponse_a" | "archive";
   resultats: "zone_id" | "point_id" | "point_libre" | "origine" | "essai_id" | "methode" | "parametre" | "taille_um" | "unite" | "etat_occupation" | "instrument_id" | "date_prelevement" | "operateur" | "lot_milieu" | "germe" | "limite_alerte" | "limite_action" | "verdict" | "commentaire";
 }
 type DefautsDe<T> = T extends keyof ColonnesParDefaut ? ColonnesParDefaut[T] : never;

@@ -30,13 +30,14 @@ export function etatInstrument(instrument: Instrument, etalonnages: Etalonnage[]
   const liste = etalonnages.filter((e) => e.instrument_id === instrument.id).sort((a, b) => b.date_etalonnage.localeCompare(a.date_etalonnage));
   const dernier = liste[0] ?? null;
   const couvrant = liste.find((e) => e.conforme && e.date_etalonnage <= jour && (e.prochaine_echeance ?? "") >= jour);
-  const echeance = couvrant?.prochaine_echeance ?? dernier?.prochaine_echeance ?? null;
+  // Un dernier étalonnage non conforme n'ouvre aucune période de validité.
+  const echeance = couvrant?.prochaine_echeance ?? (dernier?.conforme ? dernier.prochaine_echeance : null);
   if (instrument.statut === "hors_service" || instrument.statut === "reforme") {
     return { valide: false, dernier, echeance, statut: "alerte", message: instrument.statut === "reforme" ? "Instrument réformé." : "Instrument hors service." };
   }
   if (!couvrant) {
     if (dernier && !dernier.conforme) return { valide: false, dernier, echeance, statut: "alerte", message: `Dernier étalonnage non conforme (${new Date(dernier.date_etalonnage).toLocaleDateString("fr-FR")}).` };
-    return { valide: false, dernier, echeance, statut: "alerte", message: dernier ? `Étalonnage échu depuis le ${new Date(echeance!).toLocaleDateString("fr-FR")}.` : "Jamais étalonné." };
+    return { valide: false, dernier, echeance, statut: "alerte", message: dernier && echeance ? `Étalonnage échu depuis le ${new Date(echeance).toLocaleDateString("fr-FR")}.` : "Jamais étalonné." };
   }
   const jours = Math.round((new Date(couvrant.prochaine_echeance!).getTime() - new Date(jour).getTime()) / 86400000);
   if (jours <= 30) return { valide: true, dernier, echeance, statut: "attention", message: `Étalonnage à renouveler sous ${jours} jour(s).` };

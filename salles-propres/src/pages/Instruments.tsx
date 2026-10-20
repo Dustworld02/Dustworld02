@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useSession } from "../session";
 import type { Instrument } from "../data/types";
 import { Badge, Bandeau, Carte, EnTete, MessageErreur, Modale, TableauDefilant, formatDate, useDonnees } from "../ui/composants";
@@ -106,7 +107,7 @@ function DetailInstrument({ instrument, onFermer }: { instrument: Instrument; on
           <p className="mb-2 text-sm">
             Mesures réalisées avec cet instrument depuis le dernier étalonnage conforme{precedentConforme ? ` (${formatDate(precedentConforme.date_etalonnage)})` : ""} :
             <strong> {impact.resultats.length} résultat(s)</strong> et <strong>{impact.essais.length} essai(s) de qualification</strong> à réévaluer.
-            Ouvrez un écart pour tracer l'évaluation d'impact (module Écarts et CAPA).
+            Un écart a été ouvert automatiquement pour tracer cette évaluation : <Link to="/ecarts" className="text-navy-700 underline">Écarts et CAPA</Link>.
           </p>
           {impact.resultats.length > 0 && (
             <TableauDefilant>

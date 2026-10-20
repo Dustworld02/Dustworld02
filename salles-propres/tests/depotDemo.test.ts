@@ -94,3 +94,40 @@ describe("Mode démo : mêmes règles que la base", () => {
     await expect(depot.connecter("nouveau@demo.fr", "faux")).rejects.toThrow(/incorrect/);
   });
 });
+
+describe("Mode démo : pilotage (phase 4)", () => {
+  it("contient les écarts automatiques du jeu de démonstration", async () => {
+    const ecarts = await depot.lister("ecarts", org);
+    expect(ecarts.some((e) => e.automatique && e.objet_type === "resultat")).toBe(true);
+    expect(ecarts.some((e) => e.automatique && e.origine === "etalonnage")).toBe(true);
+  });
+
+  it("notifie le propriétaire d'une tâche et la personne mentionnée", async () => {
+    const [colonne] = await depot.lister("colonnes_kanban", org);
+    const profils = await depot.profils(org);
+    const tech = profils.find((p) => p.email === COMPTES_DEMO.technique.email)!;
+    await depot.creer("taches", { org_id: org, colonne_id: colonne.id, titre: "Vérifier le manomètre", proprietaire: tech.id });
+    await depot.creer("messages", { org_id: org, objet_type: "general", contenu: "Merci @Sacha", mentions: [tech.id] });
+    await connecter("technique");
+    const notifs = await depot.lister("notifications", org);
+    expect(notifs.map((n) => n.type).sort()).toEqual(["mention", "tache", "tache", "tache"]);
+    expect(notifs.some((n) => n.texte === "Tâche assignée : Vérifier le manomètre")).toBe(true);
+  });
+
+  it("réserve la vérification d'efficacité et contrôle la clôture", async () => {
+    const ecart = (await depot.lister("ecarts", org)).find((e) => e.titre.startsWith("Dérive"))!;
+    const [capa] = await depot.lister("capa", org, { ecart_id: ecart.id });
+    await connecter("nettoyage");
+    await depot.modifier("capa", capa.id, { statut: "realisee", preuve: "Fait" });
+    await expect(depot.modifier("capa", capa.id, { statut: "efficace" })).rejects.toThrow(/niveau validation/);
+    await connecter("qualite");
+    await depot.modifier("capa", capa.id, { statut: "efficace" });
+    await expect(depot.modifier("ecarts", ecart.id, { statut: "cloture", conclusion: "OK" })).rejects.toThrow(/Signature|CAPA/);
+  });
+
+  it("refuse la modification d'un message publié", async () => {
+    const [m] = await depot.lister("messages", org);
+    await expect(depot.modifier("messages", m.id, { contenu: "autre" })).rejects.toThrow(/ne peut pas être modifié/);
+    await depot.modifier("messages", m.id, { archive: true });
+  });
+});

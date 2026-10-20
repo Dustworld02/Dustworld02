@@ -51,6 +51,7 @@ export async function creerJeuDemo(depot: DepotDemo): Promise<void> {
 
   await planDemo(depot, org, site.id, salle.id);
   await qualificationDemo(depot, org, salle.id);
+  await pilotageDemo(depot, org, salle.id, ids);
 
   const doc = await depot.creer("documents", {
     org_id: org, titre: "Cahier des charges (URS) — salle d'assemblage", type_document: "urs", statut: "brouillon",
@@ -256,4 +257,46 @@ async function qualificationDemo(depot: DepotDemo, org: string, salleId: string)
     surveillance.push({ ...base, zone_id: pt("P02").zone_id, point_id: pt("P02").id, milieu: "surface", nature: "chimique", methode: "Luminomètre", parametre: "ATP-métrie", unite: "RLU", valeur: Math.round(40 + alea() * 120), limite_alerte: 150, limite_action: 300, instrument_id: luminometre.id });
   }
   await depot.creerPlusieurs("resultats", surveillance);
+}
+
+/** Tableau de tâches, écart en cours d'analyse, discussions. */
+async function pilotageDemo(depot: DepotDemo, org: string, salleId: string, ids: Record<string, string>): Promise<void> {
+  const colonnes = await depot.creerPlusieurs("colonnes_kanban", [
+    { org_id: org, libelle: "À faire", ordre: 1 }, { org_id: org, libelle: "En cours", ordre: 2 }, { org_id: org, libelle: "En attente", ordre: 3 },
+    { org_id: org, libelle: "À vérifier", ordre: 4 }, { org_id: org, libelle: "Terminé", ordre: 5, terminale: true },
+  ]);
+  const col = (l: string) => colonnes.find((c) => c.libelle === l)!.id;
+  const dans = (jours: number) => { const d = new Date(); d.setDate(d.getDate() + jours); return d.toISOString().slice(0, 10); };
+  await depot.creerPlusieurs("taches", [
+    { org_id: org, colonne_id: col("En cours"), titre: "Commander les filtres F9 de rechange (CTA-01)", ordre: 1000, proprietaire: ids.technique, echeance: dans(10), priorite: "haute", etiquettes: ["traitement d'air"], salle_id: salleId, lien: "/traitement-air",
+      checklist: [{ texte: "Demander le devis", fait: true }, { texte: "Valider la référence (classe F9, dimensions)", fait: true }, { texte: "Passer la commande", fait: false }] },
+    { org_id: org, colonne_id: col("À faire"), titre: "Former les nouveaux opérateurs à l'habillage ISO 7", ordre: 1000, proprietaire: ids.nettoyage, echeance: dans(21), priorite: "normale", etiquettes: ["formation"], salle_id: salleId },
+    { org_id: org, colonne_id: col("À faire"), titre: "Préparer la requalification annuelle", ordre: 2000, proprietaire: ids.qualificateur, echeance: dans(25), priorite: "haute", etiquettes: ["qualification"], salle_id: salleId, lien: `/qualification/nouvelle?salle=${salleId}` },
+    { org_id: org, colonne_id: col("À vérifier"), titre: "Mettre à jour le plan de nettoyage après ajout de la paillasse 2", ordre: 1000, proprietaire: ids.qualite, echeance: dans(3), priorite: "normale", etiquettes: ["nettoyage"], salle_id: salleId },
+    { org_id: org, colonne_id: col("Terminé"), titre: "Installer les compteurs de pression différentielle des SAS", ordre: 1000, proprietaire: ids.technique, echeance: dans(-20), priorite: "normale", etiquettes: ["traitement d'air"], salle_id: salleId },
+  ]);
+
+  const ecart = await depot.creer("ecarts", {
+    org_id: org, titre: "Dérive des boîtes contact au point P03 (paillasse 2)", origine: "surveillance", gravite: "majeure", salle_id: salleId,
+    description: "Hausse continue des dénombrements sur boîtes contact au point P03 depuis quatre semaines, avec deux résultats au-delà de la limite d'alerte (15 UFC).",
+    impact: "Pas de dépassement de la limite d'action. Lots assemblés sur la paillasse 2 sur la période : bioburden produit conforme. Impact produit jugé faible.",
+    detecte_par: "Morgan Hygiène", lien: "/contaminations", statut: "en_analyse",
+    analyse_causes: {
+      pourquoi: ["Contamination croissante de la paillasse 2", "Nettoyage de fin de poste incomplet sur l'angle arrière", "Angle masqué par la balance déplacée récemment", "Le plan de nettoyage n'a pas été mis à jour après le déplacement", ""],
+      ishikawa: { methode: "Plan de nettoyage non mis à jour", materiel: "Balance déplacée contre la paillasse", main_oeuvre: "Nouvel opérateur en cours de formation" },
+      cause_racine: "Changement d'implantation (balance) sans mise à jour du plan de nettoyage ni de la zone essuyée.",
+    },
+  });
+  await depot.creerPlusieurs("capa", [
+    { org_id: org, ecart_id: ecart.id, type: "corrective", action: "Nettoyage renforcé de la paillasse 2 (sporicide) et éloignement de la balance de 30 cm.", proprietaire: ids.nettoyage, echeance: dans(2), verification_prevue: dans(30) },
+    { org_id: org, ecart_id: ecart.id, type: "preventive", action: "Intégrer au change control toute modification d'implantation du mobilier, avec revue du plan de nettoyage.", proprietaire: ids.qualite, echeance: dans(30), verification_prevue: dans(90) },
+  ]);
+
+  await depot.creerPlusieurs("messages", [
+    { org_id: org, objet_type: "general", contenu: "Bienvenue dans l'espace d'échange de l'équipe salle propre. Utilisez @ pour mentionner un collègue.", objet_libelle: "Espace général", lien: "/discussions" },
+    { org_id: org, objet_type: "salle", objet_id: salleId, objet_libelle: "Salle propre assemblage cathéters", lien: `/salles/${salleId}`,
+      contenu: "@Dominique Qualité les boîtes contact de P03 remontent depuis un mois, j'ai ouvert un écart. Peux-tu valider l'analyse ?", mentions: [ids.qualite] },
+    { org_id: org, objet_type: "ecart", objet_id: ecart.id, objet_libelle: `${ecart.numero} ${ecart.titre}`, lien: `/ecarts/${ecart.id}`,
+      contenu: "La balance a été déplacée le mois dernier pour libérer la hotte : c'est cohérent avec le début de la dérive." },
+  ]);
 }

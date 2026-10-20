@@ -264,6 +264,10 @@ export class DepotDemo implements Depot {
         this.inserer(e, "notifications", { org_id: org, destinataire, type, texte, lien, lue: false }, false);
       },
       niveau: (org, module) => this.niveau(e, org, module),
+      nomUtilisateur: (id) => {
+        const p = e.profils.find((x) => x.id === id);
+        return p ? p.nom_complet || p.email : "Quelqu'un";
+      },
     };
   }
 

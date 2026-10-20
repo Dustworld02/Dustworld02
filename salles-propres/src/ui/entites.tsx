@@ -130,7 +130,7 @@ export function useTable<T extends NomTable>(table: T, filtre?: Partial<Tables[T
  * avec les droits du module appliqués à l'interface.
  */
 export function GestionEntites<T extends NomTable>({
-  table, titre, champs, colonnes, lignes, recharger, valeursInitiales, actions, actionsLigne, texteRecherche, vide, ouvrir, avantEnregistrement, trier,
+  table, titre, champs, colonnes, lignes, recharger, valeursInitiales, actions, actionsLigne, texteRecherche, vide, ouvrir, avantEnregistrement, trier, lectureSeule,
 }: {
   table: T;
   titre?: ReactNode;
@@ -147,12 +147,14 @@ export function GestionEntites<T extends NomTable>({
   ouvrir?: (ligne: Tables[T]) => void;
   avantEnregistrement?: (valeurs: Record<string, unknown>) => Record<string, unknown>;
   trier?: (a: Tables[T], b: Tables[T]) => number;
+  /** Force la lecture seule (ex. objet parent clôturé). */
+  lectureSeule?: boolean;
 }) {
   const s = useSession();
   const org = s.org!.id;
   const module = META[table].module;
-  const ecriture = s.peut(module, niveauEcritureTable(table));
-  const suppression = s.peut(module, niveauSuppressionTable(table));
+  const ecriture = !lectureSeule && s.peut(module, niveauEcritureTable(table));
+  const suppression = !lectureSeule && s.peut(module, niveauSuppressionTable(table));
   const [edition, setEdition] = useState<{ id?: string; valeurs: Record<string, unknown> } | null>(null);
   const [recherche, setRecherche] = useState("");
   const action = useAction();

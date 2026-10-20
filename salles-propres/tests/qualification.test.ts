@@ -99,3 +99,17 @@ describe("Instruments et résultats", () => {
     expect(ajouterMois("2026-01-31", 1)).toBe("2026-02-28");
   });
 });
+
+describe("Échéances à planifier", () => {
+  it("regroupe les requalifications par salle et rend urgent un instrument invalide", async () => {
+    const { echeancesAPlanifier } = await import("../src/domain/echeances");
+    const essais = ["classification_particulaire", "pression_differentielle", "debit_vitesse"].map((cle) => ({ cible_type: "zone", cible_id: "z", cle_essai: cle, statut: "realise", verdict: "conforme", date_realisation: "2025-11-15T10:00:00Z" } as Essai));
+    const instrument = { ...trace, id: "i", libelle: "Manomètre", statut: "en_service" } as Instrument;
+    const nc = { ...trace, id: "e", instrument_id: "i", date_etalonnage: "2026-10-13", prochaine_echeance: "2027-10-13", conforme: false } as Etalonnage;
+    const liste = echeancesAPlanifier({ zones: [zone], essais, periodicites: PERIODICITES_DEFAUT, instruments: [instrument], etalonnages: [nc], filtres: [], releves: [], capa: [], salles: [{ id: "s", nom: "Salle A" }] }, new Date("2026-10-20"));
+    const requalif = liste.filter((x) => x.source_cle.startsWith("requalif:"));
+    expect(requalif).toHaveLength(1);
+    expect(requalif[0].titre).toBe("Requalification — Salle A (3 essais)");
+    expect(liste.find((x) => x.objet_type === "instrument")!.echeance).toBe("2026-10-20");
+  });
+});

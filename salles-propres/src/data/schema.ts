@@ -120,6 +120,32 @@ export const META: Record<NomTable, MetaTable> = {
       { colonne: "essai_id", table: "essais", suppression: "cascade" }, { colonne: "instrument_id", table: "instruments", suppression: "null" },
     ],
   },
+
+  ecarts: {
+    module: "ecarts_capa", portee: "org", numero: "EC",
+    defauts: {
+      numero: null, description: "", origine: "autre", gravite: "mineure", salle_id: null, objet_type: null, objet_id: null, lien: "",
+      detecte_par: "", impact: "", analyse_causes: {}, statut: "ouvert", conclusion: "", cloture_le: null, automatique: false,
+    },
+    rattachements: [{ colonne: "salle_id", table: "salles_propres", suppression: "null" }],
+    signatures: { objetType: "ecart", colonneVersion: null, exigences: [{ statut: "cloture", signification: "approuve", portee: "cloture" }] },
+  },
+  capa: {
+    module: "ecarts_capa", portee: "org", numero: "CAPA",
+    defauts: { numero: null, ecart_id: null, type: "corrective", proprietaire: null, echeance: null, statut: "a_faire", realisee_le: null, preuve: "", verification_prevue: null, verification_resultat: "", verifie_le: null },
+    rattachements: [{ colonne: "ecart_id", table: "ecarts", suppression: "cascade" }],
+  },
+  colonnes_kanban: { module: "kanban", portee: "membre", ecriture: 3, suppression: 3, defauts: { ordre: 0, terminale: false } },
+  taches: {
+    module: "kanban", portee: "org",
+    defauts: { description: "", ordre: 0, proprietaire: null, echeance: null, priorite: "normale", etiquettes: [], checklist: [], salle_id: null, objet_type: null, objet_id: null, lien: "", source_cle: null, termine_le: null },
+    rattachements: [{ colonne: "colonne_id", table: "colonnes_kanban", suppression: "restreint" }, { colonne: "salle_id", table: "salles_propres", suppression: "null" }],
+  },
+  messages: {
+    module: "discussions", portee: "org", suppression: 4,
+    defauts: { objet_type: "general", objet_id: null, objet_libelle: "", lien: "", mentions: [], reponse_a: null, archive: false },
+    rattachements: [{ colonne: "reponse_a", table: "messages", suppression: "null" }],
+  },
 };
 
 /** Objets signables : table, colonne de version, module dont le niveau conditionne la signature. */

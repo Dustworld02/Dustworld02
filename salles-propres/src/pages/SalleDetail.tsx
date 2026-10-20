@@ -4,6 +4,7 @@ import { useSession } from "../session";
 import type { SallePropre, Zone } from "../data/types";
 import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Onglets, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
 import { PlanSalle } from "./plan/PlanSalle";
+import { FilDiscussion } from "../ui/discussion";
 import { EquipementsSalle } from "./Equipements";
 import { Echeancier, ListeCampagnes, useDonneesQualification } from "./qualification/Qualification";
 import { ListeResultats } from "./contaminations/Resultats";
@@ -16,7 +17,7 @@ import { libelleClasse } from "../domain/referentiels/classesIso";
 import { formatNombre, incoherencesZone, limitesMicrobio, limitesParticulaires, pointsPrelevementZone, volumeM3 } from "../domain/exigencesZone";
 import { LIBELLES_STATUTS } from "./Documents";
 
-type OngletSalle = "zones" | "plan" | "equipements" | "qualification" | "contaminations" | "documents";
+type OngletSalle = "zones" | "plan" | "equipements" | "qualification" | "contaminations" | "documents" | "discussion";
 
 type EditionZone = Omit<Zone, "id" | "org_id" | "cree_le" | "cree_par" | "modifie_le" | "modifie_par" | "site_id"> & { id?: string };
 
@@ -135,6 +136,7 @@ export function SalleDetail() {
             ...(s.peut("qualification_protocoles", 1) ? [{ cle: "qualification" as const, libelle: "Qualification" }] : []),
             ...(s.peut("contamination_resultats", 1) ? [{ cle: "contaminations" as const, libelle: "Contaminations" }] : []),
             ...(s.peut("documents", 1) ? [{ cle: "documents" as const, libelle: `Documents (${donnees.documents.length})` }] : []),
+            ...(s.peut("discussions", 1) ? [{ cle: "discussion" as const, libelle: "Discussion" }] : []),
           ]}
           actif={onglet}
           onChange={setOnglet}
@@ -145,6 +147,7 @@ export function SalleDetail() {
       {onglet === "equipements" && <EquipementsSalle salle={sp} />}
       {onglet === "qualification" && <QualificationSalle salleId={sp.id} />}
       {onglet === "contaminations" && <ContaminationsSalle salleId={sp.id} />}
+      {onglet === "discussion" && <Carte titre="Discussion"><FilDiscussion objetType="salle" objetId={sp.id} objetLibelle={sp.nom} lien={`/salles/${sp.id}`} /></Carte>}
 
       {onglet === "zones" && <Carte
         titre="Zones"

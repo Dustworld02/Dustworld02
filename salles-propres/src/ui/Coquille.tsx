@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router";
 import { useSession } from "../session";
 import { Badge, Liste } from "./composants";
 import { reinitialiserDemo } from "../data/initialisation";
+import { Cloche } from "./Cloche";
 
 interface Lien {
   vers: string;
@@ -11,7 +12,6 @@ interface Lien {
 }
 
 export const A_VENIR = [
-  { phase: 4, cle: "pilotage", libelle: "Écarts, CAPA, tâches, échanges", icone: "📌" },
   { phase: 5, cle: "nettoyage", libelle: "Nettoyage, personnel", icone: "🧽" },
   { phase: 6, cle: "maintenance", libelle: "Maintenance, change control", icone: "🛠️" },
 ];
@@ -27,6 +27,9 @@ export function Coquille() {
     { vers: "/qualification", libelle: "Qualification", icone: "✅", visible: s.peut("qualification_protocoles", 1) || s.peut("qualification_execution", 1) },
     { vers: "/contaminations", libelle: "Contaminations", icone: "🔬", visible: s.peut("contamination_resultats", 1) || s.peut("contamination_tendances", 1) },
     { vers: "/instruments", libelle: "Instruments", icone: "📏", visible: s.peut("instruments", 1) },
+    { vers: "/ecarts", libelle: "Écarts et CAPA", icone: "⚠️", visible: s.peut("ecarts_capa", 1) },
+    { vers: "/taches", libelle: "Tâches", icone: "📌", visible: s.peut("kanban", 1) },
+    { vers: "/discussions", libelle: "Discussions", icone: "💬", visible: s.peut("discussions", 1) },
     { vers: "/documents", libelle: "Documents", icone: "📄", visible: s.peut("documents", 1) },
     { vers: "/referentiels", libelle: "Référentiels", icone: "📚", visible: s.peut("referentiels", 1) },
     { vers: "/configuration", libelle: "Configuration", icone: "⚙️", visible: s.peut("configuration", 1) || s.peut("gabarits", 1) },
@@ -102,6 +105,7 @@ export function Coquille() {
               {s.organisations.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
             </Liste>
           )}
+          <Cloche />
           <span className="text-sm">{nomUtilisateur}</span>
           {s.monRole && <Badge ton="info">{s.monRole.libelle}</Badge>}
           <button type="button" className="text-sm text-texte-2 hover:text-texte" onClick={() => void s.deconnecter()}>Déconnexion</button>
