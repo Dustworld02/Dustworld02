@@ -214,6 +214,85 @@ await verifier("La CTA de démonstration montre ses étages, ses zones desservie
   await page.keyboard.press("Escape");
 });
 
+await verifier("L'échéancier montre la requalification à venir de la qualification initiale clôturée", async () => {
+  await page.goto(`${URL_APP}/#/qualification`);
+  await page.getByRole("row", { name: /Qualification initiale/ }).getByText("Qualifié").waitFor();
+  await page.getByRole("tab", { name: "Échéancier de requalification" }).click();
+  await page.getByText("À échéance").first().waitFor();
+});
+
+await verifier("L'assistant propose les essais et leurs critères pour la salle, ses CTA et ses équipements", async () => {
+  await page.goto(`${URL_APP}/#/qualification/nouvelle`);
+  await page.locator("main").getByLabel("Salle propre", { exact: true }).selectOption({ label: "Salle propre assemblage cathéters" });
+  await page.getByRole("button", { name: "Suivant →" }).click();
+  await page.getByText("CTA-01 Salle d'assemblage").waitFor();
+  await page.getByRole("button", { name: "Suivant →" }).click();
+  await page.getByText("Vitesse du flux unidirectionnel").waitFor();
+  await page.getByRole("row", { name: /Pression différentielle.*Z03/ }).getByText("Pression différentielle").waitFor();
+  await capture("12-assistant-essais");
+  await page.getByRole("button", { name: "Créer la campagne" }).click();
+  await page.getByText("Protocole en rédaction").first().waitFor();
+});
+
+await verifier("Le protocole est approuvé par signature, puis l'exécution démarre", async () => {
+  await page.getByRole("button", { name: "Approuver le protocole" }).click();
+  await page.getByLabel("Mot de passe (confirmation d'identité)").fill("demo");
+  await page.getByRole("dialog").getByRole("button", { name: "Signer" }).click();
+  await page.getByRole("button", { name: "Démarrer l'exécution" }).click();
+  await page.getByText("essai(s) restant(s) à réaliser").waitFor();
+});
+
+await verifier("Un instrument dont l'étalonnage est non conforme ne peut pas être choisi", async () => {
+  await page.getByRole("row", { name: /Pression différentielle.*Z01/ }).click();
+  const options = await page.getByRole("dialog").getByLabel("Instrument").locator("option:not([disabled])").allInnerTexts();
+  if (options.some((o) => o.includes("Micromanomètre"))) throw new Error("Instrument non conforme proposé");
+  await page.getByRole("dialog").getByLabel(/^Valeur/).fill("16");
+  await page.getByRole("dialog").getByRole("button", { name: "Valider l'essai" }).click();
+  await page.getByRole("dialog").waitFor({ state: "detached" });
+  await page.getByRole("row", { name: /Pression différentielle.*Z01/ }).getByText("Conforme").waitFor();
+});
+
+await verifier("La classification calcule le verdict point par point et exige le nombre de points du tableau A.1", async () => {
+  await page.getByRole("row", { name: /Comptage particulaire.*Z01/ }).click();
+  const d = page.getByRole("dialog");
+  await d.getByText("4 requis").first().waitFor();
+  await d.getByRole("button", { name: "+ Point" }).click();
+  await d.getByRole("button", { name: "+ Point" }).click();
+  await d.getByRole("button", { name: "+ Point" }).click();
+  const champs = d.locator('input[aria-label$="µm"]');
+  const n = await champs.count();
+  for (let i = 0; i < n; i++) await champs.nth(i).fill(i % 2 === 0 ? "120000" : "800");
+  await d.getByText("Points : 4 mesuré(s), 4 requis").waitFor();
+  await d.getByLabel("Instrument").selectOption({ label: "Compteur de particules portable (n° CP28-0193)" });
+  await capture("13-classification");
+  await d.getByRole("button", { name: "Valider l'essai" }).click();
+  await d.waitFor({ state: "detached" });
+  await page.getByRole("row", { name: /Comptage particulaire.*Z01/ }).getByText("Conforme").waitFor();
+});
+
+await verifier("L'étalonnage non conforme du micromanomètre liste les essais à réévaluer", async () => {
+  await page.goto(`${URL_APP}/#/instruments`);
+  await page.getByText("Micromanomètre").first().click();
+  await page.getByText("Analyse d'impact de l'étalonnage non conforme").waitFor();
+  await page.getByText(/essai\(s\) de qualification/).first().waitFor();
+  await page.keyboard.press("Escape");
+});
+
+await verifier("Un résultat saisi au-delà de la limite d'alerte est classé en alerte", async () => {
+  await page.goto(`${URL_APP}/#/contaminations`);
+  await page.getByRole("button", { name: "+ Saisir un résultat" }).click();
+  const d = page.getByRole("dialog");
+  await d.getByLabel("Point de prélèvement").selectOption({ label: "P03 — Paillasse 2" });
+  await d.getByLabel("Paramètre mesuré").selectOption("surf_contact");
+  await d.getByLabel("Limite d'alerte").fill("15");
+  await d.getByLabel("Limite d'action").fill("25");
+  await d.getByLabel(/^Valeur/).fill("18");
+  await d.getByText("Alerte").first().waitFor();
+  await d.getByRole("button", { name: "Enregistrer" }).click();
+  await d.waitFor({ state: "detached" });
+  await capture("14-resultats");
+});
+
 await verifier("L'opérateur n'a ni création de salle, ni configuration, ni journal", async () => {
   await deconnecter();
   await connecter("Opérateur");

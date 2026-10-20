@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useId, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 type Variante = "principal" | "secondaire" | "danger" | "discret";
 
@@ -45,13 +45,18 @@ export function EnTete({ titre, sousTitre, actions }: { titre: ReactNode; sousTi
   );
 }
 
+/** Libellé relié explicitement à son champ (le nom accessible du champ est le libellé seul). */
 export function Champ({ libelle, aide, children, className = "" }: { libelle: ReactNode; aide?: ReactNode; children: ReactNode; className?: string }) {
+  const genere = useId();
+  const element = isValidElement(children) ? (children as ReactElement<{ id?: string }>) : null;
+  const id = element?.props.id ?? genere;
+  const idAide = aide ? `${id}-aide` : undefined;
   return (
-    <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-xs font-semibold text-texte-2">{libelle}</span>
-      {children}
-      {aide && <span className="text-xs text-texte-2">{aide}</span>}
-    </label>
+    <div className={`flex flex-col gap-1 ${className}`}>
+      <label htmlFor={id} className="text-xs font-semibold text-texte-2">{libelle}</label>
+      {element ? cloneElement(element as ReactElement<Record<string, unknown>>, { id, ...(idAide ? { "aria-describedby": idAide } : {}) }) : children}
+      {aide && <span id={idAide} className="text-xs text-texte-2">{aide}</span>}
+    </div>
   );
 }
 

@@ -434,3 +434,67 @@ describe("Modélisation (phase 2)", () => {
     await db.exec(`delete from app.objets_signables where objet_type = 'essai'; drop table public.essai_generique;`);
   });
 });
+
+describe("Qualification et résultats (phase 3)", () => {
+  let instrument = "";
+  let campagne = "";
+  let essai = "";
+
+  it("calcule l'échéance d'étalonnage et refuse un résultat mesuré avec un instrument non étalonné", async () => {
+    await comme(ids.a, async () => {
+      instrument = (await un<{ id: string }>(`insert into instruments (org_id, libelle, periodicite_etalonnage_mois) values ($1, 'Compteur', 12) returning id`, [orgA])).id;
+      const e = await un<{ prochaine_echeance: string }>(`insert into etalonnages (org_id, instrument_id, date_etalonnage) values ($1, $2, '2026-01-15') returning prochaine_echeance::text`, [orgA, instrument]);
+      expect(e.prochaine_echeance).toBe("2027-01-15");
+      await expect(db.query(`insert into resultats (org_id, salle_id, milieu, nature, valeur, instrument_id, date_prelevement) values ($1, $2, 'air', 'particulaire', 10, $3, '2025-06-01')`, [orgA, salle1, instrument])).rejects.toThrow(/non étalonné/);
+      const r = await un<{ verdict: string; site_id: string }>(`insert into resultats (org_id, salle_id, milieu, nature, valeur, limite_alerte, limite_action, instrument_id, date_prelevement) values ($1, $2, 'air', 'particulaire', 250000, 200000, 352000, $3, '2026-06-01') returning verdict, site_id`, [orgA, salle1, instrument]);
+      expect(r).toEqual({ verdict: "alerte", site_id: site1 });
+      await db.query(`update instruments set statut = 'hors_service' where id = $1`, [instrument]);
+      await expect(db.query(`insert into resultats (org_id, salle_id, milieu, nature, valeur, instrument_id, date_prelevement) values ($1, $2, 'air', 'particulaire', 10, $3, '2026-06-02')`, [orgA, salle1, instrument])).rejects.toThrow(/non étalonné/);
+      await db.query(`update instruments set statut = 'en_service' where id = $1`, [instrument]);
+    });
+  });
+
+  it("numérote la campagne et exige la signature du protocole", async () => {
+    await comme(ids.a, async () => {
+      const c = await un<{ id: string; numero: string }>(`insert into campagnes_qualification (org_id, salle_id, titre) values ($1, $2, 'Q') returning id, numero`, [orgA, salle1]);
+      campagne = c.id;
+      expect(c.numero).toMatch(/^QUAL-\d{4}-001$/);
+      essai = (await un<{ id: string }>(`insert into essais (org_id, campagne_id, cle_essai, libelle) values ($1, $2, 'pression_differentielle', 'Pression') returning id`, [orgA, campagne])).id;
+      await expect(db.query(`update campagnes_qualification set statut = 'protocole_approuve' where id = $1`, [campagne])).rejects.toThrow(/Signature « approuve » requise/);
+      await db.query(`select signer('campagne', $1, 'approuve', '', 'rapport')`, [campagne]);
+      await expect(db.query(`update campagnes_qualification set statut = 'protocole_approuve' where id = $1`, [campagne])).rejects.toThrow(/requise/);
+      await db.query(`select signer('campagne', $1, 'approuve', '', 'protocole')`, [campagne]);
+      await db.query(`update campagnes_qualification set statut = 'protocole_approuve' where id = $1`, [campagne]);
+    });
+  });
+
+  it("refuse un essai réalisé sans verdict ou avec un instrument périmé", async () => {
+    await comme(ids.a, async () => {
+      await expect(db.query(`update essais set statut = 'realise' where id = $1`, [essai])).rejects.toThrow(/verdict/);
+      await expect(db.query(`update essais set statut = 'realise', verdict = 'conforme', instrument_id = $2, date_realisation = '2028-01-01' where id = $1`, [essai, instrument])).rejects.toThrow(/non étalonné/);
+      await db.query(`update essais set statut = 'realise', verdict = 'conforme', instrument_id = $2, date_realisation = '2026-06-01' where id = $1`, [essai, instrument]);
+    });
+  });
+
+  it("réserve l'exécution au module correspondant", async () => {
+    await comme(ids.c, async () => {
+      expect(await nb(`select * from essais`)).toBeGreaterThan(0);
+      await expect(db.query(`insert into essais (org_id, campagne_id, cle_essai, libelle) values ($1, $2, 'x', 'x')`, [orgA, campagne])).rejects.toThrow(/row-level security/);
+    });
+  });
+
+  it("fige la campagne, ses essais et ses résultats une fois clôturée", async () => {
+    await comme(ids.a, async () => {
+      await db.query(`insert into resultats (org_id, salle_id, essai_id, milieu, nature, valeur) values ($1, $2, $3, 'air', 'particulaire', 5)`, [orgA, salle1, essai]);
+      await db.query(`update campagnes_qualification set statut = 'en_execution' where id = $1`, [campagne]);
+      await db.query(`update campagnes_qualification set statut = 'rapport_redige', verdict = 'qualifie' where id = $1`, [campagne]);
+      // la signature « rapport » posée au test précédent (version 1) satisfait la clôture
+      await db.query(`update campagnes_qualification set statut = 'cloturee' where id = $1`, [campagne]);
+      await expect(db.query(`update campagnes_qualification set titre = 'X' where id = $1`, [campagne])).rejects.toThrow(/clôturée/);
+      await expect(db.query(`update essais set commentaire = 'X' where id = $1`, [essai])).rejects.toThrow(/figés/);
+      await expect(db.query(`update resultats set valeur = 1 where essai_id = $1`, [essai])).rejects.toThrow(/figés/);
+      await expect(db.query(`insert into essais (org_id, campagne_id, cle_essai, libelle) values ($1, $2, 'x', 'x')`, [orgA, campagne])).rejects.toThrow(/figés/);
+      await expect(db.query(`delete from salles_propres where id = $1`, [salle1])).rejects.toThrow();
+    });
+  });
+});

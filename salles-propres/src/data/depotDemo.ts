@@ -4,6 +4,7 @@ import type {
   DocumentGed, EntreeJournal, Modification, NomTable, Nouveau, Organisation, Profil, Signature, Tables,
 } from "./types";
 import { META, OBJETS_SIGNABLES, niveauEcritureTable, niveauSuppressionTable } from "./schema";
+import { CONTROLES, REACTIONS, type ContexteRegle } from "./regles";
 import { niveauSignature, type Signification } from "../domain/permissions";
 
 /**
@@ -31,6 +32,7 @@ interface ProfilDemo extends Profil {
 }
 
 type Ligne = Record<string, unknown>;
+export type { ContexteRegle };
 
 export interface EtatDemo {
   version: 1;
@@ -43,25 +45,7 @@ export interface EtatDemo {
   session: string | null;
 }
 
-/** Réactions de la base à une écriture (équivalent des déclencheurs métier). */
-export type Reaction = (contexte: ContexteReaction, table: NomTable, avant: Ligne | null, apres: Ligne | null) => void;
-
-export interface ContexteReaction {
-  uid: string | null;
-  lignes(table: NomTable): Ligne[];
-  inserer<T extends NomTable>(table: T, valeurs: Nouveau<T>): Tables[T];
-  modifier<T extends NomTable>(table: T, id: string, valeurs: Modification<T>): void;
-  notifier(org: string, destinataire: string | null | undefined, type: string, texte: string, lien: string): void;
-  niveau(org: string, module: string): number;
-}
-
 const CLE = "salles-propres-demo-v1";
-const reactions: Reaction[] = [];
-
-/** Enregistre une réaction métier (utilisé par les modules des phases suivantes). */
-export function enregistrerReaction(r: Reaction): void {
-  reactions.push(r);
-}
 
 function etatVide(): EtatDemo {
   return { version: 1, organisations: [], profils: [], tables: {}, signatures: [], journal_audit: [], sequenceJournal: 0, session: null };
@@ -242,6 +226,8 @@ export class DepotDemo implements Depot {
       }
     }
 
+    for (const c of CONTROLES) c(this.contexte(e), table, ligne, ancienne);
+
     if (meta.signatures) {
       for (const ex of meta.signatures.exigences) {
         if (ligne.statut !== ex.statut || (ancienne && ancienne.statut === ex.statut)) continue;
@@ -265,7 +251,7 @@ export class DepotDemo implements Depot {
     if (!ok) throw new ErreurDepot("Opération refusée : l'organisation doit garder au moins un administrateur actif");
   }
 
-  private contexte(e: EtatDemo): ContexteReaction {
+  private contexte(e: EtatDemo): ContexteRegle {
     return {
       uid: this.etat.session,
       lignes: (t) => lignesDe(e, t),
@@ -302,7 +288,7 @@ export class DepotDemo implements Depot {
     if (table === "versions_documents") {
       this.appliquerModification(e, "documents", ligne.document_id as string, { version_courante: ligne.version as number }, false);
     }
-    for (const r of reactions) r(this.contexte(e), table, null, ligne);
+    for (const r of REACTIONS) r(this.contexte(e), table, null, ligne);
     return ligne as unknown as Tables[T];
   }
 
@@ -327,13 +313,14 @@ export class DepotDemo implements Depot {
     lignes[index] = nouvelle;
     this.journaliser(e, org, table, id, "update", ancienne, nouvelle);
     if (table === "membres" || table === "droits_roles") this.verifierAdminRestant(e, org);
-    for (const r of reactions) r(this.contexte(e), table, ancienne, nouvelle);
+    for (const r of REACTIONS) r(this.contexte(e), table, ancienne, nouvelle);
     return nouvelle as unknown as Tables[T];
   }
 
   /** Suppression avec les comportements des clés étrangères (cascade, restriction, mise à null). */
   private retirer(e: EtatDemo, table: NomTable, ligne: Ligne): void {
     const org = ligne.org_id as string;
+    for (const c of CONTROLES) c(this.contexte(e), table, null, ligne);
     if (table === "documents" && e.signatures.some((s) => s.objet_type === "document" && s.objet_id === ligne.id)) {
       throw new ErreurDepot("Suppression impossible : ce document porte des signatures (déclarez-le périmé)");
     }
@@ -353,7 +340,7 @@ export class DepotDemo implements Depot {
     }
     e.tables[table] = lignesDe(e, table).filter((x) => x.id !== ligne.id);
     this.journaliser(e, org, table, ligne.id as string, "delete", ligne, null);
-    for (const r of reactions) r(this.contexte(e), table, ligne, null);
+    for (const r of REACTIONS) r(this.contexte(e), table, ligne, null);
   }
 
   // ------------------------------------------------------------------

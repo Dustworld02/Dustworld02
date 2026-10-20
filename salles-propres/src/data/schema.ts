@@ -82,6 +82,44 @@ export const META: Record<NomTable, MetaTable> = {
   points_prelevement: { module: "installations", portee: "site", defauts: { description: "", hauteur_m: null, actif: true }, rattachements: [salle(), { colonne: "zone_id", table: "zones", suppression: "cascade" }] },
   flux: { module: "installations", portee: "site", defauts: { libelle: "" }, rattachements: [salle()] },
   notifications: { module: "", portee: "personnel" },
+
+  instruments: {
+    module: "instruments", portee: "org",
+    defauts: { marque: "", modele: "", numero_serie: "", plage: "", resolution: "", incertitude: "", periodicite_etalonnage_mois: 12, proprietaire: "interne", localisation: "", statut: "en_service", notes: "" },
+  },
+  etalonnages: {
+    module: "instruments", portee: "org",
+    defauts: { prochaine_echeance: null, organisme: "", numero_certificat: "", conforme: true, document_id: null, commentaire: "" },
+    rattachements: [{ colonne: "instrument_id", table: "instruments", suppression: "cascade" }, { colonne: "document_id", table: "documents", suppression: "null" }],
+  },
+  campagnes_qualification: {
+    module: "qualification_protocoles", portee: "site", numero: "QUAL",
+    defauts: { numero: null, type_campagne: "initiale", etapes: ["QO"], objectif: "", responsable: "", prestataire: "", date_debut: null, date_fin: null, statut: "brouillon", verdict: null, conclusion: "", version: 1 },
+    rattachements: [{ colonne: "salle_id", table: "salles_propres", suppression: "restreint", site: true }],
+    signatures: {
+      objetType: "campagne", colonneVersion: "version",
+      exigences: [{ statut: "protocole_approuve", signification: "approuve", portee: "protocole" }, { statut: "cloturee", signification: "approuve", portee: "rapport" }],
+    },
+  },
+  essais: {
+    module: "qualification_execution", portee: "site",
+    defauts: {
+      ordre: 0, reference: "", cible_type: "zone", cible_id: null, cible_libelle: "", etat_occupation: null, critere: "", critere_min: null, critere_max: null,
+      unite: "", instrument_id: null, date_realisation: null, realise_par: "", statut: "a_faire", verdict: null, mesures: [], commentaire: "",
+    },
+    rattachements: [{ colonne: "campagne_id", table: "campagnes_qualification", suppression: "cascade", site: true }, { colonne: "instrument_id", table: "instruments", suppression: "null" }],
+  },
+  resultats: {
+    module: "contamination_resultats", portee: "site",
+    defauts: {
+      zone_id: null, point_id: null, point_libre: "", origine: "surveillance", essai_id: null, methode: "", parametre: "", taille_um: null, unite: "",
+      etat_occupation: null, instrument_id: null, operateur: "", lot_milieu: "", germe: "", limite_alerte: null, limite_action: null, verdict: "non_evalue", commentaire: "",
+    },
+    rattachements: [
+      salle(), zoneNull, { colonne: "point_id", table: "points_prelevement", suppression: "null" },
+      { colonne: "essai_id", table: "essais", suppression: "cascade" }, { colonne: "instrument_id", table: "instruments", suppression: "null" },
+    ],
+  },
 };
 
 /** Objets signables : table, colonne de version, module dont le niveau conditionne la signature. */

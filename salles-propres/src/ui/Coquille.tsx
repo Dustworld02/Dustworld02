@@ -11,8 +11,6 @@ interface Lien {
 }
 
 export const A_VENIR = [
-  { phase: 3, cle: "qualification", libelle: "Qualification", icone: "✅" },
-  { phase: 3, cle: "contaminations", libelle: "Instruments et contaminations", icone: "🔬" },
   { phase: 4, cle: "pilotage", libelle: "Écarts, CAPA, tâches, échanges", icone: "📌" },
   { phase: 5, cle: "nettoyage", libelle: "Nettoyage, personnel", icone: "🧽" },
   { phase: 6, cle: "maintenance", libelle: "Maintenance, change control", icone: "🛠️" },
@@ -26,6 +24,9 @@ export function Coquille() {
     { vers: "/salles", libelle: "Salles propres", icone: "🧪", visible: s.peut("installations", 1) },
     { vers: "/traitement-air", libelle: "Traitement d'air", icone: "🌀", visible: s.peut("cta", 1) },
     { vers: "/equipements", libelle: "Équipements", icone: "🔧", visible: s.peut("installations", 1) },
+    { vers: "/qualification", libelle: "Qualification", icone: "✅", visible: s.peut("qualification_protocoles", 1) || s.peut("qualification_execution", 1) },
+    { vers: "/contaminations", libelle: "Contaminations", icone: "🔬", visible: s.peut("contamination_resultats", 1) || s.peut("contamination_tendances", 1) },
+    { vers: "/instruments", libelle: "Instruments", icone: "📏", visible: s.peut("instruments", 1) },
     { vers: "/documents", libelle: "Documents", icone: "📄", visible: s.peut("documents", 1) },
     { vers: "/referentiels", libelle: "Référentiels", icone: "📚", visible: s.peut("referentiels", 1) },
     { vers: "/configuration", libelle: "Configuration", icone: "⚙️", visible: s.peut("configuration", 1) || s.peut("gabarits", 1) },

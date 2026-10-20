@@ -15,6 +15,12 @@ import { Journal } from "./pages/Journal";
 import { AVenir } from "./pages/AVenir";
 import { TraitementAir, CtaDetail } from "./pages/TraitementAir";
 import { Equipements } from "./pages/Equipements";
+import { Instruments } from "./pages/Instruments";
+import { Contaminations } from "./pages/contaminations/Contaminations";
+import { Qualification } from "./pages/qualification/Qualification";
+import { AssistantCampagne } from "./pages/qualification/AssistantCampagne";
+import { CampagneDetail } from "./pages/qualification/CampagneDetail";
+import { ImpressionCampagne } from "./pages/qualification/ImpressionCampagne";
 
 function Ecran({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-full items-center justify-center p-6 text-texte-2">{children}</div>;
@@ -41,6 +47,12 @@ export function App() {
                 <Route path="traitement-air" element={<TraitementAir />} />
                 <Route path="traitement-air/:id" element={<CtaDetail />} />
                 <Route path="equipements" element={<Equipements />} />
+                <Route path="qualification" element={<Qualification />} />
+                <Route path="qualification/nouvelle" element={<AssistantCampagne />} />
+                <Route path="qualification/:id" element={<CampagneDetail />} />
+                <Route path="qualification/:id/imprimer/:doc" element={<ImpressionCampagne />} />
+                <Route path="instruments" element={<Instruments />} />
+                <Route path="contaminations" element={<Contaminations />} />
                 <Route path="documents" element={<Documents />} />
                 <Route path="referentiels" element={<Referentiels />} />
                 <Route path="configuration" element={<Configuration />} />

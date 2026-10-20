@@ -5,6 +5,9 @@ import type { SallePropre, Zone } from "../data/types";
 import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Onglets, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
 import { PlanSalle } from "./plan/PlanSalle";
 import { EquipementsSalle } from "./Equipements";
+import { Echeancier, ListeCampagnes, useDonneesQualification } from "./qualification/Qualification";
+import { ListeResultats } from "./contaminations/Resultats";
+import { useDonneesContamination } from "./contaminations/Contaminations";
 import { libelleSecteur } from "./Entreprises";
 import { LIBELLES_TYPES_ZONES, type TypeZone } from "../domain/secteurs/types";
 import { gabaritDepuisZones, MENTION_POINT_DE_DEPART } from "../domain/secteurs/generation";
@@ -13,7 +16,7 @@ import { libelleClasse } from "../domain/referentiels/classesIso";
 import { formatNombre, incoherencesZone, limitesMicrobio, limitesParticulaires, pointsPrelevementZone, volumeM3 } from "../domain/exigencesZone";
 import { LIBELLES_STATUTS } from "./Documents";
 
-type OngletSalle = "zones" | "plan" | "equipements" | "documents";
+type OngletSalle = "zones" | "plan" | "equipements" | "qualification" | "contaminations" | "documents";
 
 type EditionZone = Omit<Zone, "id" | "org_id" | "cree_le" | "cree_par" | "modifie_le" | "modifie_par" | "site_id"> & { id?: string };
 
@@ -129,6 +132,8 @@ export function SalleDetail() {
             { cle: "zones" as const, libelle: `Zones (${donnees.zones.length})` },
             { cle: "plan" as const, libelle: "Plan" },
             { cle: "equipements" as const, libelle: "Équipements et mobilier" },
+            ...(s.peut("qualification_protocoles", 1) ? [{ cle: "qualification" as const, libelle: "Qualification" }] : []),
+            ...(s.peut("contamination_resultats", 1) ? [{ cle: "contaminations" as const, libelle: "Contaminations" }] : []),
             ...(s.peut("documents", 1) ? [{ cle: "documents" as const, libelle: `Documents (${donnees.documents.length})` }] : []),
           ]}
           actif={onglet}
@@ -138,6 +143,8 @@ export function SalleDetail() {
 
       {onglet === "plan" && <PlanSalle salle={sp} onSalleModifiee={recharger} />}
       {onglet === "equipements" && <EquipementsSalle salle={sp} />}
+      {onglet === "qualification" && <QualificationSalle salleId={sp.id} />}
+      {onglet === "contaminations" && <ContaminationsSalle salleId={sp.id} />}
 
       {onglet === "zones" && <Carte
         titre="Zones"
@@ -327,5 +334,31 @@ function EditeurZone({ zone, setZone, lectureSeule, enCours, erreur, onEnregistr
         </aside>
       </div>
     </Modale>
+  );
+}
+
+function QualificationSalle({ salleId }: { salleId: string }) {
+  const s = useSession();
+  const { donnees, erreur } = useDonneesQualification(salleId);
+  return (
+    <div className="grid gap-4">
+      <MessageErreur erreur={erreur} />
+      <Carte titre="Campagnes" actions={s.peut("qualification_protocoles", 2) && s.peut("qualification_execution", 2) && <Link to={`/qualification/nouvelle?salle=${salleId}`}><Bouton variante="principal">+ Nouvelle campagne</Bouton></Link>}>
+        {donnees && <ListeCampagnes campagnes={donnees.campagnes} essais={donnees.essais} salles={donnees.salles} />}
+      </Carte>
+      <Carte titre="Échéancier de requalification">
+        {donnees && <Echeancier zones={donnees.zones} essais={donnees.tousEssais} salles={donnees.salles} />}
+      </Carte>
+    </div>
+  );
+}
+
+function ContaminationsSalle({ salleId }: { salleId: string }) {
+  const { donnees, erreur, recharger } = useDonneesContamination(salleId);
+  return (
+    <>
+      <MessageErreur erreur={erreur} />
+      {donnees && <ListeResultats d={donnees} recharger={recharger} salleFixe={salleId} />}
+    </>
   );
 }

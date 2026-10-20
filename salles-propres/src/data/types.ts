@@ -321,6 +321,122 @@ export interface Notification extends Trace {
   lue: boolean;
 }
 
+// ---------------------------------------------------------------------
+// Phase 3 — instruments, résultats, qualification
+// ---------------------------------------------------------------------
+
+export interface Instrument extends Trace {
+  type: string;
+  libelle: string;
+  marque: string;
+  modele: string;
+  numero_serie: string;
+  plage: string;
+  resolution: string;
+  incertitude: string;
+  periodicite_etalonnage_mois: number;
+  proprietaire: "interne" | "prestataire" | "location";
+  localisation: string;
+  statut: "en_service" | "en_etalonnage" | "hors_service" | "reforme";
+  notes: string;
+}
+
+export interface Etalonnage extends Trace {
+  instrument_id: string;
+  date_etalonnage: string;
+  prochaine_echeance: string | null;
+  organisme: string;
+  numero_certificat: string;
+  conforme: boolean;
+  document_id: string | null;
+  commentaire: string;
+}
+
+export type StatutCampagne = "brouillon" | "protocole_approuve" | "en_execution" | "rapport_redige" | "cloturee" | "annulee";
+export type VerdictCampagne = "qualifie" | "qualifie_reserves" | "non_qualifie";
+
+export interface CampagneQualification extends Trace {
+  salle_id: string;
+  site_id: string | null;
+  numero: string | null;
+  titre: string;
+  type_campagne: "initiale" | "periodique" | "modification";
+  etapes: string[];
+  objectif: string;
+  responsable: string;
+  prestataire: string;
+  date_debut: string | null;
+  date_fin: string | null;
+  statut: StatutCampagne;
+  verdict: VerdictCampagne | null;
+  conclusion: string;
+  version: number;
+}
+
+export type EtatOccupation = "construction" | "repos" | "activite";
+
+export interface MesureEssai {
+  point: string;
+  valeur: number | null;
+  commentaire?: string;
+}
+
+export interface Essai extends Trace {
+  campagne_id: string;
+  site_id: string | null;
+  ordre: number;
+  cle_essai: string;
+  libelle: string;
+  reference: string;
+  cible_type: "zone" | "cta" | "equipement" | "filtre" | "salle";
+  cible_id: string | null;
+  cible_libelle: string;
+  etat_occupation: EtatOccupation | null;
+  critere: string;
+  critere_min: number | null;
+  critere_max: number | null;
+  unite: string;
+  instrument_id: string | null;
+  date_realisation: string | null;
+  realise_par: string;
+  statut: "a_faire" | "realise" | "non_applicable";
+  verdict: "conforme" | "non_conforme" | "sans_objet" | null;
+  mesures: MesureEssai[];
+  commentaire: string;
+}
+
+export type Milieu = "air" | "surface" | "gants" | "liquide";
+export type NatureContamination = "particulaire" | "microbiologique" | "chimique";
+export type OrigineResultat = "qualification" | "surveillance" | "nettoyage" | "investigation" | "autre";
+export type VerdictResultat = "conforme" | "alerte" | "action" | "non_evalue";
+
+export interface Resultat extends Trace {
+  salle_id: string;
+  site_id: string | null;
+  zone_id: string | null;
+  point_id: string | null;
+  point_libre: string;
+  origine: OrigineResultat;
+  essai_id: string | null;
+  milieu: Milieu;
+  nature: NatureContamination;
+  methode: string;
+  parametre: string;
+  taille_um: number | null;
+  unite: string;
+  valeur: number;
+  etat_occupation: EtatOccupation | null;
+  instrument_id: string | null;
+  date_prelevement: string;
+  operateur: string;
+  lot_milieu: string;
+  germe: string;
+  limite_alerte: number | null;
+  limite_action: number | null;
+  verdict: VerdictResultat;
+  commentaire: string;
+}
+
 /** Tables accessibles par l'interface générique du dépôt. */
 export interface Tables {
   roles: Role;
@@ -345,6 +461,11 @@ export interface Tables {
   points_prelevement: PointPrelevement;
   flux: Flux;
   notifications: Notification;
+  instruments: Instrument;
+  etalonnages: Etalonnage;
+  campagnes_qualification: CampagneQualification;
+  essais: Essai;
+  resultats: Resultat;
 }
 
 export type NomTable = keyof Tables;
@@ -371,6 +492,11 @@ export interface ColonnesParDefaut {
   mobilier: "libelle" | "materiau" | "notes" | "angle" | "nettoyabilite";
   points_prelevement: "description" | "hauteur_m" | "actif";
   flux: "libelle";
+  instruments: "marque" | "modele" | "numero_serie" | "plage" | "resolution" | "incertitude" | "periodicite_etalonnage_mois" | "proprietaire" | "localisation" | "statut" | "notes";
+  etalonnages: "prochaine_echeance" | "organisme" | "numero_certificat" | "conforme" | "document_id" | "commentaire";
+  campagnes_qualification: "numero" | "type_campagne" | "etapes" | "objectif" | "responsable" | "prestataire" | "date_debut" | "date_fin" | "statut" | "verdict" | "conclusion" | "version";
+  essais: "ordre" | "reference" | "cible_type" | "cible_id" | "cible_libelle" | "etat_occupation" | "critere" | "critere_min" | "critere_max" | "unite" | "instrument_id" | "date_realisation" | "realise_par" | "statut" | "verdict" | "mesures" | "commentaire";
+  resultats: "zone_id" | "point_id" | "point_libre" | "origine" | "essai_id" | "methode" | "parametre" | "taille_um" | "unite" | "etat_occupation" | "instrument_id" | "date_prelevement" | "operateur" | "lot_milieu" | "germe" | "limite_alerte" | "limite_action" | "verdict" | "commentaire";
 }
 type DefautsDe<T> = T extends keyof ColonnesParDefaut ? ColonnesParDefaut[T] : never;
 export type Modification<T extends NomTable> = Partial<Omit<Tables[T], keyof Trace>>;

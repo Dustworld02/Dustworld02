@@ -3,7 +3,9 @@ import { rolesParDefaut } from "./rolesParDefaut";
 import { gabaritNatif } from "../domain/secteurs/gabaritsNatifs";
 import { genererZones, selectionParDefaut } from "../domain/secteurs/generation";
 import { ROLES_SYSTEME } from "../domain/permissions";
-import type { Point2D } from "./types";
+import type { Nouveau, Point2D, Zone } from "./types";
+import { proposerEssais } from "../domain/qualification";
+import { limitesEssai } from "../domain/qualification";
 
 export const MOT_DE_PASSE_DEMO = "demo";
 
@@ -48,6 +50,7 @@ export async function creerJeuDemo(depot: DepotDemo): Promise<void> {
   })));
 
   await planDemo(depot, org, site.id, salle.id);
+  await qualificationDemo(depot, org, salle.id);
 
   const doc = await depot.creer("documents", {
     org_id: org, titre: "Cahier des charges (URS) — salle d'assemblage", type_document: "urs", statut: "brouillon",
@@ -145,4 +148,112 @@ async function planDemo(depot: DepotDemo, org: string, siteId: string, salleId: 
     { ...base, type: "materiel", libelle: "Entrée des composants", points: [[2, 7], [5, 7], [8, 7], [11, 7]] },
     { ...base, type: "produit", libelle: "Sortie des produits finis", points: [[15, 4], [18, 4.5], [22, 5], [26, 5]] },
   ]);
+}
+
+function ilYA(mois: number, jours = 0, heure = 10): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() - mois);
+  d.setDate(d.getDate() - jours);
+  d.setHours(heure, 0, 0, 0);
+  return d;
+}
+const jourIso = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Pseudo-aléa reproductible pour des données de démonstration stables. */
+function generateur(graine: number) {
+  let x = graine;
+  return () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
+}
+
+/** Instruments, qualification initiale clôturée et six mois de surveillance. */
+async function qualificationDemo(depot: DepotDemo, org: string, salleId: string): Promise<void> {
+  const alea = generateur(42);
+  const [compteur, biocollecteur, anemometre, manometre, luminometre] = await depot.creerPlusieurs("instruments", [
+    { org_id: org, type: "compteur_particules", libelle: "Compteur de particules portable", marque: "Exemple", modele: "CP-28", numero_serie: "CP28-0193", plage: "0,3 à 10 µm, 28,3 L/min", periodicite_etalonnage_mois: 12 },
+    { org_id: org, type: "biocollecteur", libelle: "Biocollecteur d'air", marque: "Exemple", modele: "BIO-100", numero_serie: "BIO-5521", periodicite_etalonnage_mois: 12 },
+    { org_id: org, type: "anemometre", libelle: "Anémomètre à fil chaud", marque: "Exemple", modele: "AN-3", numero_serie: "AN3-778", periodicite_etalonnage_mois: 12 },
+    { org_id: org, type: "manometre", libelle: "Micromanomètre", marque: "Exemple", modele: "MP-200", numero_serie: "MP-2031", periodicite_etalonnage_mois: 12 },
+    { org_id: org, type: "luminometre", libelle: "Luminomètre ATP", marque: "Exemple", modele: "LUM-1", numero_serie: "L1-0042", periodicite_etalonnage_mois: 12 },
+  ]);
+  await depot.creerPlusieurs("etalonnages", [
+    { org_id: org, instrument_id: compteur.id, date_etalonnage: jourIso(ilYA(14)), organisme: "Laboratoire accrédité", numero_certificat: "C-2025-0412", conforme: true },
+    { org_id: org, instrument_id: compteur.id, date_etalonnage: jourIso(ilYA(2)), organisme: "Laboratoire accrédité", numero_certificat: "C-2026-0388", conforme: true },
+    { org_id: org, instrument_id: biocollecteur.id, date_etalonnage: jourIso(ilYA(7)), organisme: "Fabricant", numero_certificat: "B-26-114", conforme: true },
+    { org_id: org, instrument_id: anemometre.id, date_etalonnage: jourIso(ilYA(13)), organisme: "Laboratoire accrédité", numero_certificat: "A-25-090", conforme: true },
+    { org_id: org, instrument_id: manometre.id, date_etalonnage: jourIso(ilYA(13)), organisme: "Laboratoire accrédité", numero_certificat: "M-25-077", conforme: true },
+    { org_id: org, instrument_id: manometre.id, date_etalonnage: jourIso(ilYA(0, 7)), organisme: "Laboratoire accrédité", numero_certificat: "M-26-102", conforme: false, commentaire: "Dérive de +4 Pa constatée sur la plage 0-50 Pa." },
+    { org_id: org, instrument_id: luminometre.id, date_etalonnage: jourIso(ilYA(7)), organisme: "Fabricant", numero_certificat: "L-26-031", conforme: true },
+  ]);
+
+  // Qualification initiale, réalisée il y a onze mois.
+  const zones = await depot.lister("zones", org, { salle_id: salleId });
+  const points = await depot.lister("points_prelevement", org, { salle_id: salleId });
+  const bouches = await depot.lister("bouches", org, { salle_id: salleId });
+  const filtres = await depot.lister("filtres", org);
+  const quand = ilYA(11);
+  const campagne = await depot.creer("campagnes_qualification", {
+    org_id: org, salle_id: salleId, titre: "Qualification initiale — salle d'assemblage", type_campagne: "initiale", etapes: ["QI", "QO"],
+    objectif: "Démontrer la conformité des locaux et du traitement d'air aux exigences de l'URS et à la classe ISO 7 au repos avant mise en production.",
+    responsable: "Alex Métrologue", prestataire: "", date_debut: jourIso(quand),
+  });
+  const propositions = proposerEssais({ zones, ctas: [], equipements: [], bouches, filtres, etats: ["repos"], optionnels: false });
+  const essais = await depot.creerPlusieurs("essais", propositions.map((e, i) => ({ ...e, org_id: org, campagne_id: campagne.id, ordre: i + 1 })));
+  await depot.signer("campagne", campagne.id, "approuve", "Protocole conforme à l'URS", "protocole");
+  await depot.modifier("campagnes_qualification", campagne.id, { statut: "protocole_approuve" });
+  await depot.modifier("campagnes_qualification", campagne.id, { statut: "en_execution" });
+  const parZone = (id: string | null) => zones.find((z) => z.id === id) ?? null;
+  for (const e of essais) {
+    const zone = parZone(e.cible_id) as Zone;
+    const date = new Date(quand.getTime() + e.ordre * 3600000).toISOString();
+    if (e.cle_essai === "classification_particulaire") {
+      const pts = points.filter((p) => p.zone_id === zone.id);
+      const requis = Math.max(1, Math.ceil((zone.surface_m2 ?? 10) / 5.5));
+      const codes = [...pts.map((p) => p.code), ...Array.from({ length: Math.max(0, requis - pts.length) }, (_, i) => `${zone.code}-${i + 1}`)];
+      const limites = limitesEssai(e, zone);
+      const lignes: Nouveau<"resultats">[] = codes.flatMap((code) => [...limites.entries()].filter(([t]) => t === 0.5 || t === 5).map(([taille, limite]) => {
+        const point = pts.find((p) => p.code === code);
+        return {
+          org_id: org, salle_id: salleId, zone_id: zone.id, point_id: point?.id ?? null, point_libre: point ? "" : code, origine: "qualification" as const,
+          essai_id: e.id, milieu: "air" as const, nature: "particulaire" as const, methode: "Compteur optique (ISO 14644-1)", parametre: `Particules ≥ ${String(taille).replace(".", ",")} µm`,
+          taille_um: taille, unite: "particules/m³", valeur: Math.round(limite * (0.02 + alea() * 0.15)), etat_occupation: "repos" as const,
+          instrument_id: compteur.id, date_prelevement: date, operateur: "Alex Métrologue", limite_action: limite,
+        };
+      }));
+      await depot.creerPlusieurs("resultats", lignes);
+      await depot.modifier("essais", e.id, { statut: "realise", verdict: "conforme", date_realisation: date, instrument_id: compteur.id, realise_par: "Alex Métrologue" });
+    } else if (e.cle_essai === "pression_differentielle") {
+      await depot.modifier("essais", e.id, { statut: "realise", verdict: "conforme", date_realisation: date, instrument_id: manometre.id, realise_par: "Alex Métrologue", mesures: [{ point: zone.code, valeur: (zone.pression_pa ?? 0) + 1 }] });
+    } else if (e.cle_essai === "debit_vitesse") {
+      const mesures = bouches.filter((b) => b.zone_id === zone.id && b.type === "soufflage").map((b) => ({ point: b.repere, valeur: Math.round((b.debit_m3h ?? 0) * (1 + (alea() - 0.4) * 0.1)) }));
+      await depot.modifier("essais", e.id, { statut: "realise", verdict: "conforme", date_realisation: date, instrument_id: anemometre.id, realise_par: "Alex Métrologue", mesures });
+    } else if (e.cle_essai === "integrite_filtres") {
+      await depot.modifier("essais", e.id, { statut: "realise", verdict: "conforme", date_realisation: date, realise_par: "Alex Métrologue", mesures: e.mesures.map((m) => ({ ...m, valeur: Math.round(alea() * 40) / 10000 })) });
+    } else {
+      await depot.modifier("essais", e.id, { statut: "realise", verdict: "conforme", date_realisation: date, realise_par: "Alex Métrologue", commentaire: "Conforme." });
+    }
+  }
+  await depot.modifier("campagnes_qualification", campagne.id, {
+    statut: "rapport_redige", verdict: "qualifie",
+    conclusion: "Tous les essais sont conformes. La salle d'assemblage est qualifiée ISO 7 au repos (production) et ISO 8 (SAS, emballage). Prochaine requalification à 12 mois.",
+  });
+  await depot.signer("campagne", campagne.id, "approuve", "", "rapport");
+  await depot.modifier("campagnes_qualification", campagne.id, { statut: "cloturee", date_fin: jourIso(new Date(quand.getTime() + 2 * 86400000)) });
+
+  // Six mois de surveillance hebdomadaire.
+  const pt = (code: string) => points.find((p) => p.code === code)!;
+  const surveillance: Nouveau<"resultats">[] = [];
+  for (let semaine = 26; semaine >= 0; semaine--) {
+    const date = ilYA(0, semaine * 7, 9 + (semaine % 3));
+    const base = { org_id: org, salle_id: salleId, origine: "surveillance" as const, etat_occupation: "activite" as const, date_prelevement: date.toISOString(), operateur: "Morgan Hygiène" };
+    for (const code of ["P01", "P02", "P03"]) {
+      surveillance.push({ ...base, zone_id: pt(code).zone_id, point_id: pt(code).id, milieu: "air", nature: "particulaire", methode: "Compteur optique", parametre: "Particules ≥ 0,5 µm", taille_um: 0.5, unite: "particules/m³", valeur: Math.round(30000 + alea() * 90000), limite_alerte: 200000, limite_action: 352000, instrument_id: compteur.id });
+    }
+    surveillance.push({ ...base, zone_id: pt("P01").zone_id, point_id: pt("P01").id, milieu: "air", nature: "microbiologique", methode: "Impaction", parametre: "Air — biocollecteur", unite: "UFC/m³", valeur: Math.floor(alea() * 9), limite_alerte: 50, limite_action: 100, instrument_id: biocollecteur.id, lot_milieu: `TSA-${2600 + semaine}` });
+    surveillance.push({ ...base, zone_id: pt("P02").zone_id, point_id: pt("P02").id, milieu: "surface", nature: "microbiologique", methode: "Gélose contact", parametre: "Boîte contact Ø 55 mm", unite: "UFC/boîte", valeur: Math.floor(alea() * 6), limite_alerte: 15, limite_action: 25, lot_milieu: `TSA-${2600 + semaine}` });
+    const derive = semaine <= 3 ? [19, 17, 12, 8][semaine] : Math.floor(alea() * 7);
+    surveillance.push({ ...base, zone_id: pt("P03").zone_id, point_id: pt("P03").id, milieu: "surface", nature: "microbiologique", methode: "Gélose contact", parametre: "Boîte contact Ø 55 mm", unite: "UFC/boîte", valeur: derive, limite_alerte: 15, limite_action: 25, lot_milieu: `TSA-${2600 + semaine}`, germe: semaine <= 1 ? "Micrococcus luteus" : "" });
+    surveillance.push({ ...base, zone_id: pt("P05").zone_id, point_id: pt("P05").id, milieu: "gants", nature: "microbiologique", methode: "Gélose contact", parametre: "Empreinte de gants (5 doigts)", unite: "UFC/gant", valeur: semaine === 9 ? 7 : Math.floor(alea() * 3), limite_alerte: 3, limite_action: 5, lot_milieu: `TSA-${2600 + semaine}`, germe: semaine === 9 ? "Staphylococcus epidermidis" : "" });
+    surveillance.push({ ...base, zone_id: pt("P02").zone_id, point_id: pt("P02").id, milieu: "surface", nature: "chimique", methode: "Luminomètre", parametre: "ATP-métrie", unite: "RLU", valeur: Math.round(40 + alea() * 120), limite_alerte: 150, limite_action: 300, instrument_id: luminometre.id });
+  }
+  await depot.creerPlusieurs("resultats", surveillance);
 }
