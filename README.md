@@ -1,5 +1,7 @@
 # 🧽 Gestion Nettoyage
 
+> Ce dépôt contient aussi **Salles Propres**, l'outil de gestion des salles propres et ZAC : voir [`salles-propres/`](salles-propres/README.md) et le [plan de développement](docs/PLAN_DEVELOPPEMENT_SALLES_PROPRES.md).
+
 Logiciel de gestion complet pour entreprise de nettoyage, dans **un seul fichier** : `index.html`. Aucune installation, aucun serveur : téléchargez le fichier et ouvrez-le d'un double-clic dans votre navigateur. Tout fonctionne hors ligne et s'imprime proprement en PDF.
 
 ## Les onglets

@@ -1,6 +1,22 @@
 # Plan de développement — Outil de gestion des salles propres et ZAC
 
-Version 3 — 20 octobre 2026
+Version 4 — 20 octobre 2026
+
+---
+
+## Avancement
+
+| Phase | État | Où |
+|---|---|---|
+| 0 — Cadrage | Questions du §9 encore ouvertes ; hypothèse de travail : secteur pilote dispositifs médicaux | ce document |
+| 1 — Socle | **Livrée** (20 octobre 2026) | dossier `salles-propres/` |
+| 2 à 7 | À faire | — |
+
+Écarts assumés par rapport au texte du plan, décidés pendant la phase 1 :
+
+- **Hiérarchie** : Organisation → **Entreprise** → Site → **Salle propre** → Zone. Le niveau Entreprise permet de gérer les salles de plusieurs clients ; le secteur d'activité est porté par la salle propre (proposé par défaut depuis l'entreprise), conformément à la demande « sélectionner un secteur à la création d'une salle blanche pour une entreprise donnée ». Le bâtiment et l'étage sont des attributs de la salle plutôt qu'un niveau à part.
+- **Référentiels** : les tables normatives (ISO 14644-1, tableau A.1, Annexe 1) sont en lecture seule ; seules les périodicités et les types de documents sont personnalisables par organisation. Modifier une table normative doit rester un changement de version de l'outil, relu.
+- **Reportés** de la phase 1 : notifications e-mail, double authentification et politique de mot de passe (paramètres Supabase, à régler à la mise en service), restriction des documents par site, séparation imposée rédacteur / approbateur.
 
 ---
 
