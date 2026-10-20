@@ -133,9 +133,9 @@ export class DepotSupabase implements Depot {
     return verifier(await this.client.rpc("creer_salle_propre", { p_salle: salle, p_zones: zones })) as string;
   }
 
-  async signer(objetType: "document", objetId: string, signification: Signification, commentaire: string): Promise<Signature> {
+  async signer(objetType: string, objetId: string, signification: Signification, commentaire: string, portee = ""): Promise<Signature> {
     return verifier(await this.client.rpc("signer", {
-      p_objet_type: objetType, p_objet_id: objetId, p_signification: signification, p_commentaire: commentaire,
+      p_objet_type: objetType, p_objet_id: objetId, p_signification: signification, p_commentaire: commentaire, p_portee: portee,
     })) as Signature;
   }
 

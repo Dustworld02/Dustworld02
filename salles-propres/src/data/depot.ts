@@ -55,7 +55,8 @@ export interface Depot {
   creerSalleAvecZones(salle: Nouveau<"salles_propres">, zones: Omit<Nouveau<"zones">, "org_id" | "salle_id" | "site_id">[]): Promise<string>;
 
   // Signatures, journal, fichiers
-  signer(objetType: "document", objetId: string, signification: Signification, commentaire: string): Promise<Signature>;
+  /** portee distingue plusieurs circuits de signature sur un même objet (ex. protocole / rapport). */
+  signer(objetType: string, objetId: string, signification: Signification, commentaire: string, portee?: string): Promise<Signature>;
   signatures(orgId: string, objetType: string, objetId: string): Promise<Signature[]>;
   journal(orgId: string, filtre?: FiltreJournal): Promise<EntreeJournal[]>;
   deposerFichier(chemin: string, fichier: File): Promise<void>;

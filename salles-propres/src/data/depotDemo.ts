@@ -1,18 +1,18 @@
 import type { DefinitionRoleAvecDroits, Depot, FiltreJournal, Utilisateur } from "./depot";
 import { ErreurDepot } from "./depot";
 import type {
-  DocumentGed, EntreeJournal, Modification, NomTable, Nouveau, Organisation, Profil, Signature, Tables, Zone,
+  DocumentGed, EntreeJournal, Modification, NomTable, Nouveau, Organisation, Profil, Signature, Tables,
 } from "./types";
-import {
-  MODULE_DES_TABLES, niveauEcriture, niveauSignature, niveauSuppression, type Signification,
-} from "../domain/permissions";
+import { META, OBJETS_SIGNABLES, niveauEcritureTable, niveauSuppressionTable } from "./schema";
+import { niveauSignature, type Signification } from "../domain/permissions";
 
 /**
  * Mode démonstration : toutes les données restent dans ce navigateur.
  * Les règles de la base (droits, cohérence, journal, signatures) sont
- * émulées ici pour que la démonstration se comporte comme la version
- * hébergée — mais rien n'empêche un utilisateur averti de modifier ses
- * propres données locales : ce mode n'a aucune valeur de preuve.
+ * émulées à partir du registre des tables (schema.ts) pour que la
+ * démonstration se comporte comme la version hébergée — mais rien
+ * n'empêche un utilisateur averti de modifier ses propres données
+ * locales : ce mode n'a aucune valeur de preuve.
  */
 
 export interface Stockage {
@@ -30,33 +30,41 @@ interface ProfilDemo extends Profil {
   mot_de_passe: string;
 }
 
+type Ligne = Record<string, unknown>;
+
 export interface EtatDemo {
   version: 1;
   organisations: Organisation[];
   profils: ProfilDemo[];
-  tables: { [K in NomTable]: Tables[K][] };
+  tables: Partial<Record<NomTable, Ligne[]>>;
   signatures: Signature[];
   journal_audit: EntreeJournal[];
   sequenceJournal: number;
   session: string | null;
 }
 
+/** Réactions de la base à une écriture (équivalent des déclencheurs métier). */
+export type Reaction = (contexte: ContexteReaction, table: NomTable, avant: Ligne | null, apres: Ligne | null) => void;
+
+export interface ContexteReaction {
+  uid: string | null;
+  lignes(table: NomTable): Ligne[];
+  inserer<T extends NomTable>(table: T, valeurs: Nouveau<T>): Tables[T];
+  modifier<T extends NomTable>(table: T, id: string, valeurs: Modification<T>): void;
+  notifier(org: string, destinataire: string | null | undefined, type: string, texte: string, lien: string): void;
+  niveau(org: string, module: string): number;
+}
+
 const CLE = "salles-propres-demo-v1";
+const reactions: Reaction[] = [];
+
+/** Enregistre une réaction métier (utilisé par les modules des phases suivantes). */
+export function enregistrerReaction(r: Reaction): void {
+  reactions.push(r);
+}
 
 function etatVide(): EtatDemo {
-  return {
-    version: 1,
-    organisations: [],
-    profils: [],
-    tables: {
-      roles: [], droits_roles: [], membres: [], invitations: [], referentiels_org: [], gabarits_org: [],
-      entreprises: [], sites: [], salles_propres: [], zones: [], documents: [], versions_documents: [],
-    },
-    signatures: [],
-    journal_audit: [],
-    sequenceJournal: 0,
-    session: null,
-  };
+  return { version: 1, organisations: [], profils: [], tables: {}, signatures: [], journal_audit: [], sequenceJournal: 0, session: null };
 }
 
 function uuid(): string {
@@ -71,6 +79,11 @@ function refus(): never {
   throw new ErreurDepot("Action refusée : droits insuffisants.");
 }
 
+function lignesDe(e: EtatDemo, table: NomTable): Ligne[] {
+  if (!e.tables[table]) e.tables[table] = [];
+  return e.tables[table]!;
+}
+
 export class DepotDemo implements Depot {
   readonly mode = "demo" as const;
   private etat: EtatDemo;
@@ -80,7 +93,6 @@ export class DepotDemo implements Depot {
     this.etat = brut ? (JSON.parse(brut) as EtatDemo) : etatVide();
   }
 
-  /** Vrai si aucune donnée de démonstration n'existe encore. */
   estVide(): boolean {
     return this.etat.organisations.length === 0 && this.etat.profils.length === 0;
   }
@@ -100,7 +112,6 @@ export class DepotDemo implements Depot {
     this.persister();
   }
 
-  /** Crée un compte de démonstration (utilisé pour le jeu de données initial). */
   creerCompte(email: string, nomComplet: string, motDePasse: string): string {
     const id = uuid();
     this.etat.profils.push({ id, email, nom_complet: nomComplet, mot_de_passe: motDePasse });
@@ -118,7 +129,7 @@ export class DepotDemo implements Depot {
   }
 
   // ------------------------------------------------------------------
-  // Mécanique interne : transaction, droits, journal
+  // Mécanique interne
   // ------------------------------------------------------------------
 
   private persister(): void {
@@ -141,163 +152,208 @@ export class DepotDemo implements Depot {
 
   private membre(e: EtatDemo, orgId: string) {
     const uid = this.etat.session;
-    return e.tables.membres.find((m) => m.org_id === orgId && m.user_id === uid && m.actif);
+    return (lignesDe(e, "membres") as unknown as Tables["membres"][]).find((m) => m.org_id === orgId && m.user_id === uid && m.actif);
   }
 
   private niveau(e: EtatDemo, orgId: string, module: string): number {
     const m = this.membre(e, orgId);
     if (!m) return 0;
-    const d = e.tables.droits_roles.find((x) => x.role_id === m.role_id && x.module === module);
+    const d = (lignesDe(e, "droits_roles") as unknown as Tables["droits_roles"][]).find((x) => x.role_id === m.role_id && x.module === module);
     return d?.niveau ?? 0;
   }
 
-  private accesSite(e: EtatDemo, orgId: string, siteId: string | null): boolean {
+  private accesSite(e: EtatDemo, orgId: string, siteId: unknown): boolean {
     const m = this.membre(e, orgId);
     if (!m) return false;
-    return m.sites === null || (siteId !== null && m.sites.includes(siteId));
+    return m.sites === null || (typeof siteId === "string" && m.sites.includes(siteId));
   }
 
-  private siteDe(table: NomTable, ligne: Record<string, unknown>): string | null {
-    if (table === "sites") return ligne.id as string;
-    if (table === "salles_propres" || table === "zones") return (ligne.site_id as string) ?? null;
-    return null;
-  }
-
-  private lisible(e: EtatDemo, table: NomTable, ligne: Record<string, unknown>): boolean {
+  /** Équivalent des politiques de lecture (RLS). */
+  private lisible(e: EtatDemo, table: NomTable, ligne: Ligne): boolean {
+    const meta = META[table];
     const org = ligne.org_id as string;
-    const module = MODULE_DES_TABLES[table];
-    if (["roles", "droits_roles", "membres", "invitations", "referentiels_org", "gabarits_org"].includes(table)) {
-      return !!this.membre(e, org);
+    switch (meta.portee) {
+      case "membre": return !!this.membre(e, org);
+      case "personnel": return ligne.destinataire === this.etat.session && !!this.membre(e, org);
+      case "soi": return this.niveau(e, org, meta.module) >= 1 && this.accesSite(e, org, ligne.id);
+      case "site": return this.niveau(e, org, meta.module) >= 1 && this.accesSite(e, org, ligne.site_id);
+      default: return this.niveau(e, org, meta.module) >= 1;
     }
-    if (this.niveau(e, org, module) < 1) return false;
-    if (["sites", "salles_propres", "zones"].includes(table)) return this.accesSite(e, org, this.siteDe(table, ligne));
+  }
+
+  /** Équivalent des politiques d'écriture (RLS), évaluées après les déclencheurs. */
+  private ecrivable(e: EtatDemo, table: NomTable, ligne: Ligne): boolean {
+    const meta = META[table];
+    const org = ligne.org_id as string;
+    if (meta.portee === "personnel") return ligne.destinataire === this.etat.session;
+    if (this.niveau(e, org, meta.module) < niveauEcritureTable(table)) return false;
+    if (meta.portee === "soi") return this.accesSite(e, org, ligne.id);
+    if (meta.portee === "site") return this.accesSite(e, org, ligne.site_id);
     return true;
   }
 
-  private journaliser(e: EtatDemo, orgId: string | null, table: string, id: string, action: EntreeJournal["action"],
-    anciennes: unknown, nouvelles: unknown): void {
+  private journaliser(e: EtatDemo, orgId: string | null, table: string, id: string, action: EntreeJournal["action"], anciennes: unknown, nouvelles: unknown): void {
     e.sequenceJournal += 1;
     e.journal_audit.push({
-      id: e.sequenceJournal,
-      org_id: orgId,
-      table_nom: table,
-      enregistrement_id: id,
-      action,
-      anciennes: anciennes ? structuredClone(anciennes) as Record<string, unknown> : null,
-      nouvelles: nouvelles ? structuredClone(nouvelles) as Record<string, unknown> : null,
-      auteur: this.etat.session,
-      horodatage: maintenant(),
+      id: e.sequenceJournal, org_id: orgId, table_nom: table, enregistrement_id: id, action,
+      anciennes: anciennes ? structuredClone(anciennes) as Ligne : null,
+      nouvelles: nouvelles ? structuredClone(nouvelles) as Ligne : null,
+      auteur: this.etat.session, horodatage: maintenant(),
     });
   }
 
-  /** Équivalent des déclencheurs de cohérence et de contrôle de la base. */
-  private controler(e: EtatDemo, table: NomTable, ligne: Record<string, unknown>, ancienne: Record<string, unknown> | null): void {
+  /** Équivalent des déclencheurs de cohérence : rattachements, site déduit, numérotation, signatures exigées. */
+  private controler(e: EtatDemo, table: NomTable, ligne: Ligne, ancienne: Ligne | null): void {
+    const meta = META[table];
     const org = ligne.org_id as string;
-    const meme = (t: NomTable, id: unknown) => (e.tables[t] as unknown as Record<string, unknown>[]).some((x) => x.id === id && x.org_id === org);
-    switch (table) {
-      case "sites":
-        if (!meme("entreprises", ligne.entreprise_id)) throw new ErreurDepot("L'entreprise n'appartient pas à cette organisation");
-        break;
-      case "salles_propres":
-        if (!meme("sites", ligne.site_id)) throw new ErreurDepot("Le site n'appartient pas à cette organisation");
-        if (ancienne && ancienne.site_id !== ligne.site_id) {
-          e.tables.zones.filter((z) => z.salle_id === ligne.id).forEach((z) => { z.site_id = ligne.site_id as string; });
-        }
-        break;
-      case "zones": {
-        const salle = e.tables.salles_propres.find((s) => s.id === ligne.salle_id && s.org_id === org);
-        if (!salle) throw new ErreurDepot("La salle propre n'appartient pas à cette organisation");
-        ligne.site_id = salle.site_id;
-        break;
+    let siteDeduit: unknown = undefined;
+    let siteRequis = false;
+    for (const r of meta.rattachements ?? []) {
+      const valeur = ligne[r.colonne];
+      if (r.site) siteRequis = true;
+      if (valeur === null || valeur === undefined) continue;
+      const parent = lignesDe(e, r.table).find((x) => x.id === valeur && x.org_id === org);
+      if (!parent) throw new ErreurDepot(`Rattachement invalide : ${r.table} n'appartient pas à cette organisation`);
+      if (r.site && siteDeduit === undefined) siteDeduit = r.table === "sites" ? parent.id : parent.site_id;
+    }
+    if (siteRequis) {
+      if (siteDeduit === undefined) throw new ErreurDepot("Rattachement obligatoire manquant.");
+      ligne.site_id = siteDeduit;
+    }
+    if (meta.numero && !ligne.numero) {
+      const annee = new Date().getFullYear();
+      const prefixe = `${meta.numero}-${annee}-`;
+      const n = lignesDe(e, table).filter((x) => x.org_id === org && String(x.numero ?? "").startsWith(prefixe)).length;
+      ligne.numero = `${prefixe}${String(n + 1).padStart(3, "0")}`;
+    }
+
+    // Règles propres à certaines tables
+    if (table === "salles_propres" && ancienne && ancienne.site_id !== ligne.site_id) {
+      throw new ErreurDepot("Une salle propre ne peut pas changer de site");
+    }
+    if (table === "documents") {
+      const doc = ligne as unknown as DocumentGed;
+      const avant = ancienne as unknown as DocumentGed | null;
+      if (avant && doc.version_courante !== avant.version_courante && avant.statut === "approuve") doc.statut = "brouillon";
+      else if (avant && doc.statut !== avant.statut
+        && (avant.statut === "approuve" || doc.statut === "perime" || avant.statut === "perime")
+        && this.niveau(e, org, "documents") < 3) {
+        throw new ErreurDepot("Droits insuffisants : retirer une approbation ou gérer la péremption demande le niveau validation");
       }
-      case "membres":
-      case "invitations":
-      case "droits_roles":
-        if (!meme("roles", ligne.role_id)) throw new ErreurDepot("Le rôle n'appartient pas à cette organisation");
-        break;
-      case "versions_documents":
-        if (!meme("documents", ligne.document_id)) throw new ErreurDepot("Le document n'appartient pas à cette organisation");
-        break;
-      case "documents": {
-        const doc = ligne as unknown as DocumentGed;
-        const avant = ancienne as unknown as DocumentGed | null;
-        if (avant && doc.version_courante !== avant.version_courante && avant.statut === "approuve") doc.statut = "brouillon";
-        else if (avant && doc.statut !== avant.statut
-          && (avant.statut === "approuve" || doc.statut === "perime" || avant.statut === "perime")
-          && this.niveau(e, org, "documents") < 3) {
-          throw new ErreurDepot("Droits insuffisants : retirer une approbation ou gérer la péremption demande le niveau validation");
+    }
+
+    if (meta.signatures) {
+      for (const ex of meta.signatures.exigences) {
+        if (ligne.statut !== ex.statut || (ancienne && ancienne.statut === ex.statut)) continue;
+        const version = meta.signatures.colonneVersion ? Number(ligne[meta.signatures.colonneVersion]) : 1;
+        const signe = e.signatures.some((s) => s.objet_type === meta.signatures!.objetType && s.objet_id === ligne.id
+          && s.signification === ex.signification && s.portee === ex.portee && s.version_objet === version);
+        if (!signe) {
+          throw new ErreurDepot(table === "documents"
+            ? `Approbation impossible : signature « approuvé » manquante pour la version ${version}`
+            : `Signature « ${ex.signification} » requise pour passer au statut « ${ex.statut} »`);
         }
-        if (doc.statut === "approuve" && (!avant || avant.statut !== "approuve")) {
-          const signe = e.signatures.some((s) => s.objet_type === "document" && s.objet_id === doc.id
-            && s.signification === "approuve" && s.version_objet === doc.version_courante);
-          if (!signe) throw new ErreurDepot(`Approbation impossible : signature « approuvé » manquante pour la version ${doc.version_courante}`);
-        }
-        break;
       }
     }
   }
 
   private verifierAdminRestant(e: EtatDemo, orgId: string): void {
-    const ok = e.tables.membres.some((m) => m.org_id === orgId && m.actif
-      && e.tables.droits_roles.some((d) => d.role_id === m.role_id && d.module === "configuration" && d.niveau === 4));
+    const membres = lignesDe(e, "membres") as unknown as Tables["membres"][];
+    const droits = lignesDe(e, "droits_roles") as unknown as Tables["droits_roles"][];
+    const ok = membres.some((m) => m.org_id === orgId && m.actif
+      && droits.some((d) => d.role_id === m.role_id && d.module === "configuration" && d.niveau === 4));
     if (!ok) throw new ErreurDepot("Opération refusée : l'organisation doit garder au moins un administrateur actif");
+  }
+
+  private contexte(e: EtatDemo): ContexteReaction {
+    return {
+      uid: this.etat.session,
+      lignes: (t) => lignesDe(e, t),
+      inserer: (t, v) => this.inserer(e, t, v, false),
+      modifier: (t, id, v) => { this.appliquerModification(e, t, id, v, false); },
+      notifier: (org, destinataire, type, texte, lien) => {
+        if (!destinataire || destinataire === this.etat.session) return;
+        const membres = lignesDe(e, "membres") as unknown as Tables["membres"][];
+        if (!membres.some((m) => m.org_id === org && m.user_id === destinataire && m.actif)) return;
+        this.inserer(e, "notifications", { org_id: org, destinataire, type, texte, lien, lue: false }, false);
+      },
+      niveau: (org, module) => this.niveau(e, org, module),
+    };
   }
 
   private inserer<T extends NomTable>(e: EtatDemo, table: T, valeurs: Nouveau<T>, verifierDroits = true): Tables[T] {
     const uid = this.etat.session;
-    const horodatage = maintenant();
-    const ligne = {
-      ...structuredClone(valeurs),
-      id: uuid(), cree_le: horodatage, cree_par: uid, modifie_le: horodatage, modifie_par: uid,
-    } as unknown as Record<string, unknown>;
+    const h = maintenant();
+    const ligne: Ligne = {
+      ...structuredClone(META[table].defauts ?? {}), ...structuredClone(valeurs) as Ligne,
+      id: uuid(), cree_le: h, cree_par: uid, modifie_le: h, modifie_par: uid,
+    };
+    for (const [cle, v] of Object.entries(META[table].defauts ?? {})) if (ligne[cle] === undefined) ligne[cle] = structuredClone(v);
     const org = ligne.org_id as string;
-    if (verifierDroits) {
-      if (this.niveau(e, org, MODULE_DES_TABLES[table]) < niveauEcriture(table)) refus();
-    }
+    if (verifierDroits && META[table].portee === "personnel") refus();
     this.controler(e, table, ligne, null);
-    if (verifierDroits && ["sites", "salles_propres", "zones"].includes(table)) {
-      if (!this.accesSite(e, org, this.siteDe(table, ligne))) refus();
-    }
+    if (verifierDroits && !this.ecrivable(e, table, ligne)) refus();
     if (table === "versions_documents") {
-      const versions = e.tables.versions_documents.filter((v) => v.document_id === ligne.document_id);
-      ligne.version = versions.reduce((max, v) => Math.max(max, v.version), 0) + 1;
+      const versions = lignesDe(e, "versions_documents").filter((v) => v.document_id === ligne.document_id);
+      ligne.version = versions.reduce((max, v) => Math.max(max, Number(v.version)), 0) + 1;
     }
-    (e.tables[table] as unknown as Record<string, unknown>[]).push(ligne);
+    lignesDe(e, table).push(ligne);
     this.journaliser(e, org, table, ligne.id as string, "insert", null, ligne);
     if (table === "versions_documents") {
-      const doc = e.tables.documents.find((d) => d.id === ligne.document_id)!;
-      this.appliquerModification(e, "documents", doc.id, { version_courante: ligne.version as number }, false);
+      this.appliquerModification(e, "documents", ligne.document_id as string, { version_courante: ligne.version as number }, false);
     }
+    for (const r of reactions) r(this.contexte(e), table, null, ligne);
     return ligne as unknown as Tables[T];
   }
 
   private appliquerModification<T extends NomTable>(e: EtatDemo, table: T, id: string, valeurs: Modification<T>, verifierDroits = true): Tables[T] {
-    const lignes = e.tables[table] as unknown as Record<string, unknown>[];
+    const lignes = lignesDe(e, table);
     const index = lignes.findIndex((l) => l.id === id);
     if (index < 0) throw new ErreurDepot("Enregistrement introuvable ou droits insuffisants.");
     const ancienne = lignes[index];
     const org = ancienne.org_id as string;
     if (verifierDroits) {
       if (!this.lisible(e, table, ancienne)) throw new ErreurDepot("Enregistrement introuvable ou droits insuffisants.");
-      if (this.niveau(e, org, MODULE_DES_TABLES[table]) < niveauEcriture(table)) refus();
-      if (table === "versions_documents") refus();
+      if (META[table].immuable || !this.ecrivable(e, table, ancienne)) refus();
     }
-    const nouvelle: Record<string, unknown> = {
-      ...ancienne, ...structuredClone(valeurs),
-      id: ancienne.id, org_id: ancienne.org_id, cree_le: ancienne.cree_le, cree_par: ancienne.cree_par,
+    if ((valeurs as Ligne).org_id && (valeurs as Ligne).org_id !== org) throw new ErreurDepot("Un enregistrement ne peut pas changer d'organisation");
+    const nouvelle: Ligne = {
+      ...ancienne, ...structuredClone(valeurs) as Ligne,
+      id: ancienne.id, org_id: org, cree_le: ancienne.cree_le, cree_par: ancienne.cree_par,
       modifie_le: maintenant(), modifie_par: this.etat.session,
     };
-    if ((valeurs as Record<string, unknown>).org_id && (valeurs as Record<string, unknown>).org_id !== org) {
-      throw new ErreurDepot("Un enregistrement ne peut pas changer d'organisation");
-    }
     this.controler(e, table, nouvelle, ancienne);
-    if (verifierDroits && ["sites", "salles_propres", "zones"].includes(table)) {
-      if (!this.accesSite(e, org, this.siteDe(table, nouvelle))) refus();
-    }
+    if (verifierDroits && !this.ecrivable(e, table, nouvelle)) refus();
     lignes[index] = nouvelle;
     this.journaliser(e, org, table, id, "update", ancienne, nouvelle);
     if (table === "membres" || table === "droits_roles") this.verifierAdminRestant(e, org);
+    for (const r of reactions) r(this.contexte(e), table, ancienne, nouvelle);
     return nouvelle as unknown as Tables[T];
+  }
+
+  /** Suppression avec les comportements des clés étrangères (cascade, restriction, mise à null). */
+  private retirer(e: EtatDemo, table: NomTable, ligne: Ligne): void {
+    const org = ligne.org_id as string;
+    if (table === "documents" && e.signatures.some((s) => s.objet_type === "document" && s.objet_id === ligne.id)) {
+      throw new ErreurDepot("Suppression impossible : ce document porte des signatures (déclarez-le périmé)");
+    }
+    for (const [enfant, meta] of Object.entries(META) as [NomTable, typeof META[NomTable]][]) {
+      for (const r of meta.rattachements ?? []) {
+        if (r.table !== table) continue;
+        const lies = lignesDe(e, enfant).filter((x) => x[r.colonne] === ligne.id);
+        if (lies.length === 0) continue;
+        if (r.suppression === "restreint") {
+          throw new ErreurDepot(`Suppression impossible : ${lies.length} enregistrement(s) y sont rattachés (${enfant}).`);
+        }
+        for (const lie of lies) {
+          if (r.suppression === "cascade") this.retirer(e, enfant, lie);
+          else this.appliquerModification(e, enfant, lie.id as string, { [r.colonne]: null } as Modification<NomTable>, false);
+        }
+      }
+    }
+    e.tables[table] = lignesDe(e, table).filter((x) => x.id !== ligne.id);
+    this.journaliser(e, org, table, ligne.id as string, "delete", ligne, null);
+    for (const r of reactions) r(this.contexte(e), table, ligne, null);
   }
 
   // ------------------------------------------------------------------
@@ -314,7 +370,8 @@ export class DepotDemo implements Depot {
     let p = this.etat.profils.find((x) => x.email.toLowerCase() === cle);
     if (!p) {
       // Un invité se connecte pour la première fois : son compte est créé avec ce mot de passe.
-      const invitation = this.etat.tables.invitations.find((i) => i.email.toLowerCase() === cle && !i.acceptee_le);
+      const invitations = (this.etat.tables.invitations ?? []) as unknown as Tables["invitations"][];
+      const invitation = invitations.find((i) => i.email.toLowerCase() === cle && !i.acceptee_le);
       if (!invitation || motDePasse.length < 4) throw new ErreurDepot("Adresse e-mail ou mot de passe incorrect.");
       this.creerCompte(email.trim(), invitation.nom_complet, motDePasse);
       p = this.etat.profils.find((x) => x.email.toLowerCase() === cle)!;
@@ -393,8 +450,10 @@ export class DepotDemo implements Depot {
     const p = this.etat.profils.find((x) => x.id === uid)!;
     return this.transaction((e) => {
       let n = 0;
-      for (const inv of e.tables.invitations.filter((i) => i.email.toLowerCase() === p.email.toLowerCase() && !i.acceptee_le)) {
-        if (!e.tables.membres.some((m) => m.org_id === inv.org_id && m.user_id === uid)) {
+      const invitations = lignesDe(e, "invitations") as unknown as Tables["invitations"][];
+      const membres = lignesDe(e, "membres") as unknown as Tables["membres"][];
+      for (const inv of invitations.filter((i) => i.email.toLowerCase() === p.email.toLowerCase() && !i.acceptee_le)) {
+        if (!membres.some((m) => m.org_id === inv.org_id && m.user_id === uid)) {
           this.inserer(e, "membres", { org_id: inv.org_id, user_id: uid, role_id: inv.role_id, sites: inv.sites, actif: true }, false);
         }
         this.appliquerModification(e, "invitations", inv.id, { acceptee_le: maintenant() }, false);
@@ -406,7 +465,8 @@ export class DepotDemo implements Depot {
 
   async profils(orgId: string): Promise<Profil[]> {
     if (!this.membre(this.etat, orgId)) return [];
-    const ids = new Set(this.etat.tables.membres.filter((m) => m.org_id === orgId).map((m) => m.user_id));
+    const membres = lignesDe(this.etat, "membres") as unknown as Tables["membres"][];
+    const ids = new Set(membres.filter((m) => m.org_id === orgId).map((m) => m.user_id));
     return this.etat.profils.filter((p) => ids.has(p.id)).map(({ id, email, nom_complet }) => ({ id, email, nom_complet }));
   }
 
@@ -415,7 +475,7 @@ export class DepotDemo implements Depot {
   // ------------------------------------------------------------------
 
   async lister<T extends NomTable>(table: T, orgId: string, filtre?: Partial<Tables[T]>): Promise<Tables[T][]> {
-    const lignes = (this.etat.tables[table] as unknown as Record<string, unknown>[])
+    const lignes = (this.etat.tables[table] ?? [])
       .filter((l) => l.org_id === orgId)
       .filter((l) => this.lisible(this.etat, table, l))
       .filter((l) => !filtre || Object.entries(filtre).every(([k, v]) => l[k] === v));
@@ -440,40 +500,17 @@ export class DepotDemo implements Depot {
   async supprimer(table: NomTable, id: string): Promise<void> {
     this.uid();
     this.transaction((e) => {
-      const lignes = e.tables[table] as unknown as Record<string, unknown>[];
-      const ligne = lignes.find((l) => l.id === id);
-      if (!ligne || !this.lisible(e, table, ligne)) throw new ErreurDepot("Suppression refusée : droits insuffisants ou enregistrement introuvable.");
+      const ligne = lignesDe(e, table).find((l) => l.id === id);
+      const refusMessage = "Suppression refusée : droits insuffisants ou enregistrement introuvable.";
+      if (!ligne || !this.lisible(e, table, ligne)) throw new ErreurDepot(refusMessage);
       const org = ligne.org_id as string;
-      if (table === "versions_documents" || this.niveau(e, org, MODULE_DES_TABLES[table]) < niveauSuppression(table)) {
-        throw new ErreurDepot("Suppression refusée : droits insuffisants ou enregistrement introuvable.");
+      const meta = META[table];
+      if (meta.portee === "personnel") {
+        if (ligne.destinataire !== this.etat.session) throw new ErreurDepot(refusMessage);
+      } else if (meta.immuable || this.niveau(e, org, meta.module) < niveauSuppressionTable(table)) {
+        throw new ErreurDepot(refusMessage);
       }
-      if (table === "entreprises" && e.tables.sites.some((s) => s.entreprise_id === id)) {
-        throw new ErreurDepot("Suppression impossible : des sites sont rattachés à cette entreprise.");
-      }
-      if (table === "sites" && e.tables.salles_propres.some((s) => s.site_id === id)) {
-        throw new ErreurDepot("Suppression impossible : des salles propres sont rattachées à ce site.");
-      }
-      if (table === "roles" && e.tables.membres.some((m) => m.role_id === id)) {
-        throw new ErreurDepot("Suppression impossible : des membres ont ce rôle.");
-      }
-      const supprimer = (t: NomTable, predicat: (l: Record<string, unknown>) => boolean) => {
-        const liste = e.tables[t] as unknown as Record<string, unknown>[];
-        for (const l of liste.filter(predicat)) this.journaliser(e, org, t, l.id as string, "delete", l, null);
-        (e.tables as Record<string, unknown>)[t] = liste.filter((l) => !predicat(l));
-      };
-      // Suppressions en cascade, comme en base.
-      if (table === "salles_propres") supprimer("zones", (z) => (z as unknown as Zone).salle_id === id);
-      if (table === "roles") {
-        supprimer("droits_roles", (d) => d.role_id === id);
-        supprimer("invitations", (i) => i.role_id === id);
-      }
-      if (table === "documents") {
-        if (e.signatures.some((s) => s.objet_type === "document" && s.objet_id === id)) {
-          throw new ErreurDepot("Suppression impossible : ce document porte des signatures (passez-le au statut périmé).");
-        }
-        supprimer("versions_documents", (v) => v.document_id === id);
-      }
-      supprimer(table, (l) => l.id === id);
+      this.retirer(e, table, ligne);
       if (table === "membres" || table === "droits_roles") this.verifierAdminRestant(e, org);
     });
   }
@@ -482,7 +519,7 @@ export class DepotDemo implements Depot {
     this.uid();
     return this.transaction((e) => {
       const s = this.inserer(e, "salles_propres", salle);
-      for (const z of zones) this.inserer(e, "zones", { ...z, org_id: salle.org_id, salle_id: s.id, site_id: null });
+      for (const z of zones) this.inserer(e, "zones", { ...z, org_id: salle.org_id, salle_id: s.id } as Nouveau<"zones">);
       return s.id;
     });
   }
@@ -491,29 +528,35 @@ export class DepotDemo implements Depot {
   // Signatures, journal, fichiers
   // ------------------------------------------------------------------
 
-  async signer(objetType: "document", objetId: string, signification: Signification, commentaire: string): Promise<Signature> {
+  async signer(objetType: string, objetId: string, signification: Signification, commentaire: string, portee = ""): Promise<Signature> {
     const uid = this.uid();
     return structuredClone(this.transaction((e) => {
-      const doc = e.tables.documents.find((d) => d.id === objetId);
-      if (!doc) throw new ErreurDepot("Document introuvable");
-      if (doc.version_courante < 1) throw new ErreurDepot("Le document n'a aucune version à signer");
-      if (this.niveau(e, doc.org_id, "documents") < niveauSignature(signification)) {
+      const def = OBJETS_SIGNABLES[objetType];
+      if (!def) throw new ErreurDepot(`Type d'objet non signable : ${objetType}`);
+      const objet = lignesDe(e, def.table).find((d) => d.id === objetId);
+      if (!objet) throw new ErreurDepot("Objet introuvable");
+      const version = def.colonneVersion ? Number(objet[def.colonneVersion]) : 1;
+      if (version < 1) throw new ErreurDepot(objetType === "document" ? "Le document n'a aucune version à signer" : "L'objet n'a aucune version à signer");
+      const org = objet.org_id as string;
+      if (this.niveau(e, org, def.module) < niveauSignature(signification)) {
         throw new ErreurDepot(`Droits insuffisants pour signer « ${signification} »`);
       }
       const p = e.profils.find((x) => x.id === uid)!;
       const s: Signature = {
-        id: uuid(), org_id: doc.org_id, objet_type: objetType, objet_id: objetId, version_objet: doc.version_courante,
-        signification, signataire: uid, nom_signataire: p.nom_complet || p.email, commentaire, signe_le: maintenant(),
+        id: uuid(), org_id: org, objet_type: objetType, objet_id: objetId, version_objet: version,
+        signification, signataire: uid, nom_signataire: p.nom_complet || p.email, commentaire, signe_le: maintenant(), portee,
       };
       e.signatures.push(s);
-      this.journaliser(e, doc.org_id, "signatures", s.id, "insert", null, s);
+      this.journaliser(e, org, "signatures", s.id, "insert", null, s);
       return s;
     }));
   }
 
   async signatures(orgId: string, objetType: string, objetId: string): Promise<Signature[]> {
     if (!this.membre(this.etat, orgId)) return [];
-    return structuredClone(this.etat.signatures.filter((s) => s.org_id === orgId && s.objet_type === objetType && s.objet_id === objetId));
+    return structuredClone(this.etat.signatures
+      .filter((s) => s.org_id === orgId && s.objet_type === objetType && s.objet_id === objetId)
+      .map((s) => ({ ...s, portee: s.portee ?? "" })));
   }
 
   async journal(orgId: string, filtre: FiltreJournal = {}): Promise<EntreeJournal[]> {

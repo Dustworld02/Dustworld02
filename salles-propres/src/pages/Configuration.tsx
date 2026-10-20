@@ -6,7 +6,7 @@ import { versionSuivante } from "../domain/secteurs/generation";
 import { LIBELLES_NIVEAUX, MODULES, type Niveau } from "../domain/permissions";
 import { GRADES_BPF, type GradeBpf } from "../domain/referentiels/gradesBpf";
 import { libelleClasse } from "../domain/referentiels/classesIso";
-import { TABLES_EXPORTEES } from "../data/types";
+import { TABLES_EXPORTEES } from "../data/schema";
 import { DepotDemo, type EtatDemo } from "../data/depotDemo";
 import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Onglets, Saisie, SaisieNombre, TableauDefilant, formatDate, telechargerFichier, useAction, useDonnees } from "../ui/composants";
 

@@ -140,6 +140,80 @@ await verifier("La matrice des droits est éditable par l'administrateur", async
   await capture("08-matrice-droits");
 });
 
+/** Convertit des coordonnées du plan (mètres) en coordonnées écran. */
+async function versEcran(x, y) {
+  return page.evaluate(([px, py]) => {
+    const svg = document.querySelector('svg[aria-label^="Plan de"]');
+    const p = new DOMPoint(px, py).matrixTransform(svg.getScreenCTM());
+    return { x: p.x, y: p.y };
+  }, [x, y]);
+}
+
+await verifier("Le plan de démonstration affiche la cascade de pression sans anomalie", async () => {
+  await page.goto(`${URL_APP}/#/salles`);
+  await page.getByRole("link", { name: "Salle propre assemblage cathéters" }).click();
+  await page.getByRole("tab", { name: "Plan" }).click();
+  await page.locator('svg[aria-label^="Plan de"]').waitFor();
+  await page.locator("aside").getByText("Production → emballage").waitFor();
+  await page.getByLabel("Affichage").selectOption("pression");
+  if ((await page.getByLabel("Affichage").inputValue()) !== "pression") throw new Error("Vue non appliquée");
+  await page.getByText("Pression forte").waitFor();
+  if (await page.getByText("Inversion :").count()) throw new Error("Inversion inattendue");
+  await capture("09-plan-cascade");
+});
+
+await verifier("On trace une zone à la souris et on l'associe à une nouvelle zone", async () => {
+  await page.getByLabel("Affichage").selectOption("classes");
+  await page.getByRole("button", { name: "▭ Zone" }).click();
+  const a = await versEcran(18.05, 7.05);
+  const b = await versEcran(23.95, 10);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 8 });
+  await page.mouse.up();
+  await attendreTexte("Nouveau tracé");
+  await page.getByLabel("Associer le tracé à").selectOption("");
+  await page.getByRole("dialog").getByLabel("Nom").fill("Local déchets");
+  await page.getByRole("dialog").getByLabel("Classe ISO").fill("9");
+  await page.getByRole("dialog").getByRole("button", { name: "Valider" }).click();
+  await page.getByRole("dialog").waitFor({ state: "detached" });
+  await page.locator("svg text", { hasText: "Local déchets" }).waitFor();
+});
+
+await verifier("Une porte posée sur une cloison détecte les deux zones", async () => {
+  await page.getByRole("button", { name: "🚪 Porte" }).click();
+  const p = await versEcran(21, 7);
+  await page.mouse.click(p.x, p.y);
+  await page.getByRole("heading", { name: "Porte" }).waitFor();
+  const a = await page.locator("aside").getByLabel("Côté A").inputValue();
+  const b = await page.locator("aside").getByLabel("Côté B").inputValue();
+  if (!a || !b) throw new Error(`Zones non détectées (A=${a}, B=${b})`);
+  await capture("10-plan-porte");
+});
+
+await verifier("Une consigne de pression inversée est signalée", async () => {
+  await page.getByRole("button", { name: "↖ Sélection" }).click();
+  const p = await versEcran(21, 8.8);
+  await page.mouse.click(p.x, p.y);
+  await page.getByRole("heading", { name: "Zone" }).waitFor();
+  await page.locator("aside").getByLabel("Pression (Pa)").fill("40");
+  await page.locator("aside").getByRole("button", { name: "Enregistrer" }).click();
+  await page.locator("aside").getByRole("button", { name: "Fermer" }).click();
+  await page.getByRole("tab", { name: /Cascade/ }).click();
+  await page.locator("aside").getByText("Inversion : l'air passe de Z05 Local déchets").waitFor();
+});
+
+await verifier("La CTA de démonstration montre ses étages, ses zones desservies et ses filtres", async () => {
+  await page.goto(`${URL_APP}/#/traitement-air`);
+  await page.getByText("CTA-01 Salle d'assemblage").first().click();
+  await attendreTexte("Zones desservies");
+  await attendreTexte("Humidificateur vapeur");
+  await page.getByRole("row", { name: /CTA-01 F9/ }).getByRole("button", { name: "Relevés Δp" }).click();
+  await attendreTexte("Encrassement 70 %");
+  await capture("11-cta-releves");
+  await page.keyboard.press("Escape");
+});
+
 await verifier("L'opérateur n'a ni création de salle, ni configuration, ni journal", async () => {
   await deconnecter();
   await connecter("Opérateur");

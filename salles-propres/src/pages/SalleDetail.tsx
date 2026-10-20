@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useSession } from "../session";
 import type { SallePropre, Zone } from "../data/types";
-import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
+import { Badge, Bandeau, Bouton, Carte, Champ, EnTete, Liste, MessageErreur, Modale, Onglets, Saisie, SaisieNombre, TableauDefilant, Vide, ZoneTexte, formatDate, useAction, useDonnees } from "../ui/composants";
+import { PlanSalle } from "./plan/PlanSalle";
+import { EquipementsSalle } from "./Equipements";
 import { libelleSecteur } from "./Entreprises";
 import { LIBELLES_TYPES_ZONES, type TypeZone } from "../domain/secteurs/types";
 import { gabaritDepuisZones, MENTION_POINT_DE_DEPART } from "../domain/secteurs/generation";
@@ -11,13 +13,15 @@ import { libelleClasse } from "../domain/referentiels/classesIso";
 import { formatNombre, incoherencesZone, limitesMicrobio, limitesParticulaires, pointsPrelevementZone, volumeM3 } from "../domain/exigencesZone";
 import { LIBELLES_STATUTS } from "./Documents";
 
+type OngletSalle = "zones" | "plan" | "equipements" | "documents";
+
 type EditionZone = Omit<Zone, "id" | "org_id" | "cree_le" | "cree_par" | "modifie_le" | "modifie_par" | "site_id"> & { id?: string };
 
 function zoneVide(salleId: string, code: string): EditionZone {
   return {
     salle_id: salleId, code, nom: "", type_zone: "salle", iso_repos: null, iso_activite: null, grade_bpf: null, zone_risque: null,
     surface_m2: null, hauteur_m: null, pression_pa: null, tolerance_pression_pa: null, renouvellement_vol_h: null,
-    temperature_min: null, temperature_max: null, hr_min: null, hr_max: null, gabarit_ref: null, notes: "",
+    temperature_min: null, temperature_max: null, hr_min: null, hr_max: null, gabarit_ref: null, notes: "", geometrie: null,
   };
 }
 
@@ -39,6 +43,7 @@ export function SalleDetail() {
   const [zone, setZone] = useState<EditionZone | null>(null);
   const [salle, setSalle] = useState<Pick<SallePropre, "nom" | "batiment" | "etage" | "description"> | null>(null);
   const [gabaritNom, setGabaritNom] = useState<string | null>(null);
+  const [onglet, setOnglet] = useState<OngletSalle>(() => (window.location.hash.includes("onglet=plan") ? "plan" : "zones"));
   const action = useAction();
 
   if (erreur) return <MessageErreur erreur={erreur} />;
@@ -118,7 +123,23 @@ export function SalleDetail() {
         </Carte>
       </div>
 
-      <Carte
+      <div className="no-print">
+        <Onglets
+          onglets={[
+            { cle: "zones" as const, libelle: `Zones (${donnees.zones.length})` },
+            { cle: "plan" as const, libelle: "Plan" },
+            { cle: "equipements" as const, libelle: "Équipements et mobilier" },
+            ...(s.peut("documents", 1) ? [{ cle: "documents" as const, libelle: `Documents (${donnees.documents.length})` }] : []),
+          ]}
+          actif={onglet}
+          onChange={setOnglet}
+        />
+      </div>
+
+      {onglet === "plan" && <PlanSalle salle={sp} onSalleModifiee={recharger} />}
+      {onglet === "equipements" && <EquipementsSalle salle={sp} />}
+
+      {onglet === "zones" && <Carte
         titre="Zones"
         actions={ecriture && <Bouton className="no-print" variante="principal" onClick={() => { action.effacer(); setZone(zoneVide(sp.id, prochainCode())); }}>+ Zone</Bouton>}
       >
@@ -158,10 +179,10 @@ export function SalleDetail() {
           </TableauDefilant>
         )}
         <p className="mt-2 text-xs text-texte-2">Points min. : nombre minimal de points de prélèvement pour la classification (ISO 14644-1, tableau A.1), calculé sur la surface.</p>
-      </Carte>
+      </Carte>}
 
-      {s.peut("documents", 1) && (
-        <Carte titre="Documents rattachés" className="mt-4" actions={<Link to={`/documents?objet=${sp.id}`} className="no-print text-sm text-navy-700 hover:underline">Gérer dans la GED</Link>}>
+      {onglet === "documents" && s.peut("documents", 1) && (
+        <Carte titre="Documents rattachés" actions={<Link to={`/documents?objet=${sp.id}`} className="no-print text-sm text-navy-700 hover:underline">Gérer dans la GED</Link>}>
           {donnees.documents.length === 0 ? <p className="text-sm text-texte-2">Aucun document rattaché à cette salle.</p> : (
             <ul className="space-y-1 text-sm">
               {donnees.documents.map((d) => <li key={d.id} className="flex items-center gap-2">{d.titre} <Badge>{LIBELLES_STATUTS[d.statut]}</Badge> <span className="text-xs text-texte-2">v{d.version_courante}</span></li>)}

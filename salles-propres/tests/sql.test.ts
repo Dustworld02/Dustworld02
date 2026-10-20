@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { ROLES_SYSTEME, matriceParDefaut, MODULES } from "../src/domain/permissions";
+import { META } from "../src/data/schema";
+import type { NomTable } from "../src/data/types";
 
 const db = new PGlite();
 const ids = {
@@ -300,5 +302,135 @@ describe("Documents et signatures", () => {
       expect(await nb(`select * from storage.objects`)).toBe(0);
       await expect(db.query(`insert into storage.objects (bucket_id, name) values ('documents', $1)`, [`${orgA}/${doc}/g.pdf`])).rejects.toThrow(/row-level security/);
     });
+  });
+});
+
+describe("Registre des tables ⇄ schéma SQL", () => {
+  const tables = Object.keys(META) as NomTable[];
+
+  it("chaque table existe avec la sécurité au niveau des lignes activée", async () => {
+    const r = await db.query<{ relname: string; relrowsecurity: boolean }>(
+      `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'`);
+    for (const t of tables) {
+      const ligne = r.rows.find((x) => x.relname === t);
+      expect(ligne, t).toBeDefined();
+      expect(ligne!.relrowsecurity, t).toBe(true);
+    }
+  });
+
+  it("les rattachements ont le même comportement à la suppression", async () => {
+    const r = await db.query<{ table_nom: string; colonne: string; parent: string; regle: string }>(`
+      select c.conrelid::regclass::text as table_nom, a.attname as colonne, c.confrelid::regclass::text as parent, c.confdeltype as regle
+      from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+      where c.contype = 'f' and c.connamespace = 'public'::regnamespace`);
+    const attendu = { cascade: "c", restreint: ["a", "r"], null: "n" } as const;
+    for (const t of tables) {
+      for (const rat of META[t].rattachements ?? []) {
+        const fk = r.rows.find((x) => x.table_nom === t && x.colonne === rat.colonne);
+        expect(fk, `${t}.${rat.colonne}`).toBeDefined();
+        expect(fk!.parent, `${t}.${rat.colonne}`).toBe(rat.table);
+        const regle = attendu[rat.suppression];
+        if (Array.isArray(regle)) expect(regle, `${t}.${rat.colonne}`).toContain(fk!.regle);
+        else expect(fk!.regle, `${t}.${rat.colonne}`).toBe(regle);
+      }
+    }
+  });
+
+  it("les colonnes par défaut du registre ont un défaut en base", async () => {
+    const r = await db.query<{ table_name: string; column_name: string; column_default: string | null; is_nullable: string }>(
+      `select table_name, column_name, column_default, is_nullable from information_schema.columns where table_schema = 'public'`);
+    for (const t of tables) {
+      for (const cle of Object.keys(META[t].defauts ?? {})) {
+        const col = r.rows.find((x) => x.table_name === t && x.column_name === cle);
+        expect(col, `${t}.${cle}`).toBeDefined();
+        const valeur = META[t].defauts![cle];
+        if (valeur === null) expect(col!.is_nullable, `${t}.${cle}`).toBe("YES");
+        else expect(col!.column_default, `${t}.${cle}`).not.toBeNull();
+      }
+    }
+  });
+
+  it("les politiques de lecture utilisent le module du registre", async () => {
+    const r = await db.query<{ tablename: string; qual: string }>(`select tablename, qual from pg_policies where schemaname = 'public' and policyname = 'lecture'`);
+    for (const t of tables) {
+      const p = r.rows.find((x) => x.tablename === t);
+      expect(p, t).toBeDefined();
+      const meta = META[t];
+      if (meta.portee === "membre") expect(p!.qual, t).toContain("est_membre");
+      else if (meta.portee === "personnel") expect(p!.qual, t).toContain("destinataire");
+      else expect(p!.qual, t).toContain(`'${meta.module}'`);
+      if (meta.portee === "site" || meta.portee === "soi") expect(p!.qual, t).toContain("acces_site");
+    }
+  });
+});
+
+describe("Modélisation (phase 2)", () => {
+  let zoneProd = "";
+  let zoneSas = "";
+  let cta = "";
+
+  it("déduit le site des éléments du plan et contrôle les rattachements", async () => {
+    await comme(ids.a, async () => {
+      zoneProd = (await un<{ id: string }>(`insert into zones (org_id, salle_id, nom, pression_pa) values ($1, $2, 'Prod', 30) returning id`, [orgA, salle1])).id;
+      zoneSas = (await un<{ id: string }>(`insert into zones (org_id, salle_id, nom, pression_pa) values ($1, $2, 'SAS', 15) returning id`, [orgA, salle1])).id;
+      const p = await un<{ site_id: string }>(`insert into portes (org_id, salle_id, zone_a, zone_b, x, y) values ($1, $2, $3, $4, 1, 1) returning site_id`, [orgA, salle1, zoneProd, zoneSas]);
+      expect(p.site_id).toBe(site1);
+      cta = (await un<{ id: string }>(`insert into ctas (org_id, site_id, nom) values ($1, $2, 'CTA test') returning id`, [orgA, site1])).id;
+      const b = await un<{ id: string; site_id: string }>(`insert into bouches (org_id, salle_id, zone_id, cta_id, type, debit_m3h) values ($1, $2, $3, $4, 'soufflage', 1000) returning id, site_id`, [orgA, salle1, zoneProd, cta]);
+      expect(b.site_id).toBe(site1);
+      const f = await un<{ site_id: string }>(`insert into filtres (org_id, bouche_id, emplacement, classe) values ($1, $2, 'terminal', 'H14') returning site_id`, [orgA, b.id]);
+      expect(f.site_id).toBe(site1);
+      await expect(db.query(`insert into filtres (org_id, classe) values ($1, 'F9')`, [orgA])).rejects.toThrow();
+    });
+  });
+
+  it("refuse une zone d'une autre salle d'une autre organisation dans une porte", async () => {
+    const orgD = await comme(ids.d, async () => (await un<{ id: string }>(`select id from organisations`)).id);
+    await comme(ids.d, async () => {
+      const e = (await un<{ id: string }>(`insert into entreprises (org_id, nom) values ($1, 'D') returning id`, [orgD])).id;
+      const site = (await un<{ id: string }>(`insert into sites (org_id, entreprise_id, nom) values ($1, $2, 'S') returning id`, [orgD, e])).id;
+      const salle = (await un<{ id: string }>(`insert into salles_propres (org_id, site_id, nom, secteur) values ($1, $2, 'S', 'x') returning id`, [orgD, site])).id;
+      await expect(db.query(`insert into portes (org_id, salle_id, zone_a) values ($1, $2, $3)`, [orgD, salle, zoneProd])).rejects.toThrow(/n'appartient pas/);
+      await expect(db.query(`insert into bouches (org_id, salle_id, cta_id) values ($1, $2, $3)`, [orgD, salle, cta])).rejects.toThrow(/n'appartient pas/);
+    });
+  });
+
+  it("applique le module traitement d'air : le rôle nettoyage ne voit pas les CTA", async () => {
+    await comme(ids.a, async () => {
+      const role = await un<{ id: string }>(`select id from roles where org_id = $1 and cle = 'nettoyage'`, [orgA]);
+      await db.query(`update membres set role_id = $1 where user_id = $2 and org_id = $3`, [role.id, ids.b, orgA]);
+    });
+    await comme(ids.b, async () => {
+      expect(await nb(`select * from ctas`)).toBe(0);
+      expect(await nb(`select * from portes`)).toBeGreaterThan(0);
+      await expect(db.query(`insert into ctas (org_id, site_id, nom) values ($1, $2, 'X')`, [orgA, site1])).rejects.toThrow(/row-level security/);
+    });
+  });
+
+  it("met les portes à l'extérieur quand une zone est supprimée, et supprime le plan avec la salle", async () => {
+    await comme(ids.a, async () => {
+      await db.query(`delete from zones where id = $1`, [zoneSas]);
+      const p = await un<{ zone_b: string | null }>(`select zone_b from portes where zone_a = $1`, [zoneProd]);
+      expect(p.zone_b).toBeNull();
+      await expect(db.query(`update salles_propres set site_id = $1 where id = $2`, [site2, salle1])).rejects.toThrow(/changer de site/);
+    });
+  });
+
+  it("numérote et exige les signatures via les fonctions génériques", async () => {
+    await db.exec(`
+      create table public.essai_generique (id uuid primary key default gen_random_uuid(), org_id uuid not null, numero text, statut text not null default 'brouillon', version integer not null default 1);
+      create trigger numero before insert on public.essai_generique for each row execute function app.numeroter('TST');
+      create trigger signature before insert or update on public.essai_generique for each row execute function app.exiger_signature('essai', 'approuve', 'approuve', 'rapport', 'version');
+      insert into app.objets_signables values ('essai', 'essai_generique', 'version', 'documents');
+    `);
+    const a = await un<{ id: string; numero: string }>(`insert into public.essai_generique (org_id) values ($1) returning id, numero`, [orgA]);
+    const b = await un<{ numero: string }>(`insert into public.essai_generique (org_id) values ($1) returning numero`, [orgA]);
+    const annee = new Date().getFullYear();
+    expect(a.numero).toBe(`TST-${annee}-001`);
+    expect(b.numero).toBe(`TST-${annee}-002`);
+    await expect(db.query(`update public.essai_generique set statut = 'approuve' where id = $1`, [a.id])).rejects.toThrow(/Signature « approuve » requise/);
+    await comme(ids.a, () => db.query(`select signer('essai', $1, 'approuve', '', 'rapport')`, [a.id]));
+    await db.query(`update public.essai_generique set statut = 'approuve' where id = $1`, [a.id]);
+    await db.exec(`delete from app.objets_signables where objet_type = 'essai'; drop table public.essai_generique;`);
   });
 });
