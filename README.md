@@ -78,6 +78,36 @@ Le **résultat du mois** (marge brute des chantiers − frais généraux mensual
 - **⏱️ Feuilles de temps** : par salarié et par mois, planifié vs réel jour par jour, congés/fériés comptés, imprimable, et **export CSV prépaie** de tous les salariés (s'ouvre dans Excel, à transmettre à l'expert-comptable).
 - **🧾 Export facturation** : le tableau mensuel de ce qu'il y a à facturer par client (forfait ou heures × taux, sur les heures retenues), exporté en **CSV** pour votre logiciel de facturation et en **JSON** — le format qui servira à la future connexion par API.
 
+## ☁ Synchronisation en ligne
+
+Le logiciel est publié à l'adresse **https://berto-nettoyage.vercel.app** et peut garder le même planning sur l'ordinateur, la tablette et le téléphone.
+
+**Pour l'activer** : bouton **☁** en haut à droite → créez votre compte (adresse e-mail + mot de passe), une seule fois. Ensuite tout se fait seul.
+
+**Ce que vous voyez** : un indicateur permanent à côté du bouton 💾 — *À jour*, *À envoyer*, *Pas de réseau*, *À vérifier*. Vos saisies partent quelques secondes après avoir été enregistrées sur l'appareil ; l'autre appareil les récupère à l'ouverture, au retour sur l'onglet ou en cliquant *Synchroniser maintenant*.
+
+**Le logiciel reste utilisable sans compte et sans réseau.** La synchronisation est un supplément : hors connexion vous continuez à travailler normalement, et tout repart dès que le réseau revient.
+
+⚠️ **La synchronisation ne fonctionne pas quand le fichier est ouvert par double-clic** (`file://`) : le navigateur l'interdit pour des raisons de sécurité. Utilisez l'adresse web. Le fichier local continue de marcher, simplement sans partage entre appareils.
+
+### Comment les conflits sont traités
+
+Rien ne peut être perdu, par construction :
+
+- **Aucune écriture à l'aveugle.** Chaque envoi est conditionné à la version connue : si l'autre appareil a écrit entre-temps, l'envoi est refusé, jamais imposé.
+- **Rien n'est remplacé sans archive préalable.** Avant de prendre la version en ligne, la version locale est déposée dans l'historique en ligne ; avant d'écraser la version en ligne, c'est elle qui y est déposée. Les deux restent récupérables.
+- **Un appareil vierge reçoit sans poser de question**, et ne peut pas imposer son vide à un appareil qui a le dossier.
+- **Si les deux ont été modifiés**, le logiciel s'arrête et demande, en montrant ce que contient chaque version. Les deux sont conservées quel que soit le choix.
+- Les données ne sont jamais remplacées pendant une saisie : si une fenêtre est ouverte, la synchronisation attend.
+
+### Où vont les données
+
+Base PostgreSQL **hébergée à Paris** (Supabase), une ligne par compte, protégée par les règles de sécurité de la base : personne d'autre que vous ne peut lire ni écrire votre dossier, et **le logiciel n'a pas le droit de le supprimer**. L'historique conserve les douze derniers états pendant trois mois.
+
+⚠️ Le projet est sur l'offre gratuite : **il se met en veille après une semaine sans activité**. Au réveil, la synchronisation échoue tant qu'il n'est pas relancé depuis le tableau de bord Supabase. L'indicateur affiche alors *Pas de réseau*, et rien n'est perdu — tout repart ensuite.
+
+⚠️ Vos données contiennent des informations personnelles de vos salariés, dont des **arrêts maladie** (donnée de santé). Dès lors qu'elles sont hébergées, informez vos salariés par écrit et tenez le registre de traitement prévu par le RGPD.
+
 ## 💾 Sauvegarde
 
 Les données sont enregistrées automatiquement dans le navigateur (localStorage). Le bouton **💾 Sauvegarde** permet :

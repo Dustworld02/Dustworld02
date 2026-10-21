@@ -198,6 +198,32 @@
     padding-left: 1px;
   }
   .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .bouton-nuage {
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 6px 13px;
+  }
+  .bouton-nuage.nuage-gris   { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+  .bouton-nuage.nuage-vert   { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bord); }
+  .bouton-nuage.nuage-bleu   { background: var(--navy-050); color: var(--navy-700); border-color: #bfdbfe; }
+  .bouton-nuage.nuage-orange { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-bord); }
+  .bouton-nuage.nuage-rouge  { background: var(--alerte-bg); color: var(--alerte-fg); border-color: var(--alerte-bord); }
+  .message-nuage { color: #b91c1c; font-size: 0.85rem; min-height: 1.2em; margin: 6px 0; }
+  .bloc-choix {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .bloc-choix > div {
+    border: 1px solid var(--gris-bord);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 0.86rem;
+  }
+  @media (max-width: 640px) { .bloc-choix { grid-template-columns: 1fr; } }
 
   .contenu { padding: 22px 24px 40px; flex: 1; }
 
@@ -1212,6 +1238,7 @@
       <div class="periode" id="libelle-periode"></div>
     </div>
     <div class="topbar-actions">
+      <button class="bouton-nuage nuage-gris" id="etat-sync" title="Synchronisation">☁ Hors ligne</button>
       <button id="btn-sauvegarde">💾 Sauvegarde</button>
       <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
     </div>
@@ -1267,6 +1294,15 @@
 
 <!-- Documents imprimables dédiés (fiche client, check-list…) -->
 <div id="zone-impression"></div>
+
+<!-- Fenêtre de synchronisation en ligne -->
+<dialog id="modale-nuage">
+  <h2>☁ Synchronisation</h2>
+  <div id="corps-nuage"></div>
+  <div class="actions-modale" style="margin-top:4px">
+    <button data-nuage="fermer">Fermer</button>
+  </div>
+</dialog>
 
 <!-- Modale de signature manuscrite (bons d'intervention) -->
 <dialog id="modale-signature">
@@ -3721,7 +3757,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "10/10/2026 — 17"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "21/10/2026 — 18"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3833,7 +3869,14 @@ function formatPourcent(p) {
 }
 
 let alerteQuotaFaite = false;
+// Enregistre sur cet appareil, puis signale qu'il y a quelque chose à envoyer.
+// Aucun appel réseau ici : le chemin de la saisie doit rester instantané.
 function sauvegarder() {
+  sauvegarderLocal();
+  if (typeof signalerModificationLocale === "function") signalerModificationLocale();
+}
+
+function sauvegarderLocal() {
   try {
     localStorage.setItem(CLE_STOCKAGE, JSON.stringify(donnees));
   } catch (e) {
@@ -9650,7 +9693,11 @@ document.getElementById("fichier-import").addEventListener("change", (e) => {
     vue = VUES.includes(donnees.vue) ? donnees.vue : "semaine";
     sauvegarder();
     rendre();
-    alert("Sauvegarde importée avec succès ✅");
+    alert("Sauvegarde importée avec succès ✅" +
+      (typeof session !== "undefined" && session
+        ? "\n\nCe contenu va remplacer ce qui est en ligne. L'état précédent reste " +
+          "récupérable dans l'historique."
+        : ""));
   };
   lecteur.readAsText(fichier);
 });
@@ -10024,6 +10071,573 @@ document.getElementById("btn-effacer").addEventListener("click", () => {
 
 document.getElementById("btn-imprimer").addEventListener("click", () => window.print());
 
+/* ================= Synchronisation en ligne (Supabase) =================
+   Le logiciel fonctionne exactement comme avant sans compte et sans réseau :
+   la synchronisation est un supplément, jamais un préalable.
+
+   Quatre règles tiennent tout :
+   1. Rien de réseau sur le chemin de la saisie. sauvegarder() écrit le local
+      et arme une minuterie ; l'envoi se fait plus tard, à part.
+   2. On n'écrase jamais sans archiver d'abord. Avant de remplacer le local on
+      dépose sa version dans l'historique en ligne ; avant d'écraser le nuage
+      on y dépose la version en ligne. Les deux restent récupérables.
+   3. Toute écriture est conditionnée à la révision connue. Si l'autre appareil
+      a écrit entre-temps, l'écriture est refusée — jamais écrasée en silence.
+   4. Le champ « vue » (l'onglet ouvert) est propre à l'appareil : il est retiré
+      avant tout envoi et toute comparaison, sinon un simple clic de menu ferait
+      rebondir les deux appareils l'un contre l'autre indéfiniment.            */
+
+const NUAGE_URL = "https://iqekmufojkzkxirolcva.supabase.co";
+const NUAGE_CLE = "sb_publishable_yIKDz-kCkLc3xaCIl_wclg_LXz8YLcr";
+const CLE_SESSION = "nettoyage-session";   // volontairement distincte des données :
+const CLE_SYNC    = "nettoyage-sync";      // un stockage plein ne doit pas tout bloquer
+const CHAMPS_APPAREIL = ["vue"];           // propres à l'appareil, jamais envoyés
+
+let session = null;        // { access_token, refresh_token, expire_a, uid, email }
+let etatSync = { revision: 0, empreinteEnvoyee: "", appareil: "" };
+let etatNuage = "local";   // sert UNIQUEMENT à l'affichage
+let syncEnCours = false;   // le vrai verrou : l'état affiché n'en est pas un
+let minuterieSync = 0;
+let detailConflit = null;  // { distant, resume } quand il faut trancher
+
+const enDoubleClic = () => location.protocol === "file:";
+
+/* ---------- Outils ---------- */
+
+// Sérialisation à clés triées : Postgres ne conserve pas l'ordre des clés d'un
+// JSONB, donc une empreinte calculée sur JSON.stringify brut changerait toute
+// seule à chaque aller-retour et tout paraîtrait modifié.
+function canonique(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v) ?? "null";
+  if (Array.isArray(v)) return "[" + v.map(canonique).join(",") + "]";
+  return "{" + Object.keys(v).sort()
+    .map(k => JSON.stringify(k) + ":" + canonique(v[k])).join(",") + "}";
+}
+
+function chargeUtile(d) {
+  const c = {};
+  for (const k in d) if (!CHAMPS_APPAREIL.includes(k)) c[k] = d[k];
+  return c;
+}
+
+function empreinteDe(d) {
+  const s = canonique(chargeUtile(d));
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return s.length.toString(36) + "." + h.toString(36);
+}
+
+function identifiantAppareil() {
+  let a = localStorage.getItem("nettoyage-appareil");
+  if (!a) {
+    const tactile = matchMedia("(pointer: coarse)").matches;
+    a = (tactile ? "Tablette" : "Ordinateur") + " " + Math.random().toString(36).slice(2, 6);
+    try { localStorage.setItem("nettoyage-appareil", a); } catch (e) { /* sans importance */ }
+  }
+  return a;
+}
+
+function lireEtatLocal() {
+  try {
+    session = JSON.parse(localStorage.getItem(CLE_SESSION) || "null");
+    etatSync = Object.assign({ revision: 0, empreinteEnvoyee: "", appareil: "" },
+      JSON.parse(localStorage.getItem(CLE_SYNC) || "{}"));
+  } catch (e) { session = null; }
+}
+
+function ecrireEtatLocal() {
+  try {
+    if (session) localStorage.setItem(CLE_SESSION, JSON.stringify(session));
+    else localStorage.removeItem(CLE_SESSION);
+    localStorage.setItem(CLE_SYNC, JSON.stringify(etatSync));
+  } catch (e) { /* stockage plein : on continue, la synchro réessaiera */ }
+}
+
+/* ---------- Appels au nuage ---------- */
+
+async function appelNuage(chemin, options = {}, reessai = true) {
+  const entetes = Object.assign(
+    { apikey: NUAGE_CLE, "content-type": "application/json" }, options.headers || {});
+  if (session && session.access_token) entetes.authorization = "Bearer " + session.access_token;
+  let r;
+  try {
+    r = await fetch(NUAGE_URL + chemin, Object.assign({}, options, { headers: entetes }));
+  } catch (e) {
+    // Réseau coupé OU service endormi : la réponse d'erreur d'une passerelle
+    // n'a pas toujours les en-têtes nécessaires, les deux cas sont
+    // indiscernables depuis le navigateur. Un seul message couvrira les deux.
+    const err = new Error("injoignable"); err.injoignable = true; throw err;
+  }
+  if (r.status === 401 && reessai && session && session.refresh_token) {
+    if (await rafraichirJeton()) return appelNuage(chemin, options, false);
+  }
+  return r;
+}
+
+function poserSession(corps) {
+  if (!corps || !corps.access_token) return false;
+  session = {
+    access_token: corps.access_token,
+    refresh_token: corps.refresh_token,
+    // l'heure vient du nuage, jamais de l'horloge de l'appareil
+    expire_a: Date.now() + (Number(corps.expires_in) || 3600) * 1000 - 60000,
+    uid: corps.user ? corps.user.id : (session && session.uid),
+    email: corps.user ? corps.user.email : (session && session.email),
+  };
+  ecrireEtatLocal();
+  return true;
+}
+
+async function rafraichirJeton() {
+  try {
+    const r = await fetch(NUAGE_URL + "/auth/v1/token?grant_type=refresh_token", {
+      method: "POST",
+      headers: { apikey: NUAGE_CLE, "content-type": "application/json" },
+      body: JSON.stringify({ refresh_token: session.refresh_token }),
+    });
+    if (!r.ok) { session = null; ecrireEtatLocal(); return false; }
+    return poserSession(await r.json());
+  } catch (e) { return false; }
+}
+
+async function connexionNuage(email, motDePasse) {
+  const r = await fetch(NUAGE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: { apikey: NUAGE_CLE, "content-type": "application/json" },
+    body: JSON.stringify({ email: email.trim(), password: motDePasse }),
+  });
+  const corps = await r.json().catch(() => ({}));
+  if (!r.ok) return { ok: false, message: messageAuth(corps) };
+  poserSession(corps);
+  return { ok: true };
+}
+
+async function inscriptionNuage(email, motDePasse) {
+  const r = await fetch(NUAGE_URL + "/auth/v1/signup", {
+    method: "POST",
+    headers: { apikey: NUAGE_CLE, "content-type": "application/json" },
+    body: JSON.stringify({ email: email.trim(), password: motDePasse }),
+  });
+  const corps = await r.json().catch(() => ({}));
+  if (!r.ok) return { ok: false, message: messageAuth(corps) };
+  if (!corps.access_token) {
+    return { ok: false, aConfirmer: true,
+      message: "Compte créé. Ouvrez le message de confirmation envoyé à " + echapper(email.trim()) +
+               ", puis revenez vous connecter." };
+  }
+  poserSession(corps);
+  return { ok: true };
+}
+
+function messageAuth(corps) {
+  const t = ((corps && (corps.error_description || corps.msg || corps.message)) || "").toLowerCase();
+  if (t.includes("invalid login")) return "Adresse ou mot de passe incorrect.";
+  if (t.includes("already registered")) return "Un compte existe déjà avec cette adresse : connectez-vous.";
+  if (t.includes("password")) return "Le mot de passe doit faire au moins 6 caractères.";
+  if (t.includes("email")) return "Cette adresse e-mail n'est pas valide.";
+  return "La connexion a échoué. Réessayez dans un moment.";
+}
+
+/* ---------- Lecture et écriture du coffre ---------- */
+
+// Lecture légère : on ne télécharge le dossier entier que s'il a vraiment bougé
+async function lireTete() {
+  const r = await appelNuage("/rest/v1/coffre?select=revision,maj_le,empreinte,appareil&uid=eq." + session.uid);
+  if (!r.ok) throw new Error("lecture refusée (" + r.status + ")");
+  const lignes = await r.json();
+  return lignes[0] || null;
+}
+
+async function lireCoffre() {
+  const r = await appelNuage("/rest/v1/coffre?select=donnees,revision,maj_le,empreinte&uid=eq." + session.uid);
+  if (!r.ok) throw new Error("lecture refusée (" + r.status + ")");
+  const lignes = await r.json();
+  return lignes[0] || null;
+}
+
+// Dépose une copie dans l'historique en ligne. C'est le filet : il n'y a pas
+// la place en mémoire du navigateur pour y garder une copie d'un dossier de
+// plusieurs méga-octets, alors que le nuage, lui, l'accepte.
+async function archiver(donneesAArchiver, revision, motif) {
+  const r = await appelNuage("/rest/v1/coffre_hist", {
+    method: "POST",
+    headers: { prefer: "return=minimal" },
+    body: JSON.stringify({
+      uid: session.uid, donnees: chargeUtile(donneesAArchiver), revision: revision || 0,
+      empreinte: empreinteDe(donneesAArchiver), appareil: identifiantAppareil(), motif,
+    }),
+  });
+  return r.ok;
+}
+
+// Écriture conditionnée à la révision connue : si l'autre appareil a écrit
+// entre-temps, PostgREST ne touche aucune ligne et renvoie une liste vide.
+// On ne force jamais, on signale.
+async function ecrireCoffre(revisionConnue) {
+  const charge = chargeUtile(donnees);
+  const emp = empreinteDe(donnees);
+  const commun = { donnees: charge, empreinte: emp, appareil: identifiantAppareil() };
+
+  if (!revisionConnue) {
+    const r = await appelNuage("/rest/v1/coffre?select=revision,maj_le", {
+      method: "POST",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify(Object.assign({ uid: session.uid, revision: 1 }, commun)),
+    });
+    if (r.status === 409) return { conflit: true };          // une ligne existe déjà
+    if (!r.ok) throw new Error("écriture refusée (" + r.status + ")");
+    const l = (await r.json())[0];
+    return { revision: l ? l.revision : 1, empreinte: emp };
+  }
+
+  const r = await appelNuage(
+    "/rest/v1/coffre?uid=eq." + session.uid + "&revision=eq." + revisionConnue +
+    "&select=revision,maj_le", {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify(Object.assign({ revision: revisionConnue + 1 }, commun)),
+    });
+  if (!r.ok) throw new Error("écriture refusée (" + r.status + ")");
+  const lignes = await r.json();
+  if (!lignes.length) return { conflit: true };
+  return { revision: lignes[0].revision, empreinte: emp };
+}
+
+// Élagage : on ne garde l'historique en ligne que trois mois
+async function elaguerHistorique() {
+  const limite = new Date(Date.now() - 90 * 86400000).toISOString();
+  await appelNuage("/rest/v1/coffre_hist?uid=eq." + session.uid + "&archive_le=lt." + limite,
+    { method: "DELETE", headers: { prefer: "return=minimal" } }).catch(() => {});
+}
+
+/* ---------- Le cycle de synchronisation ---------- */
+
+function sautSynchro() {
+  // On ne remplace JAMAIS les données pendant une saisie : les fenêtres
+  // survivent au re-rendu et valideraient un contenu périmé. La fenêtre de
+  // synchronisation est la seule exception : elle ne contient aucune saisie.
+  for (const d of document.querySelectorAll("dialog[open]")) {
+    if (d.id !== "modale-nuage") return true;
+  }
+  return !!celluleEnCours;
+}
+
+async function synchroniser(forcer) {
+  if (!session || enDoubleClic() || syncEnCours) return;
+  if (etatNuage === "conflit" && !forcer) return;
+  if (sautSynchro()) { programmerSync(5000); return; }
+
+  syncEnCours = true;
+  try {
+    const tete = await lireTete();
+
+    if (!tete) {
+      // Pas de ligne en ligne. Si cet appareil en a déjà vu une, c'est une
+      // anomalie (droits, mauvais compte) : on ne crée rien, on ne touche à rien.
+      if (etatSync.revision > 0) { majEtatNuage("anomalie"); return; }
+      // Un appareil sans données ne crée rien non plus : il attend que celui
+      // qui a le dossier se connecte, sinon il prendrait la main sur le vide.
+      if (!aDesDonnees(donnees)) { majEtatNuage("vide"); return; }
+      majEtatNuage("envoi");
+      const res = await ecrireCoffre(0);
+      if (res.conflit) { majEtatNuage("conflit"); return; }
+      etatSync = { revision: res.revision, empreinteEnvoyee: res.empreinte, appareil: identifiantAppareil() };
+      ecrireEtatLocal();
+      majEtatNuage("ajour");
+      return;
+    }
+
+    const empreinteLocale = empreinteDe(donnees);
+    const localModifie = empreinteLocale !== etatSync.empreinteEnvoyee;
+    const nuageAvance = tete.revision !== etatSync.revision;
+
+    if (!nuageAvance) {
+      if (!localModifie) { majEtatNuage("ajour"); return; }
+      majEtatNuage("envoi");
+      const res = await ecrireCoffre(etatSync.revision);
+      if (res.conflit) { await preparerConflit(); return; }
+      etatSync.revision = res.revision;
+      etatSync.empreinteEnvoyee = res.empreinte;
+      ecrireEtatLocal();
+      majEtatNuage("ajour");
+      elaguerHistorique();
+      return;
+    }
+
+    // Le nuage a bougé depuis la dernière fois que cet appareil l'a vu.
+    // Appareil vierge ou rien de modifié ici : on prend, sans rien demander.
+    if (!localModifie || !aDesDonnees(donnees)) { await recevoir(); return; }
+    await preparerConflit();
+
+  } catch (e) {
+    majEtatNuage(e.injoignable ? "horsligne" : "anomalie");
+    if (e.injoignable) programmerSync(60000);
+  } finally {
+    syncEnCours = false;
+  }
+}
+
+// Remplace le local par le nuage, après avoir mis le local à l'abri en ligne.
+async function recevoir() {
+  majEtatNuage("reception");
+  const distant = await lireCoffre();
+  if (!distant) { majEtatNuage("anomalie"); return; }
+  if (etatSync.revision > 0 || aDesDonnees(donnees)) {
+    await archiver(donnees, etatSync.revision, "avant-reception");
+  }
+  const vueCourante = donnees.vue;
+  donnees = migrer(distant.donnees);
+  donnees.vue = vueCourante;                    // l'onglet ouvert reste celui de cet appareil
+  vue = VUES.includes(donnees.vue) ? donnees.vue : "accueil";
+  etatSync = { revision: distant.revision, empreinteEnvoyee: empreinteDe(donnees),
+               appareil: identifiantAppareil() };
+  sauvegarderLocal();
+  ecrireEtatLocal();
+  majEtatNuage("ajour");
+  rendre();
+}
+
+const COLLECTIONS = ["employes", "clients", "produits", "materiels", "vehicules",
+  "interventions", "controles", "tickets", "pointages", "absences", "frais"];
+
+function aDesDonnees(d) {
+  if (!d) return false;
+  if ((d.societe || "").trim()) return true;
+  if (Object.keys(d.semaines || {}).length) return true;
+  if (Object.keys(d.tva || {}).length || Object.keys(d.cotisations || {}).length) return true;
+  return COLLECTIONS.some(c => (d[c] || []).length);
+}
+
+async function preparerConflit() {
+  const distant = await lireCoffre();
+  if (!distant) { majEtatNuage("anomalie"); return; }
+  detailConflit = { distant, resume: resumeDonnees(distant.donnees), quand: distant.maj_le };
+  majEtatNuage("conflit");
+}
+
+function resumeDonnees(d) {
+  d = d || {};
+  const sem = Object.keys(d.semaines || {}).length;
+  return `${(d.employes || []).length} salarié(s), ${(d.clients || []).length} client(s), ` +
+         `${sem} semaine(s) de planning, ${(d.interventions || []).length} bon(s)`;
+}
+
+function programmerSync(delai) {
+  clearTimeout(minuterieSync);
+  minuterieSync = setTimeout(() => synchroniser(false), delai);
+}
+
+/* ---------- Résolution d'un désaccord entre les deux appareils ---------- */
+
+// Garder cet appareil : on met D'ABORD la version en ligne à l'abri dans
+// l'historique, puis on écrit la nôtre. Rien n'est perdu, tout est réversible.
+async function garderCetAppareil() {
+  if (!detailConflit) return;
+  majEtatNuage("envoi");
+  try {
+    await archiver(detailConflit.distant.donnees, detailConflit.distant.revision, "ecarte-au-profit-local");
+    const res = await ecrireCoffre(detailConflit.distant.revision);
+    if (res.conflit) { await preparerConflit(); return; }
+    etatSync.revision = res.revision;
+    etatSync.empreinteEnvoyee = res.empreinte;
+    ecrireEtatLocal();
+    detailConflit = null;
+    majEtatNuage("ajour");
+  } catch (e) {
+    majEtatNuage(e.injoignable ? "horsligne" : "anomalie");
+  }
+}
+
+// Prendre la version en ligne : le local part d'abord dans l'historique.
+async function prendreVersionEnLigne() {
+  if (!detailConflit) return;
+  try {
+    await archiver(donnees, etatSync.revision, "ecarte-au-profit-nuage");
+    const vueCourante = donnees.vue;
+    donnees = migrer(detailConflit.distant.donnees);
+    donnees.vue = vueCourante;
+    vue = VUES.includes(donnees.vue) ? donnees.vue : "accueil";
+    etatSync = { revision: detailConflit.distant.revision, empreinteEnvoyee: empreinteDe(donnees),
+                 appareil: identifiantAppareil() };
+    sauvegarderLocal();
+    ecrireEtatLocal();
+    detailConflit = null;
+    majEtatNuage("ajour");
+    rendre();
+  } catch (e) {
+    majEtatNuage(e.injoignable ? "horsligne" : "anomalie");
+  }
+}
+
+/* ---------- Indicateur permanent et fenêtre de synchronisation ---------- */
+
+const LIBELLES_NUAGE = {
+  local:      { texte: "Hors ligne",     classe: "nuage-gris",   titre: "Vos données ne sont que sur cet appareil. Cliquez pour les mettre en ligne." },
+  vide:       { texte: "En attente",     classe: "nuage-gris",   titre: "Rien à partager pour l'instant : connectez-vous depuis l'appareil qui contient votre planning." },
+  aenvoyer:   { texte: "À envoyer",      classe: "nuage-bleu",   titre: "Modifications enregistrées ici, envoi dans quelques secondes." },
+  horsligne:  { texte: "Pas de réseau",  classe: "nuage-orange", titre: "Connexion impossible pour le moment. Vos saisies sont gardées et partiront toutes seules." },
+  ajour:      { texte: "À jour",         classe: "nuage-vert",   titre: "Tout est enregistré en ligne." },
+  envoi:      { texte: "Envoi…",         classe: "nuage-bleu",   titre: "Envoi en cours." },
+  reception:  { texte: "Réception…",     classe: "nuage-bleu",   titre: "Récupération des dernières modifications." },
+  conflit:    { texte: "À vérifier",     classe: "nuage-rouge",  titre: "Modifié sur les deux appareils. Cliquez pour choisir." },
+  anomalie:   { texte: "À vérifier",     classe: "nuage-rouge",  titre: "Quelque chose cloche. Cliquez pour voir." },
+};
+
+function majEtatNuage(etat) {
+  etatNuage = etat;
+  const bouton = document.getElementById("etat-sync");
+  if (!bouton) return;
+  const l = LIBELLES_NUAGE[etat] || LIBELLES_NUAGE.local;
+  bouton.textContent = "☁ " + l.texte;
+  bouton.title = l.titre;
+  bouton.className = "bouton-nuage " + l.classe;
+  if (document.getElementById("modale-nuage").open) rendreModaleNuage();
+}
+
+function rendreModaleNuage() {
+  const zone = document.getElementById("corps-nuage");
+
+  if (enDoubleClic()) {
+    zone.innerHTML = `<p>La mise en ligne n'est pas possible quand le fichier est ouvert
+      par double-clic : le navigateur l'en empêche pour des raisons de sécurité.</p>
+      <p>Ouvrez le logiciel à cette adresse, et tout y sera synchronisé :</p>
+      <p style="font-size:1.05rem"><strong>berto-nettoyage.vercel.app</strong></p>
+      <p style="color:#6b7280">Ce fichier continue de fonctionner normalement, simplement
+      sans partage entre vos appareils.</p>`;
+    return;
+  }
+
+  if (detailConflit) {
+    zone.innerHTML = `
+      <p>Le planning a été modifié <strong>sur cet appareil</strong> et
+         <strong>en ligne</strong> depuis la dernière mise en commun. Je ne peux pas
+         deviner lequel fait foi — choisissez.</p>
+      <div class="bloc-choix">
+        <div><strong>Sur cet appareil</strong><br>
+          <span style="color:#6b7280">${resumeDonnees(donnees)}</span></div>
+        <div><strong>En ligne</strong> — ${detailConflit.quand ? formatDateLongue(new Date(detailConflit.quand)) : ""}<br>
+          <span style="color:#6b7280">${detailConflit.resume}</span></div>
+      </div>
+      <p style="color:#6b7280">Quel que soit votre choix, <strong>les deux versions sont
+         conservées en ligne</strong> : rien n'est effacé, on peut revenir en arrière.</p>
+      <div class="actions-modale">
+        <button data-nuage="garder-local">Garder ce que j'ai sur cet appareil</button>
+        <button data-nuage="prendre-nuage">Prendre la version en ligne</button>
+        <button data-nuage="plus-tard">Décider plus tard</button>
+      </div>`;
+    return;
+  }
+
+  if (!session) {
+    zone.innerHTML = `
+      <p>Connectez-vous pour retrouver le même planning sur votre ordinateur,
+         votre tablette et votre téléphone.</p>
+      <div class="champ"><label for="nuage-email">Adresse e-mail</label>
+        <input type="email" id="nuage-email" autocomplete="username" style="width:100%"></div>
+      <div class="champ"><label for="nuage-mdp">Mot de passe</label>
+        <input type="password" id="nuage-mdp" autocomplete="current-password" style="width:100%"></div>
+      <div id="nuage-message" class="message-nuage"></div>
+      <div class="actions-modale">
+        <button class="primaire" data-nuage="connexion">Se connecter</button>
+        <button data-nuage="inscription">Créer mon compte</button>
+      </div>
+      <p style="color:#6b7280; font-size:0.82rem">Vos données partent sur un serveur
+         hébergé à Paris, et vous seul y avez accès.</p>`;
+    return;
+  }
+
+  const l = LIBELLES_NUAGE[etatNuage] || LIBELLES_NUAGE.local;
+  zone.innerHTML = `
+    <p>Connecté en tant que <strong>${echapper(session.email || "")}</strong><br>
+       <span style="color:#6b7280">Cet appareil : ${echapper(identifiantAppareil())}</span></p>
+    <p><strong>État : ${l.texte}</strong><br><span style="color:#6b7280">${l.titre}</span></p>
+    ${etatNuage === "anomalie" ? `<p class="message-nuage">Si cela persiste, exportez une
+       sauvegarde (💾) avant toute autre manipulation, puis prévenez-moi.</p>` : ""}
+    <div id="nuage-message" class="message-nuage"></div>
+    <div class="actions-modale">
+      <button class="primaire" data-nuage="maintenant">Synchroniser maintenant</button>
+      <button data-nuage="deconnexion">Se déconnecter</button>
+    </div>`;
+}
+
+function ouvrirModaleNuage() {
+  rendreModaleNuage();
+  document.getElementById("modale-nuage").showModal();
+}
+
+document.getElementById("modale-nuage").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-nuage]");
+  if (!btn) return;
+  const message = document.getElementById("nuage-message");
+  const dire = (t) => { if (message) message.textContent = t; };
+
+  switch (btn.dataset.nuage) {
+    case "connexion":
+    case "inscription": {
+      const email = document.getElementById("nuage-email").value;
+      const mdp = document.getElementById("nuage-mdp").value;
+      if (!email || !mdp) { dire("Renseignez votre adresse et votre mot de passe."); return; }
+      btn.disabled = true;
+      dire("Connexion…");
+      let res;
+      try {
+        res = btn.dataset.nuage === "connexion"
+          ? await connexionNuage(email, mdp)
+          : await inscriptionNuage(email, mdp);
+      } catch (e2) {
+        res = { ok: false, message: "Connexion impossible : vérifiez votre réseau." };
+      }
+      btn.disabled = false;
+      if (!res.ok) { dire(res.message); return; }
+      rendreModaleNuage();
+      await synchroniser(true);
+      rendreModaleNuage();
+      return;
+    }
+    case "deconnexion": {
+      if (etatSync.empreinteEnvoyee !== empreinteDe(donnees) &&
+          !confirm("Des modifications ne sont pas encore parties en ligne.\n\n" +
+                   "Si vous vous déconnectez maintenant, elles resteront sur cet appareil " +
+                   "seulement. Continuer ?")) return;
+      session = null;
+      etatSync = { revision: 0, empreinteEnvoyee: "", appareil: "" };
+      ecrireEtatLocal();
+      detailConflit = null;
+      majEtatNuage("local");
+      rendreModaleNuage();
+      return;
+    }
+    case "maintenant":   await synchroniser(true); rendreModaleNuage(); return;
+    case "garder-local": await garderCetAppareil(); rendreModaleNuage(); return;
+    case "prendre-nuage":await prendreVersionEnLigne(); rendreModaleNuage(); return;
+    case "plus-tard":    document.getElementById("modale-nuage").close(); return;
+    case "fermer":       document.getElementById("modale-nuage").close(); return;
+  }
+});
+
+document.getElementById("etat-sync").addEventListener("click", ouvrirModaleNuage);
+
+/* ---------- Déclenchements ---------- */
+
+// Appelé par sauvegarder() : on arme seulement une minuterie, jamais un appel
+// réseau sur le chemin de la saisie.
+function signalerModificationLocale() {
+  if (!session || enDoubleClic()) return;
+  if (etatNuage === "ajour" || etatNuage === "local" || etatNuage === "vide") majEtatNuage("aenvoyer");
+  programmerSync(3000);
+}
+
+addEventListener("visibilitychange", () => { if (!document.hidden) synchroniser(false); });
+addEventListener("online", () => synchroniser(false));
+addEventListener("focus", () => { if (etatNuage === "horsligne") synchroniser(false); });
+
+function demarrerSynchronisation() {
+  lireEtatLocal();
+  if (enDoubleClic()) { majEtatNuage("local"); return; }
+  majEtatNuage(session ? "aenvoyer" : "local");
+  if (session) synchroniser(false);
+}
+
 /* ================= Démarrage ================= */
 document.getElementById("version-app").textContent = "v. " + VERSION;
 document.getElementById("btn-replier").addEventListener("click", () => {
@@ -10032,6 +10646,7 @@ document.getElementById("btn-replier").addEventListener("click", () => {
 });
 try { if (localStorage.getItem("nav-repliee") === "1") document.body.classList.add("nav-repliee"); } catch (e) {}
 rendre();
+demarrerSynchronisation();
 </script>
 </body>
 </html>
