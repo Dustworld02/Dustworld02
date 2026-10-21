@@ -44,7 +44,9 @@ Deux sous-onglets : **En poste** et **📦 Anciens salariés**.
 
 Il disparaît alors du planning à venir, de la masse salariale, des congés, du pointage, des équipes de bons d'intervention et de toutes les listes de choix. **Mais rien n'est effacé** : les semaines qu'il a réellement travaillées continuent de l'afficher, et il reste compté dans les **marges**, le **kilométrage par véhicule**, les **feuilles de temps** et l'**export prépaie** des mois concernés. Vos chiffres déjà arrêtés ne changent pas rétroactivement — c'est tout l'intérêt d'archiver plutôt que de supprimer.
 
-**L'onglet 📦 Anciens salariés** garde la trace de son passage : poste, dates d'entrée et de sortie, motif, période travaillée, nombre de jours, heures au planning, bons d'intervention, journées pointées et liste des clients servis. Deux boutons : **Réintégrer** (s'il revient) et **Supprimer définitivement** (qui efface aussi tout l'historique — le logiciel vous en dissuade tant que des journées sont enregistrées).
+**L'onglet 📦 Anciens salariés** reste entièrement modifiable — nom, poste, date d'entrée, **date de sortie**, motif du départ, coordonnées, type de contrat, heures et coût horaire — et garde la trace de son passage : poste, dates d'entrée et de sortie, motif, période travaillée, nombre de jours, heures au planning, bons d'intervention, journées pointées et liste des clients servis. Vider la date de sortie est refusé : pour qu'il revienne, c'est le bouton Réintégrer. Corriger son coût horaire reste possible, mais cela modifie les marges des mois où il a travaillé — le logiciel le rappelle sur la fiche.
+
+Deux boutons : **Réintégrer** (s'il revient) et **Supprimer définitivement** (qui efface aussi tout l'historique — le logiciel vous en dissuade tant que des journées sont enregistrées).
 
 Un ancien salarié reste proposé, signalé « (ancien) », dans les deux écrans rétrospectifs : les **feuilles de temps** et l'impression du **planning individuel**.
 ### 🌴 Congés

@@ -3813,7 +3813,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "21/10/2026 — 20"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "21/10/2026 — 21"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -4564,6 +4564,12 @@ function rendreAnciens(zone) {
     const ligne = (libelle, valeur) => valeur
       ? `<div class="ligne-item"><span class="texte" style="flex:0 0 140px">${libelle}</span>
            <span style="flex:1">${valeur}</span></div>` : "";
+    const champ = (libelle, type, prop, valeur, options = "") => `
+      <div class="ligne-item">
+        <span class="texte" style="flex:0 0 140px">${libelle}</span>
+        <input type="${type}" data-pchange="${prop}" data-eid="${emp.id}"
+          value="${echapperAttr(valeur ?? "")}" ${options} style="flex:1; min-width:0">
+      </div>`;
     const periode = t.premier && t.dernier
       ? `du ${formatDateCourte(t.premier)} au ${formatDateCourte(t.dernier)}`
       : "aucune journée enregistrée";
@@ -4576,10 +4582,34 @@ function rendreAnciens(zone) {
         <span class="badge">parti le ${emp.archiveLe ? formatDateCourte(new Date(emp.archiveLe + "T00:00:00")) : "?"}</span>
       </div>
       <div class="section-vehicule">
-        ${ligne("Poste", echapper(emp.role || "") || "—")}
-        ${ligne("Entré(e) le", emp.dateEntree ? formatDateCourte(new Date(emp.dateEntree + "T00:00:00")) : "—")}
-        ${ligne("Motif du départ", echapper(emp.motifSortie || "") || "—")}
-        ${ligne("Contrat", emp.heuresContratSemaine > 0 ? formatKm(emp.heuresContratSemaine) + " h/semaine" : "—")}
+        ${champ("Nom", "text", "nom", emp.nom)}
+        ${champ("Poste", "text", "role", emp.role, `placeholder="ex. : agent d'entretien"`)}
+        ${champ("Entré(e) le", "date", "dateEntree", emp.dateEntree)}
+        ${champ("Parti(e) le", "date", "archiveLe", emp.archiveLe)}
+        ${champ("Motif du départ", "text", "motifSortie", emp.motifSortie, `placeholder="ex. : fin de CDD"`)}
+      </div>
+      <div class="section-vehicule">
+        <h4>Coordonnées</h4>
+        ${champ("📞 Téléphone", "text", "tel", emp.tel)}
+        ${champ("✉️ Email", "text", "email", emp.email)}
+      </div>
+      <div class="section-vehicule">
+        <h4>Contrat qu'il avait</h4>
+        ${champ("Type de contrat", "text", "typeContrat", emp.typeContrat)}
+        <div class="ligne-item">
+          <span class="texte" style="flex:0 0 140px">⏱️ Heures contrat</span>
+          <input type="number" min="0" step="0.5" data-pchange="heuresContratSemaine" data-eid="${emp.id}"
+            value="${emp.heuresContratSemaine > 0 ? emp.heuresContratSemaine : ""}" placeholder="ex. : 35" style="width:90px"> h / semaine
+        </div>
+        <div class="ligne-item">
+          <span class="texte" style="flex:0 0 140px">💶 Coût horaire</span>
+          <input type="number" min="0" step="0.5" data-pchange="coutHoraire" data-eid="${emp.id}"
+            value="${emp.coutHoraire > 0 ? emp.coutHoraire : ""}" placeholder="ex. : 18" style="width:90px"> €/h chargé
+        </div>
+        <div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">
+          Ce coût horaire sert encore au calcul des <strong>marges des mois où il a travaillé</strong> :
+          le corriger modifie ces chiffres passés. Les heures de contrat, elles, n'entrent plus
+          dans la masse salariale.</div>
       </div>
       <div class="section-vehicule">
         <h4>Son passage dans l'entreprise</h4>
@@ -4799,7 +4829,16 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
     else delete emp.trajetsSemaineMin;
   } else if (prop === "nom") {
     if (valeur) emp.nom = valeur; // on refuse un nom vide
-  } else if (["role", "couleur", "tel", "email", "typeContrat", "dateEntree"].includes(prop)) {
+  } else if (prop === "archiveLe") {
+    // Vider ce champ reviendrait à réintégrer le salarié sans le dire :
+    // on refuse, et on renvoie vers le bouton prévu pour ça.
+    if (!valeur) {
+      alert("La date de sortie ne peut pas être vide.\n\n" +
+            "Pour qu'il revienne dans l'entreprise, utilisez le bouton ↩︎ Réintégrer.");
+    } else {
+      emp.archiveLe = valeur;
+    }
+  } else if (["role", "couleur", "tel", "email", "typeContrat", "dateEntree", "motifSortie"].includes(prop)) {
     if (valeur) emp[prop] = el.type === "color" ? el.value : valeur;
     else delete emp[prop];
   }
