@@ -78,6 +78,16 @@ Le **résultat du mois** (marge brute des chantiers − frais généraux mensual
 - **⏱️ Feuilles de temps** : par salarié et par mois, planifié vs réel jour par jour, congés/fériés comptés, imprimable, et **export CSV prépaie** de tous les salariés (s'ouvre dans Excel, à transmettre à l'expert-comptable).
 - **🧾 Export facturation** : le tableau mensuel de ce qu'il y a à facturer par client (forfait ou heures × taux, sur les heures retenues), exporté en **CSV** pour votre logiciel de facturation et en **JSON** — le format qui servira à la future connexion par API.
 
+## 🔒 Code d'accès de l'appareil
+
+Bouton **🔓 / 🔒** en haut à droite : pose un code demandé **à chaque ouverture du logiciel sur cet appareil**. Tant qu'il n'est pas saisi, rien n'est affiché — ni le planning, ni les salaires, ni les congés.
+
+C'est une protection contre **quelqu'un qui prendrait votre tablette ou s'assiérait devant votre ordinateur déverrouillé**, c'est-à-dire le risque réel. Le code est propre à l'appareil : chacun peut avoir le sien, ou aucun.
+
+Ce que ce code **ne fait pas** : il ne protège pas vos données en ligne — c'est le mot de passe de votre compte qui s'en charge — et il n'empêche pas quelqu'un de techniquement averti de lire le contenu du navigateur. Pour un verrou réellement infranchissable au niveau du site, il faudrait l'offre payante de l'hébergeur.
+
+⚠️ Le code n'est pas récupérable : s'il est oublié, il faut effacer les données du navigateur sur cet appareil pour revenir. Les données en ligne, elles, restent intactes et redescendent à la reconnexion.
+
 ## ☁ Synchronisation en ligne
 
 Le logiciel est publié à l'adresse **https://berto-nettoyage.vercel.app** et peut garder le même planning sur l'ordinateur, la tablette et le téléphone.

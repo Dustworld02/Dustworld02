@@ -198,6 +198,46 @@
     padding-left: 1px;
   }
   .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  /* Écran de code d'accès : tant qu'il est là, l'application n'est pas rendue */
+  body.verrouille .app { display: none; }
+  #verrou {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
+    padding: 20px;
+  }
+  #verrou .carte-verrou {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 30px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+    text-align: center;
+  }
+  #verrou .monogramme {
+    margin: 0 auto 14px;
+    width: 46px;
+    height: 46px;
+    font-size: 1rem;
+  }
+  #verrou h2 { margin-bottom: 4px; }
+  #verrou p { color: #6b7280; font-size: 0.88rem; margin-bottom: 16px; }
+  #verrou input {
+    width: 100%;
+    text-align: center;
+    font-size: 1.15rem;
+    letter-spacing: 0.12em;
+    padding: 11px;
+    margin-bottom: 12px;
+  }
+  #verrou button { width: 100%; }
+  #verrou-message { color: #b91c1c; font-size: 0.85rem; min-height: 1.2em; margin-top: 10px; }
+
   .bouton-nuage {
     font-size: 0.82rem;
     font-weight: 700;
@@ -1195,6 +1235,18 @@
 
 <input type="file" id="fichier-import" accept=".json,application/json" style="display:none">
 
+<div id="verrou">
+  <div class="carte-verrou">
+    <div class="monogramme" id="verrou-monogramme">BN</div>
+    <h2>Code d'accès</h2>
+    <p>Ce logiciel est protégé sur cet appareil.</p>
+    <input type="password" id="verrou-code" inputmode="text" autocomplete="off"
+      placeholder="Votre code" aria-label="Code d'accès">
+    <button class="primaire" id="verrou-valider">Ouvrir</button>
+    <div id="verrou-message"></div>
+  </div>
+</div>
+
 <div class="app">
 <aside class="sidebar">
   <div class="marque">
@@ -1238,6 +1290,7 @@
       <div class="periode" id="libelle-periode"></div>
     </div>
     <div class="topbar-actions">
+      <button id="btn-verrou" title="Code d'accès de cet appareil">🔓</button>
       <button class="bouton-nuage nuage-gris" id="etat-sync" title="Synchronisation">☁ Hors ligne</button>
       <button id="btn-sauvegarde">💾 Sauvegarde</button>
       <button class="primaire" id="btn-imprimer">🖨️ Imprimer / PDF</button>
@@ -3757,7 +3810,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "21/10/2026 — 18"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "21/10/2026 — 19"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -4199,11 +4252,13 @@ function rendre() {
 // Marque : monogramme (initiales de la société) et nom dans la barre latérale
 function majMarque() {
   const nom = (donnees.societe || "").trim();
+  const mv = document.getElementById("verrou-monogramme");
   document.getElementById("brand-nom").textContent = nom || "Gestion Nettoyage";
   const initiales = (nom || "Gestion Nettoyage")
     .split(/\s+/).filter(Boolean).slice(0, 2)
     .map(mot => mot[0].toUpperCase()).join("");
   document.getElementById("brand-monogramme").textContent = initiales || "GN";
+  if (mv) mv.textContent = initiales || "GN";
   document.title = nom ? `${nom} — Gestion Nettoyage` : "Gestion Nettoyage";
 }
 
@@ -10638,6 +10693,119 @@ function demarrerSynchronisation() {
   if (session) synchroniser(false);
 }
 
+
+/* ================= Code d'accès de l'appareil =================
+   Demande un code à l'ouverture du logiciel. Ce verrou protège contre
+   quelqu'un qui prendrait votre tablette ou s'assiérait devant votre
+   ordinateur déverrouillé — c'est le risque réel. Il ne remplace PAS le
+   mot de passe du compte, qui est ce qui protège vos données en ligne. */
+
+const CLE_VERROU = "nettoyage-verrou";
+
+async function empreinteCode(code) {
+  const texte = "berto-nettoyage|" + code;
+  if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+    const octets = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texte));
+    return [...new Uint8Array(octets)].map(o => o.toString(16).padStart(2, "0")).join("");
+  }
+  // Repli hors contexte sécurisé (fichier ouvert en double-clic)
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texte.length; i++) { h ^= texte.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return "f" + h.toString(16);
+}
+
+const codeEnregistre = () => { try { return localStorage.getItem(CLE_VERROU); } catch (e) { return null; } };
+
+function verrouiller() {
+  if (!codeEnregistre()) return;
+  document.body.classList.add("verrouille");
+  document.getElementById("verrou").style.display = "flex";
+  document.getElementById("verrou-message").textContent = "";
+  const champ = document.getElementById("verrou-code");
+  champ.value = "";
+  setTimeout(() => champ.focus(), 50);
+}
+
+function deverrouiller() {
+  document.body.classList.remove("verrouille");
+  document.getElementById("verrou").style.display = "none";
+}
+
+async function essayerCode() {
+  const champ = document.getElementById("verrou-code");
+  const message = document.getElementById("verrou-message");
+  const saisi = await empreinteCode(champ.value);
+  if (saisi === codeEnregistre()) { deverrouiller(); return; }
+  message.textContent = "Code incorrect.";
+  champ.value = "";
+  champ.focus();
+}
+
+document.getElementById("verrou-valider").addEventListener("click", essayerCode);
+document.getElementById("verrou-code").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); essayerCode(); }
+});
+
+// Bouton 🔒 de la barre du haut
+document.getElementById("btn-verrou").addEventListener("click", async () => {
+  if (codeEnregistre()) {
+    const choix = prompt(
+      "Code d'accès de cet appareil :\n" +
+      "  1 — Verrouiller maintenant\n" +
+      "  2 — Changer le code\n" +
+      "  3 — Retirer le code\n\n" +
+      "Tapez 1, 2 ou 3 :", "1");
+    if (choix === "1") { verrouiller(); return; }
+    if (choix === "2") { await definirCode(); return; }
+    if (choix === "3") {
+      const actuel = prompt("Pour retirer le code, saisissez-le :");
+      if (actuel === null) return;
+      if (await empreinteCode(actuel) !== codeEnregistre()) { alert("Code incorrect."); return; }
+      try { localStorage.removeItem(CLE_VERROU); } catch (e) {}
+      majBoutonVerrou();
+      alert("Code retiré. Le logiciel s'ouvrira sans rien demander sur cet appareil.");
+    }
+    return;
+  }
+  await definirCode();
+});
+
+async function definirCode() {
+  const code = prompt(
+    "Choisissez un code d'accès pour CET appareil.\n\n" +
+    "Il sera demandé à chaque ouverture du logiciel ici. Il ne change rien sur " +
+    "vos autres appareils, ni sur votre compte en ligne.");
+  if (code === null) return;
+  if (code.length < 4) { alert("Le code doit faire au moins 4 caractères."); return; }
+  const verif = prompt("Saisissez-le une seconde fois pour confirmer :");
+  if (verif === null) return;
+  if (verif !== code) { alert("Les deux saisies ne correspondent pas. Rien n'a été changé."); return; }
+  try {
+    localStorage.setItem(CLE_VERROU, await empreinteCode(code));
+  } catch (e) {
+    alert("Impossible d'enregistrer le code sur cet appareil.");
+    return;
+  }
+  majBoutonVerrou();
+  alert("Code enregistré ✅\n\nIl vous sera demandé à chaque ouverture du logiciel sur cet appareil.\n\n" +
+        "⚠️ Notez-le : si vous l'oubliez, il faudra effacer les données de ce navigateur " +
+        "pour revenir — vos données en ligne, elles, resteront intactes.");
+}
+
+function majBoutonVerrou() {
+  const b = document.getElementById("btn-verrou");
+  if (!b) return;
+  const pose = !!codeEnregistre();
+  b.textContent = pose ? "🔒" : "🔓";
+  b.title = pose ? "Code d'accès actif — cliquez pour verrouiller ou le modifier"
+                 : "Aucun code d'accès sur cet appareil — cliquez pour en poser un";
+}
+
+function demarrerVerrou() {
+  majBoutonVerrou();
+  if (codeEnregistre()) verrouiller();
+}
+
 /* ================= Démarrage ================= */
 document.getElementById("version-app").textContent = "v. " + VERSION;
 document.getElementById("btn-replier").addEventListener("click", () => {
@@ -10647,6 +10815,7 @@ document.getElementById("btn-replier").addEventListener("click", () => {
 try { if (localStorage.getItem("nav-repliee") === "1") document.body.classList.add("nav-repliee"); } catch (e) {}
 rendre();
 demarrerSynchronisation();
+demarrerVerrou();
 </script>
 </body>
 </html>
