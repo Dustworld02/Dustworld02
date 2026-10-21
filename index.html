@@ -1310,6 +1310,9 @@
     <span class="bascule-vue action-conges">
       <button id="btn-vue-cp-soldes">📊 Soldes</button><button id="btn-vue-cp-demandes">📝 Demandes</button><button id="btn-vue-cp-calendrier">🗓️ Calendrier</button>
     </span>
+    <span class="bascule-vue action-personnel">
+      <button id="btn-vue-perso-actifs">👥 En poste</button><button id="btn-vue-perso-anciens">📦 Anciens salariés</button>
+    </span>
     <span class="bascule-vue action-finances">
       <button id="btn-vue-frais">🧾 Frais généraux</button><button id="btn-vue-tva">🏛️ TVA</button><button id="btn-vue-cotisations">👥 Cotisations</button>
     </span>
@@ -3810,7 +3813,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "21/10/2026 — 19"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "21/10/2026 — 20"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -3827,7 +3830,7 @@ let donnees = chargerDonnees();
 let lundiCourant = lundiDeLaSemaine(new Date());
 const VUES = ["accueil", "semaine", "mois", "clients", "personnel", "stocks", "materiel", "vehicules", "marges",
   "bons", "controles", "tickets", "pointage", "rapport-client", "feuilles-temps", "export-facturation",
-  "cp-soldes", "cp-demandes", "cp-calendrier", "frais", "tva", "cotisations"];
+  "cp-soldes", "cp-demandes", "cp-calendrier", "frais", "tva", "cotisations", "anciens"];
 let vue = VUES.includes(donnees.vue) ? donnees.vue : "accueil";
 let moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
 let celluleEnCours = null; // { employeId, indexJour, cle }
@@ -4235,6 +4238,7 @@ function rendre() {
     case "frais": rendreFrais(zone); return;
     case "tva": rendreTva(zone); return;
     case "cotisations": rendreCotisations(zone); return;
+    case "anciens": rendreAnciens(zone); return;
   }
 
   if (donnees.employes.length === 0) {
@@ -4267,6 +4271,7 @@ const VUES_INTERVENTIONS = ["bons", "controles", "tickets", "pointage"];
 const VUES_RAPPORTS = ["rapport-client", "feuilles-temps", "export-facturation"];
 const VUES_CONGES = ["cp-soldes", "cp-demandes", "cp-calendrier"];
 const VUES_FINANCES = ["frais", "tva", "cotisations"];
+const VUES_PERSONNEL = ["personnel", "anciens"];
 
 function majBarres() {
   const estPlanning = vue === "semaine" || vue === "mois";
@@ -4274,12 +4279,15 @@ function majBarres() {
   const estRapports = VUES_RAPPORTS.includes(vue);
   const estConges = VUES_CONGES.includes(vue);
   const estFinances = VUES_FINANCES.includes(vue);
+  const estPersonnel = VUES_PERSONNEL.includes(vue);
   const actifs = {
     "btn-vue-accueil": vue === "accueil",
     "btn-vue-planning": estPlanning,
     "btn-vue-interventions": estInterventions,
     "btn-vue-clients": vue === "clients",
-    "btn-vue-personnel": vue === "personnel",
+    "btn-vue-personnel": estPersonnel,
+    "btn-vue-perso-actifs": vue === "personnel",
+    "btn-vue-perso-anciens": vue === "anciens",
     "btn-vue-stocks": vue === "stocks",
     "btn-vue-materiel": vue === "materiel",
     "btn-vue-vehicules": vue === "vehicules",
@@ -4311,6 +4319,7 @@ function majBarres() {
     [".action-rapports", estRapports],
     [".action-conges", estConges],
     [".action-finances", estFinances],
+    [".action-personnel", estPersonnel],
     [".action-navig", estPlanning || vue === "marges" || vue === "frais"],
     [".action-semaine", vue === "semaine"],
     [".action-clients", vue === "clients"],
@@ -4351,8 +4360,9 @@ function rendreSemaine(zone) {
   const tbody = document.createElement("tbody");
   const totauxParJour = Array.from({ length: 7 }, () => ({ travail: 0, trajet: 0 }));
   const kmParJour = Array.from({ length: 7 }, () => ({})); // empId -> km du jour
+  const joursSemaine = Array.from({ length: 7 }, (_, j) => ajouterJours(lundiCourant, j));
 
-  for (const emp of donnees.employes) {
+  for (const emp of employesSurPeriode(joursSemaine)) {
     const tr = document.createElement("tr");
 
     const veh = donnees.vehicules.find(v => v.id === emp.vehiculeId);
@@ -4432,10 +4442,13 @@ function rendreMois(zone) {
   table.className = "planning mois";
 
   // En-tête : une colonne par employé
+  const joursMois = Array.from({ length: nbJours }, (_, i) => new Date(annee, mois, i + 1));
+  const employesMois = employesSurPeriode(joursMois);
+
   const thead = document.createElement("thead");
   const ligneEntete = document.createElement("tr");
   ligneEntete.innerHTML = `<th class="col-date">Date</th>`;
-  for (const emp of donnees.employes) {
+  for (const emp of employesMois) {
     const veh = donnees.vehicules.find(v => v.id === emp.vehiculeId);
     const sousTitre = [emp.role, veh ? `🚙 ${veh.nom}` : ""].filter(Boolean).join(" · ");
     ligneEntete.innerHTML += `<th>${echapper(emp.nom)}${sousTitre ? `<br><span class="num-jour">${echapper(sousTitre)}</span>` : ""}</th>`;
@@ -4462,7 +4475,7 @@ function rendreMois(zone) {
     tr.appendChild(tdDate);
 
     const kmDuJour = {};
-    for (const emp of donnees.employes) {
+    for (const emp of employesMois) {
       const td = document.createElement("td");
       td.className = "cellule";
       td.dataset.employeId = emp.id;
@@ -4486,7 +4499,7 @@ function rendreMois(zone) {
   const trTotal = document.createElement("tr");
   trTotal.className = "total-mois";
   trTotal.innerHTML = `<td style="text-align:left">Total du mois</td>`;
-  for (const emp of donnees.employes) {
+  for (const emp of employesMois) {
     const t = totaux[emp.id];
     trTotal.innerHTML += `<td>${formatHeures(t.travail + t.trajet)}${sousTotalTrajet(t)}</td>`;
   }
@@ -4516,13 +4529,82 @@ function rendrePersonnel(zone) {
         style="width:44px; height:38px; border:1px solid var(--gris-bord); border-radius:8px; padding:2px; cursor:pointer">
       <button class="primaire" data-paction="ajouter">+ Ajouter le salarié</button>
     </div>`;
-  if (donnees.employes.length === 0) {
-    html += `<div class="vide">Aucun salarié pour le moment.<br>Ajoutez votre premier salarié ci-dessus.</div>`;
+  const enPoste = employesActifs();
+  const anciens = employesArchives().length;
+  if (enPoste.length === 0) {
+    html += `<div class="vide">Aucun salarié en poste.<br>Ajoutez votre premier salarié ci-dessus` +
+      (anciens ? ` — ou retrouvez vos <strong>${anciens} ancien(s) salarié(s)</strong> dans l'onglet 📦.` : ".") +
+      `</div>`;
   } else {
     html += `<div class="cartes-vehicules">` +
-      donnees.employes.map((emp, i) => cartePersonnel(emp, i)).join("") + `</div>`;
+      enPoste.map((emp, i) => cartePersonnel(emp, i)).join("") + `</div>`;
   }
   zone.innerHTML = html;
+}
+
+/* ---------- Anciens salariés : la trace de leur passage ---------- */
+
+function rendreAnciens(zone) {
+  document.getElementById("libelle-periode").textContent = "Anciens salariés";
+  const anciens = employesArchives()
+    .slice()
+    .sort((a, b) => (b.archiveLe || "").localeCompare(a.archiveLe || ""));
+
+  if (anciens.length === 0) {
+    zone.innerHTML = `<div class="vide">Aucun ancien salarié.<br>
+      Quand quelqu'un quitte l'entreprise, archivez-le depuis l'onglet
+      <strong>👥 En poste</strong> (bouton 📦) : il sort du planning et de toutes les
+      listes, mais tout son historique reste ici, et les chiffres des mois déjà passés
+      ne bougent pas.</div>`;
+    return;
+  }
+
+  const cartes = anciens.map(emp => {
+    const t = traceSalarie(emp.id);
+    const ligne = (libelle, valeur) => valeur
+      ? `<div class="ligne-item"><span class="texte" style="flex:0 0 140px">${libelle}</span>
+           <span style="flex:1">${valeur}</span></div>` : "";
+    const periode = t.premier && t.dernier
+      ? `du ${formatDateCourte(t.premier)} au ${formatDateCourte(t.dernier)}`
+      : "aucune journée enregistrée";
+    return `
+    <div class="carte-vehicule">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+        <span style="display:inline-block; width:14px; height:14px; border-radius:4px;
+          background:${emp.couleur || "#9ca3af"}; opacity:.55"></span>
+        <h3 style="flex:1">${echapper(emp.nom)}</h3>
+        <span class="badge">parti le ${emp.archiveLe ? formatDateCourte(new Date(emp.archiveLe + "T00:00:00")) : "?"}</span>
+      </div>
+      <div class="section-vehicule">
+        ${ligne("Poste", echapper(emp.role || "") || "—")}
+        ${ligne("Entré(e) le", emp.dateEntree ? formatDateCourte(new Date(emp.dateEntree + "T00:00:00")) : "—")}
+        ${ligne("Motif du départ", echapper(emp.motifSortie || "") || "—")}
+        ${ligne("Contrat", emp.heuresContratSemaine > 0 ? formatKm(emp.heuresContratSemaine) + " h/semaine" : "—")}
+      </div>
+      <div class="section-vehicule">
+        <h4>Son passage dans l'entreprise</h4>
+        ${ligne("Période travaillée", periode)}
+        ${ligne("Jours travaillés", t.jours ? String(t.jours) : "—")}
+        ${ligne("Heures au planning", t.minutes ? formatHeures(t.minutes) : "—")}
+        ${ligne("Bons d'intervention", t.bons ? String(t.bons) : "—")}
+        ${ligne("Journées pointées", t.pointages ? String(t.pointages) : "—")}
+        ${t.clients.length ? `<div class="stat-vehicule">Clients servis :
+          ${t.clients.map(echapper).join(" · ")}</div>` : ""}
+      </div>
+      <div class="ligne-item no-print" style="margin-top:8px">
+        <button data-paction="reintegrer" data-eid="${emp.id}">↩︎ Réintégrer</button>
+        <button data-paction="supprimer" data-eid="${emp.id}"
+          title="Efface aussi tout son historique">✕ Supprimer définitivement</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  zone.innerHTML = `<div class="cartes-vehicules">${cartes}</div>
+    <div class="note-onglet">Ces salariés n'apparaissent plus dans le planning à venir ni dans
+      aucune liste de choix, mais ils restent comptés dans les <strong>marges</strong>, le
+      <strong>kilométrage</strong> et les <strong>feuilles de temps</strong> des mois où ils ont
+      travaillé : vos chiffres passés ne changent pas. Le planning d'une semaine déjà travaillée
+      continue d'ailleurs de les afficher.</div>`;
 }
 
 function cartePersonnel(emp, idx) {
@@ -4545,6 +4627,8 @@ function cartePersonnel(emp, idx) {
       <h3 style="flex:1">${echapper(emp.nom)}</h3>
       <button class="no-print" data-paction="monter" data-eid="${emp.id}" title="Monter">↑</button>
       <button class="no-print" data-paction="descendre" data-eid="${emp.id}" title="Descendre">↓</button>
+      <button class="no-print" data-paction="archiver" data-eid="${emp.id}"
+        title="Archiver : le salarié quitte le planning, son historique est conservé">📦</button>
       <button class="no-print" data-paction="supprimer" data-eid="${emp.id}" title="Supprimer">✕</button>
     </div>
     <div class="section-vehicule">
@@ -4610,10 +4694,70 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
       });
       break;
     }
+    case "archiver": {
+      if (idx === -1) return;
+      const emp = donnees.employes[idx];
+      const saisie = prompt(
+        `Archiver ${emp.nom}.\n\n` +
+        `Il quittera le planning et toutes les listes, mais son historique sera conservé ` +
+        `et consultable dans 📦 Anciens salariés. Les mois déjà passés gardent leurs chiffres.\n\n` +
+        `Date de sortie (AAAA-MM-JJ) :`, versInputDate(new Date()));
+      if (saisie === null) return;
+      const dateSortie = (saisie || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateSortie)) {
+        alert("Date invalide. Attendu : AAAA-MM-JJ, par exemple " + versInputDate(new Date()) + ".");
+        return;
+      }
+      const motif = prompt(`Motif du départ (facultatif) :`, emp.motifSortie || "") || "";
+
+      // Journées déjà planifiées après son départ : on propose de les retirer,
+      // sinon il continuerait d'apparaître sur les semaines à venir.
+      const aVenir = [];
+      for (const cle in donnees.semaines) {
+        const semaine = donnees.semaines[cle][emp.id];
+        if (!semaine) continue;
+        const lundi = new Date(cle + "T00:00:00");
+        for (const i in semaine) {
+          if (versInputDate(ajouterJours(lundi, Number(i))) > dateSortie) aVenir.push({ cle, i });
+        }
+      }
+      if (aVenir.length && confirm(
+        `${emp.nom} a encore ${aVenir.length} journée(s) planifiée(s) après le ${dateSortie}.\n\n` +
+        `Les retirer du planning ? (Son historique d'avant cette date n'est pas touché.)`)) {
+        for (const { cle, i } of aVenir) delete donnees.semaines[cle][emp.id][i];
+      }
+
+      emp.archiveLe = dateSortie;
+      if (motif.trim()) emp.motifSortie = motif.trim(); else delete emp.motifSortie;
+      delete emp.vehiculeId;   // il ne mobilise plus de véhicule
+      break;
+    }
+    case "reintegrer": {
+      if (idx === -1) return;
+      const emp = donnees.employes[idx];
+      if (!confirm(`Réintégrer ${emp.nom} ?\n\nIl réapparaîtra dans le planning et dans toutes les listes.`)) return;
+      delete emp.archiveLe;
+      delete emp.motifSortie;
+      sousVuePersonnel = "personnel";
+      vue = "personnel";
+      donnees.vue = vue;
+      break;
+    }
     case "supprimer": {
       if (idx === -1) return;
       const emp = donnees.employes[idx];
-      if (!confirm(`Supprimer ${emp.nom} ? Ses horaires de planning seront aussi supprimés.`)) return;
+      const t = traceSalarie(emp.id);
+      if (!estArchive(emp) && t.jours > 0) {
+        alert(`${emp.nom} a ${t.jours} journée(s) de travail enregistrée(s).\n\n` +
+          `Utilisez 📦 Archiver plutôt que la suppression : vous gardez l'historique, ` +
+          `et les marges des mois passés restent justes.`);
+        return;
+      }
+      if (!confirm(
+        `Supprimer DÉFINITIVEMENT ${emp.nom} ?\n\n` +
+        (t.jours ? `${t.jours} journée(s) de travail et ${formatHeures(t.minutes)} d'historique ` +
+                   `seront effacés. Les marges et rapports des mois concernés en seront modifiés.\n\n` : "") +
+        `Cette action est irréversible.`)) return;
       donnees.employes.splice(idx, 1);
       for (const cle in donnees.semaines) delete donnees.semaines[cle][emp.id];
       break;
@@ -4707,7 +4851,7 @@ function rendreVehicules(zone) {
 }
 
 function carteVehicule(v, kmPlan, auj) {
-  const attribues = donnees.employes.filter(e => e.vehiculeId === v.id).map(e => e.nom);
+  const attribues = employesActifs().filter(e => e.vehiculeId === v.id).map(e => e.nom);
 
   // Contrôle technique : badge selon l'échéance
   let ctBadge = "";
@@ -4842,7 +4986,7 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
     }
     case "supprimer-vehicule": {
       if (!v) return;
-      const attribues = donnees.employes.filter(emp => emp.vehiculeId === v.id);
+      const attribues = employesActifs().filter(emp => emp.vehiculeId === v.id);
       const detail = attribues.length ? ` Il est attribué à ${attribues.map(x => x.nom).join(", ")}.` : "";
       if (!confirm(`Supprimer le véhicule ${v.nom} et toutes ses informations ?${detail}`)) return;
       donnees.vehicules = donnees.vehicules.filter(x => x !== v);
@@ -4957,11 +5101,53 @@ function heuresMensuelles(emp) {
   return 0;
 }
 
+/* ---------- Salariés en poste et anciens salariés ----------
+   Un salarié archivé disparaît des listes de choix et du planning à venir,
+   mais reste dans donnees.employes : les calculs portant sur le PASSÉ (marges,
+   kilométrage, feuilles de temps, rapports) doivent continuer à le trouver,
+   sinon les chiffres des mois déjà clos changeraient rétroactivement. */
+const estArchive = (emp) => !!(emp && emp.archiveLe);
+const employesActifs = () => donnees.employes.filter(e => !estArchive(e));
+const employesArchives = () => donnees.employes.filter(estArchive);
+
+// Pour le planning : les salariés en poste, plus les anciens qui ont
+// effectivement travaillé sur la période affichée.
+function employesSurPeriode(dates) {
+  return donnees.employes.filter(e =>
+    !estArchive(e) || dates.some(d => celluleDeDate(e.id, d)));
+}
+
+// Ce qu'il reste d'un salarié parti : heures, jours, période, clients, bons.
+function traceSalarie(empId) {
+  let minutes = 0, jours = 0;
+  let premier = null, dernier = null;
+  const clients = new Set();
+  for (const cle in donnees.semaines) {
+    const semaine = donnees.semaines[cle][empId];
+    if (!semaine) continue;
+    const lundi = new Date(cle + "T00:00:00");
+    for (const idx in semaine) {
+      const cellule = semaine[idx];
+      const d = dureesCellule(cellule);
+      if (!(d.travail + d.trajet > 0)) continue;
+      minutes += d.travail + d.trajet;
+      jours++;
+      const date = ajouterJours(lundi, Number(idx));
+      if (!premier || date < premier) premier = date;
+      if (!dernier || date > dernier) dernier = date;
+      for (const c of (cellule.creneaux || [])) if (c.client) clients.add(c.client);
+    }
+  }
+  const bons = donnees.interventions.filter(b => (b.equipe || []).includes(empId)).length;
+  const pointages = donnees.pointages.filter(p => p.empId === empId).length;
+  return { minutes, jours, premier, dernier, clients: [...clients].sort(), bons, pointages };
+}
+
 // Masse salariale mensuelle théorique : Σ heures mensualisées × coût horaire
 function masseSalarialeMensuelle() {
   let total = 0, heures = 0;
   const incomplets = [];
-  for (const emp of donnees.employes) {
+  for (const emp of employesActifs()) {
     const h = heuresMensuelles(emp);
     if (!(h > 0) || !(emp.coutHoraire > 0)) {
       if (!(h > 0) || !(emp.coutHoraire > 0)) incomplets.push(emp.nom);
@@ -6981,7 +7167,7 @@ function rendrePointage(zone) {
   html += `
     <div class="mini-form no-print" style="margin-top:12px">
       <strong style="align-self:center; font-size:0.85rem">+ Pointage hors planning :</strong>
-      <select class="ptg-libre-emp">${donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("")}</select>
+      <select class="ptg-libre-emp">${employesActifs().map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("")}</select>
       <input type="text" class="ptg-libre-client" list="liste-clients" placeholder="Client" style="min-width:140px">
       <input type="time" class="ptg-libre-debut" title="Début">
       <input type="time" class="ptg-libre-fin" title="Fin">
@@ -7043,7 +7229,7 @@ function carteBon(bon) {
         value="${c.qte || 0}" style="width:70px"${bon.stockDecremente ? " disabled" : ""}>
     </div>`).join("");
 
-  const equipe = donnees.employes.map(e => `
+  const equipe = employesActifs().map(e => `
     <label style="display:inline-flex; align-items:center; gap:4px; margin-right:10px; font-size:0.85rem">
       <input type="checkbox" data-ichange="bon-equipe" data-bid="${bon.id}" data-eid="${e.id}"${(bon.equipe || []).includes(e.id) ? " checked" : ""}>
       ${echapper(e.nom)}</label>`).join("");
@@ -7905,7 +8091,8 @@ function exporterCSVPrepaie(annee, mois) {
 function rendreFeuillesTemps(zone) {
   document.getElementById("libelle-periode").textContent = "Feuilles de temps";
   if (!feuilleEmpId || !donnees.employes.some(e => e.id === feuilleEmpId)) {
-    feuilleEmpId = donnees.employes.length ? donnees.employes[0].id : null;
+    const parDefaut = employesActifs()[0] || donnees.employes[0];
+    feuilleEmpId = parDefaut ? parDefaut.id : null;
   }
   const { annee, mois } = anneesMoisDe(moisRapport);
 
@@ -7913,7 +8100,7 @@ function rendreFeuillesTemps(zone) {
     <div class="ajout-vehicule no-print">
       ${donnees.employes.length
         ? `<select data-rchange="feuille-emp" style="min-width:160px">${donnees.employes.map(e =>
-            `<option value="${e.id}"${e.id === feuilleEmpId ? " selected" : ""}>${echapper(e.nom)}</option>`).join("")}</select>
+            `<option value="${e.id}"${e.id === feuilleEmpId ? " selected" : ""}>${echapper(e.nom)}${estArchive(e) ? " (ancien)" : ""}</option>`).join("")}</select>
            <input type="month" data-rchange="mois" value="${moisRapport}">
            <button data-raction="imprimer-feuille">🖨️ Imprimer la feuille</button>
            <span style="flex:1"></span>
@@ -8155,7 +8342,7 @@ function rendreCPSoldes(zone) {
     return;
   }
 
-  const lignes = donnees.employes.map(emp => {
+  const lignes = employesActifs().map(emp => {
     const s = soldeCP(emp, refConges);
     const autres = compteursAbsences(emp.id, refConges);
     const detailAutres = TYPES_ABSENCE.filter(t => !t.decompteCP && autres[t.code] > 0)
@@ -8196,7 +8383,7 @@ function rendreCPSoldes(zone) {
 }
 
 function docSoldesCP() {
-  const lignes = donnees.employes.map(emp => {
+  const lignes = employesActifs().map(emp => {
     const s = soldeCP(emp, refConges);
     return `<div class="doc-ligne"><strong>${echapper(emp.nom)}</strong> — acquis ${formatJours(s.acquis)}
       ${s.ouverture ? `+ report ${formatJours(s.ouverture)} ` : ""}${s.ajustements ? `+ ajust. ${formatJours(s.ajustements)} ` : ""}
@@ -8221,7 +8408,7 @@ function rendreCPDemandes(zone) {
   let html = `
     <div class="bloc-demande no-print">
       <div class="mini-form">
-        <select id="abs-emp" style="min-width:150px">${donnees.employes.map(e =>
+        <select id="abs-emp" style="min-width:150px">${employesActifs().map(e =>
           `<option value="${e.id}">${echapper(e.nom)}</option>`).join("")}</select>
         <select id="abs-type" style="min-width:150px">${TYPES_ABSENCE.map(t =>
           `<option value="${t.code}">${t.libelle}</option>`).join("")}</select>
@@ -8364,7 +8551,7 @@ function rendreCPCalendrier(zone) {
   }
 
   const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
-  const blocs = donnees.employes.map(emp => {
+  const blocs = employesActifs().map(emp => {
     const lignesMois = [];
     for (let m = 0; m < 12; m++) {
       const nbJours = new Date(anneeCalendrierCP, m + 1, 0).getDate();
@@ -8588,7 +8775,7 @@ function calculerAlertes() {
 
   // Jours de travail passés non pointés ce mois-ci
   let nonPointes = 0;
-  for (const emp of donnees.employes) {
+  for (const emp of employesActifs()) {
     const f = feuilleTempsEmploye(emp, auj.getFullYear(), auj.getMonth());
     nonPointes += f.totaux.joursNonPointes;
   }
@@ -8653,7 +8840,7 @@ function rendreAccueil(zone) {
   if (donnees.employes.length === 0) {
     html += `<div class="note-onglet">Ajoutez vos salariés dans l'onglet 👥 Personnel pour commencer.</div>`;
   } else {
-    const lignes = donnees.employes.map(emp => {
+    const lignes = employesActifs().map(emp => {
       const cellule = celluleDeDate(emp.id, auj);
       const absAuj = absencePourDate(emp.id, versInputDate(auj));
       let contenu = absAuj
@@ -9662,6 +9849,7 @@ let sousVueInterventions = VUES_INTERVENTIONS.includes(vue) ? vue : "bons";
 let sousVueRapports = VUES_RAPPORTS.includes(vue) ? vue : "rapport-client";
 let sousVueConges = VUES_CONGES.includes(vue) ? vue : "cp-soldes";
 let sousVueFinances = VUES_FINANCES.includes(vue) ? vue : "frais";
+let sousVuePersonnel = VUES_PERSONNEL.includes(vue) ? vue : "personnel";
 
 function changerVue(nouvelleVue) {
   vue = nouvelleVue;
@@ -9671,6 +9859,7 @@ function changerVue(nouvelleVue) {
   if (VUES_RAPPORTS.includes(vue)) sousVueRapports = vue;
   if (VUES_CONGES.includes(vue)) sousVueConges = vue;
   if (VUES_FINANCES.includes(vue)) sousVueFinances = vue;
+  if (VUES_PERSONNEL.includes(vue)) sousVuePersonnel = vue;
   if (vue === "mois" || vue === "marges" || vue === "frais") {
     moisCourant = new Date(lundiCourant.getFullYear(), lundiCourant.getMonth(), 1);
   }
@@ -9683,13 +9872,15 @@ document.getElementById("btn-vue-interventions").addEventListener("click", () =>
 document.getElementById("btn-vue-rapports").addEventListener("click", () => changerVue(sousVueRapports));
 document.getElementById("btn-vue-conges").addEventListener("click", () => changerVue(sousVueConges));
 document.getElementById("btn-vue-finances").addEventListener("click", () => changerVue(sousVueFinances));
+document.getElementById("btn-vue-perso-actifs").addEventListener("click", () => changerVue("personnel"));
+document.getElementById("btn-vue-perso-anciens").addEventListener("click", () => changerVue("anciens"));
 for (const v of VUES_FINANCES) {
   document.getElementById("btn-vue-" + v).addEventListener("click", () => changerVue(v));
 }
 document.getElementById("btn-vue-semaine").addEventListener("click", () => changerVue("semaine"));
 document.getElementById("btn-vue-mois").addEventListener("click", () => changerVue("mois"));
 document.getElementById("btn-vue-clients").addEventListener("click", () => changerVue("clients"));
-document.getElementById("btn-vue-personnel").addEventListener("click", () => changerVue("personnel"));
+document.getElementById("btn-vue-personnel").addEventListener("click", () => changerVue(sousVuePersonnel));
 document.getElementById("btn-vue-stocks").addEventListener("click", () => changerVue("stocks"));
 document.getElementById("btn-vue-materiel").addEventListener("click", () => changerVue("materiel"));
 document.getElementById("btn-vue-vehicules").addEventListener("click", () => changerVue("vehicules"));
@@ -10001,8 +10192,9 @@ document.getElementById("btn-planning-salarie").addEventListener("click", () => 
     return;
   }
   const sel = document.getElementById("ps-salarie");
-  sel.innerHTML = donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("") +
-    `<option value="">👥 Tous les salariés (une page chacun)</option>`;
+  sel.innerHTML = donnees.employes.map(e =>
+      `<option value="${e.id}">${echapper(e.nom)}${estArchive(e) ? " (ancien)" : ""}</option>`).join("") +
+    `<option value="">👥 Tous les salariés en poste (une page chacun)</option>`;
   document.getElementById("ps-semaine").value = versInputDate(lundiCourant);
   majTrajetsPS();
   document.getElementById("modale-planning-salarie").showModal();
@@ -10035,7 +10227,7 @@ document.getElementById("btn-imprimer-ps").addEventListener("click", () => {
   const valeurDate = document.getElementById("ps-semaine").value;
   const lundi = lundiDeLaSemaine(valeurDate ? new Date(valeurDate + "T00:00:00") : lundiCourant);
   const choix = document.getElementById("ps-salarie").value;
-  const concernes = choix ? donnees.employes.filter(e => e.id === choix) : donnees.employes;
+  const concernes = choix ? donnees.employes.filter(e => e.id === choix) : employesActifs();
   if (concernes.length === 0) return;
   if (choix && concernes[0]) { // on mémorise les trajets saisis dans la fiche du salarié
     const min = lireDureeHM(document.getElementById("ps-trajets").value);
@@ -10066,7 +10258,7 @@ function ecrireCelluleDate(empId, dateStr, cellule) {
 document.getElementById("btn-jour").addEventListener("click", () => {
   const sel = document.getElementById("jour-salarie");
   sel.innerHTML = `<option value="">Tous les salariés</option>` +
-    donnees.employes.map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("");
+    employesActifs().map(e => `<option value="${e.id}">${echapper(e.nom)}</option>`).join("");
   const auj = new Date();
   document.getElementById("jour-source").value = versInputDate(auj);
   document.getElementById("jour-cible").value = versInputDate(ajouterJours(auj, 1));

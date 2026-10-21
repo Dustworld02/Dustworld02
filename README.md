@@ -36,8 +36,17 @@ Une fiche par client :
 - deux impressions : **🖨️ Fiche** (récapitulatif interne) et **🖨️ Check-list** — la feuille d'intervention vierge que l'équipe emporte (cases à cocher, consommables à emporter, observations, signatures).
 
 ### 👥 Personnel
-Fiches salariés : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée, **heures de contrat (h/semaine)**, **trajets (h/semaine)** et **coût horaire chargé**. La fiche affiche les heures mensualisées (× 52/12, ex. 35 h/semaine = 151h40/mois) et le **coût mensuel** du salarié. Le champ **🚗 Trajets** (saisi « 5h50 », « 5:50 » ou « 5,5 ») apparaît dans le bandeau de total du planning individuel imprimé, sans être détaillé jour par jour — il est aussi modifiable au moment de l'impression. Les heures de contrat et le coût horaire alimentent la **masse salariale** (indicateur de l'Accueil, bandeau des Marges avec la part affectée aux clients, et écart contrat/réalisé dans les feuilles de temps).
+Deux sous-onglets : **En poste** et **📦 Anciens salariés**.
 
+**En poste** — une fiche par salarié : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée, **heures de contrat (h/semaine)**, **trajets (h/semaine)** et **coût horaire chargé**. La fiche affiche les heures mensualisées (× 52/12, ex. 35 h/semaine = 151h40/mois) et le **coût mensuel** du salarié. Le champ **🚗 Trajets** (saisi « 5h50 », « 5:50 » ou « 5,5 ») apparaît dans le bandeau de total du planning individuel imprimé, sans être détaillé jour par jour — il est aussi modifiable au moment de l'impression. Les heures de contrat et le coût horaire alimentent la **masse salariale** (indicateur de l'Accueil, bandeau des Marges avec la part affectée aux clients, et écart contrat/réalisé dans les feuilles de temps).
+
+**📦 Archiver un salarié qui s'en va** — bouton 📦 sur sa fiche : vous saisissez la date de sortie et, si vous voulez, le motif. S'il lui reste des journées planifiées après cette date, le logiciel propose de les retirer.
+
+Il disparaît alors du planning à venir, de la masse salariale, des congés, du pointage, des équipes de bons d'intervention et de toutes les listes de choix. **Mais rien n'est effacé** : les semaines qu'il a réellement travaillées continuent de l'afficher, et il reste compté dans les **marges**, le **kilométrage par véhicule**, les **feuilles de temps** et l'**export prépaie** des mois concernés. Vos chiffres déjà arrêtés ne changent pas rétroactivement — c'est tout l'intérêt d'archiver plutôt que de supprimer.
+
+**L'onglet 📦 Anciens salariés** garde la trace de son passage : poste, dates d'entrée et de sortie, motif, période travaillée, nombre de jours, heures au planning, bons d'intervention, journées pointées et liste des clients servis. Deux boutons : **Réintégrer** (s'il revient) et **Supprimer définitivement** (qui efface aussi tout l'historique — le logiciel vous en dissuade tant que des journées sont enregistrées).
+
+Un ancien salarié reste proposé, signalé « (ancien) », dans les deux écrans rétrospectifs : les **feuilles de temps** et l'impression du **planning individuel**.
 ### 🌴 Congés
 Gestion complète des congés et absences, en **jours ouvrables** (lundi → samedi, hors jours fériés — calcul automatique de Pâques, Ascension et Pentecôte) :
 - **Soldes** : par salarié, jours acquis à ce jour (2,5 j/mois travaillé, plafond 30 j sur la période de référence 1er juin → 31 mai), report de la période précédente (modifiable), corrections manuelles, jours pris, demandes en attente et **solde restant** ; période navigable, impression du récapitulatif.
