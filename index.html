@@ -1311,7 +1311,7 @@
       <button id="btn-vue-cp-soldes">📊 Soldes</button><button id="btn-vue-cp-demandes">📝 Demandes</button><button id="btn-vue-cp-calendrier">🗓️ Calendrier</button>
     </span>
     <span class="bascule-vue action-personnel">
-      <button id="btn-vue-perso-actifs">👥 En poste</button><button id="btn-vue-perso-anciens">📦 Anciens salariés</button>
+      <button id="btn-vue-perso-actifs">👥 En poste</button><button id="btn-vue-perso-dossiers">📁 Dossiers</button><button id="btn-vue-perso-anciens">📦 Anciens salariés</button>
     </span>
     <span class="bascule-vue action-finances">
       <button id="btn-vue-frais">🧾 Frais généraux</button><button id="btn-vue-tva">🏛️ TVA</button><button id="btn-vue-cotisations">👥 Cotisations</button>
@@ -1352,6 +1352,10 @@
 <div id="zone-impression"></div>
 
 <!-- Fenêtre de synchronisation en ligne -->
+<!-- Choix du fichier à déposer dans un dossier salarié (invisible, ouvert par bouton) -->
+<input type="file" id="piece-fichier" class="no-print" style="display:none"
+  accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.heic">
+
 <dialog id="modale-nuage">
   <h2>☁ Synchronisation</h2>
   <div id="corps-nuage"></div>
@@ -3813,7 +3817,7 @@ var qrcode = function() {
 /* ================= Données et persistance ================= */
 
 const CLE_STOCKAGE = "planning-employes-v1";
-const VERSION = "21/10/2026 — 21"; // affiché à côté du titre pour vérifier la version du fichier
+const VERSION = "21/10/2026 — 22"; // affiché à côté du titre pour vérifier la version du fichier
 
 const HORAIRES_RAPIDES = [
   { libelle: "Matin 8h–12h",   debut: "08:00", fin: "12:00" },
@@ -4239,6 +4243,7 @@ function rendre() {
     case "tva": rendreTva(zone); return;
     case "cotisations": rendreCotisations(zone); return;
     case "anciens": rendreAnciens(zone); return;
+    case "dossiers": rendreDossiers(zone); return;
   }
 
   if (donnees.employes.length === 0) {
@@ -4271,7 +4276,7 @@ const VUES_INTERVENTIONS = ["bons", "controles", "tickets", "pointage"];
 const VUES_RAPPORTS = ["rapport-client", "feuilles-temps", "export-facturation"];
 const VUES_CONGES = ["cp-soldes", "cp-demandes", "cp-calendrier"];
 const VUES_FINANCES = ["frais", "tva", "cotisations"];
-const VUES_PERSONNEL = ["personnel", "anciens"];
+const VUES_PERSONNEL = ["personnel", "dossiers", "anciens"];
 
 function majBarres() {
   const estPlanning = vue === "semaine" || vue === "mois";
@@ -4287,6 +4292,7 @@ function majBarres() {
     "btn-vue-clients": vue === "clients",
     "btn-vue-personnel": estPersonnel,
     "btn-vue-perso-actifs": vue === "personnel",
+    "btn-vue-perso-dossiers": vue === "dossiers",
     "btn-vue-perso-anciens": vue === "anciens",
     "btn-vue-stocks": vue === "stocks",
     "btn-vue-materiel": vue === "materiel",
@@ -4622,6 +4628,7 @@ function rendreAnciens(zone) {
           ${t.clients.map(echapper).join(" · ")}</div>` : ""}
       </div>
       <div class="ligne-item no-print" style="margin-top:8px">
+        <button data-paction="dossier" data-eid="${emp.id}">📁 Son dossier</button>
         <button data-paction="reintegrer" data-eid="${emp.id}">↩︎ Réintégrer</button>
         <button data-paction="supprimer" data-eid="${emp.id}"
           title="Efface aussi tout son historique">✕ Supprimer définitivement</button>
@@ -4657,6 +4664,8 @@ function cartePersonnel(emp, idx) {
       <h3 style="flex:1">${echapper(emp.nom)}</h3>
       <button class="no-print" data-paction="monter" data-eid="${emp.id}" title="Monter">↑</button>
       <button class="no-print" data-paction="descendre" data-eid="${emp.id}" title="Descendre">↓</button>
+      <button class="no-print" data-paction="dossier" data-eid="${emp.id}"
+        title="Ouvrir son dossier : rémunération, congés, pièces justificatives">📁</button>
       <button class="no-print" data-paction="archiver" data-eid="${emp.id}"
         title="Archiver : le salarié quitte le planning, son historique est conservé">📦</button>
       <button class="no-print" data-paction="supprimer" data-eid="${emp.id}" title="Supprimer">✕</button>
@@ -4712,6 +4721,11 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
   const idx = donnees.employes.findIndex(x => x.id === btn.dataset.eid);
 
   switch (btn.dataset.paction) {
+    case "dossier":
+      if (idx === -1) return;
+      dossierEmpId = btn.dataset.eid;
+      changerVue("dossiers");   // enregistre et réaffiche déjà
+      return;
     case "ajouter": {
       const champNom = document.getElementById("perso-nouveau-nom");
       const nom = champNom.value.trim();
@@ -4787,7 +4801,9 @@ document.getElementById("zone-planning").addEventListener("click", (e) => {
         `Supprimer DÉFINITIVEMENT ${emp.nom} ?\n\n` +
         (t.jours ? `${t.jours} journée(s) de travail et ${formatHeures(t.minutes)} d'historique ` +
                    `seront effacés. Les marges et rapports des mois concernés en seront modifiés.\n\n` : "") +
+        (piecesSalarie(emp).some(x => x.fichier) ? `Les documents de son dossier seront retirés du coffre en ligne.\n\n` : "") +
         `Cette action est irréversible.`)) return;
+      nettoyerFichiersSalarie(emp);
       donnees.employes.splice(idx, 1);
       for (const cle in donnees.semaines) delete donnees.semaines[cle][emp.id];
       break;
@@ -4844,6 +4860,698 @@ document.getElementById("zone-planning").addEventListener("change", (e) => {
   }
   sauvegarder();
   rendre();
+});
+
+/* ================= Dossiers du personnel =================
+
+   Un dossier par salarié : l'historique de sa rémunération, le rappel de ses
+   congés et arrêts, et ses pièces justificatives avec leurs échéances
+   (visite médicale, titre de séjour, permis…).
+
+   Les fichiers ne sont PAS rangés dans les données de l'application : une
+   seule carte d'identité scannée pèse davantage que tout le reste du logiciel
+   et saturerait le stockage du navigateur. Ils partent donc dans le coffre en
+   ligne, dans un espace privé « dossiers », sous
+   <compte>/<salarié>/<pièce>-<nom du fichier> : seul le compte connecté peut
+   les relire. Les données de l'application ne gardent que la fiche —
+   rubrique, dates, numéro — et le chemin du fichier.                        */
+
+const RUBRIQUES_PIECE = [
+  { code: "identite", icone: "🪪", libelle: "Carte d'identité, passeport",
+    labelDebut: "Délivrée le", labelFin: "Expire le", alerte: 60 },
+  { code: "sejour", icone: "🛂", libelle: "Titre de séjour, autorisation de travail",
+    labelDebut: "Délivré le", labelFin: "Expire le", alerte: 60 },
+  { code: "permis", icone: "🚗", libelle: "Permis de conduire",
+    labelDebut: "Délivré le", labelFin: "Expire le", alerte: 60 },
+  { code: "medicale", icone: "🩺", libelle: "Visite médicale",
+    labelDebut: "Visite du", labelFin: "Prochaine visite", alerte: 45, periodeMois: 24 },
+  { code: "arret", icone: "🩹", libelle: "Arrêt de travail, arrêt maladie",
+    labelDebut: "Du", labelFin: "Au", alerte: 0 },
+  { code: "contrat", icone: "📄", libelle: "Contrat, avenants, DPAE",
+    labelDebut: "Signé le", labelFin: "Fin de validité", alerte: 30 },
+  { code: "diplome", icone: "🎓", libelle: "Diplômes, habilitations (CACES, SST…)",
+    labelDebut: "Obtenu le", labelFin: "À renouveler le", alerte: 60 },
+  { code: "autre", icone: "📎", libelle: "Autres documents",
+    labelDebut: "Daté du", labelFin: "Échéance", alerte: 0 },
+];
+const rubriquePiece = (code) =>
+  RUBRIQUES_PIECE.find(r => r.code === code) || RUBRIQUES_PIECE[RUBRIQUES_PIECE.length - 1];
+
+const TAILLE_MAX_PIECE = 10 * 1024 * 1024;   // 10 Mo, la limite de l'espace en ligne
+
+// Lectures sans effet de bord : créer un tableau vide à la lecture ferait
+// « bouger » les données au simple affichage d'un dossier, donc partir en
+// synchronisation pour rien.
+const piecesSalarie = (emp) => Array.isArray(emp.pieces) ? emp.pieces : [];
+const remunerationsSalarie = (emp) => Array.isArray(emp.remunerations) ? emp.remunerations : [];
+
+const estDateIso = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || "");
+const dateFr = (iso) => estDateIso(iso) ? new Date(iso + "T00:00:00").toLocaleDateString("fr-FR") : "";
+
+// Même jour, n mois plus tard, sans déborder sur le mois suivant
+// (31 janvier + 1 mois = 28 février, et non 3 mars)
+function dateDecaleeMois(iso, mois) {
+  if (!estDateIso(iso)) return "";
+  const [a, m, j] = iso.split("-").map(Number);
+  const cible = new Date(a, m - 1 + mois, 1);
+  cible.setDate(Math.min(j, new Date(cible.getFullYear(), cible.getMonth() + 1, 0).getDate()));
+  return versInputDate(cible);
+}
+
+function joursAvant(iso, auj) {
+  return Math.round((new Date(iso + "T00:00:00") - auj) / 86400000);
+}
+
+// Échéances proches ou dépassées d'un salarié, la plus urgente d'abord
+function echeancesSalarie(emp, auj) {
+  const liste = [];
+  for (const p of piecesSalarie(emp)) {
+    const rub = rubriquePiece(p.rubrique);
+    if (!(rub.alerte > 0) || !estDateIso(p.fin)) continue;
+    const jours = joursAvant(p.fin, auj);
+    if (jours > rub.alerte) continue;
+    liste.push({ piece: p, rub, jours });
+  }
+  return liste.sort((a, b) => a.jours - b.jours);
+}
+
+// Dernier taux horaire connu (la rémunération en vigueur)
+function remunerationActuelle(emp) {
+  const liste = remunerationsSalarie(emp).filter(r => r.taux > 0)
+    .slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  return liste.length ? liste[liste.length - 1] : null;
+}
+
+function ancienneteTexte(emp) {
+  if (!estDateIso(emp.dateEntree)) return "";
+  const fin = estDateIso(emp.archiveLe) ? new Date(emp.archiveLe + "T00:00:00") : new Date();
+  const debut = new Date(emp.dateEntree + "T00:00:00");
+  if (fin < debut) return "";
+  let mois = (fin.getFullYear() - debut.getFullYear()) * 12 + (fin.getMonth() - debut.getMonth());
+  if (fin.getDate() < debut.getDate()) mois--;
+  if (mois < 1) return "moins d'un mois";
+  const ans = Math.floor(mois / 12), reste = mois % 12;
+  return [ans ? ans + (ans > 1 ? " ans" : " an") : "", reste ? reste + " mois" : ""]
+    .filter(Boolean).join(" et ");
+}
+
+/* ---------- Fichiers : dépôt, lecture, retrait ---------- */
+
+// Nom de fichier sûr pour une URL de stockage : sans accent, ni espace, ni
+// caractère exotique — le nom affiché reste celui d'origine dans la fiche.
+function nomFichierSafe(nom) {
+  const propre = (nom || "document")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  return (propre || "document").slice(-60);
+}
+
+const cheminEncode = (chemin) => chemin.split("/").map(encodeURIComponent).join("/");
+
+function formatTaille(octets) {
+  if (!(octets > 0)) return "";
+  if (octets < 1024) return octets + " o";
+  if (octets < 1024 * 1024) return Math.round(octets / 1024) + " Ko";
+  return (octets / 1048576).toFixed(1).replace(".", ",") + " Mo";
+}
+
+function exigerCoffre() {
+  if (enDoubleClic()) {
+    throw new Error("Les documents ont besoin du site en ligne : ouvrez l'application depuis " +
+      "son adresse web (pas par double-clic sur le fichier).");
+  }
+  if (!session || !session.uid) {
+    throw new Error("Connectez-vous d'abord à la synchronisation (bouton ☁ en haut) : " +
+      "les documents sont rangés dans votre coffre en ligne.");
+  }
+}
+
+async function messageStockage(r) {
+  const corps = await r.json().catch(() => ({}));
+  const texte = ((corps && (corps.message || corps.error)) || "").toLowerCase();
+  if (r.status === 404) return "Document introuvable dans le coffre (il a peut-être déjà été retiré).";
+  if (r.status === 401 || r.status === 403) return "Accès refusé par le coffre : reconnectez-vous (bouton ☁).";
+  if (r.status === 413 || texte.includes("maximum allowed size")) return "Fichier trop volumineux (10 Mo maximum).";
+  return "Le coffre a refusé l'opération" + (texte ? " : " + texte : ".");
+}
+
+async function deposerFichierPiece(emp, piece, fichier) {
+  exigerCoffre();
+  if (fichier.size > TAILLE_MAX_PIECE) {
+    throw new Error(`« ${fichier.name} » pèse ${formatTaille(fichier.size)} : la limite est de 10 Mo. ` +
+      `Photographiez le document en qualité moyenne, ou passez-le en PDF.`);
+  }
+  const chemin = `${session.uid}/${emp.id}/${piece.id}-${nomFichierSafe(fichier.name)}`;
+  const r = await appelNuage("/storage/v1/object/dossiers/" + cheminEncode(chemin), {
+    method: "POST",
+    headers: { "content-type": fichier.type || "application/octet-stream", "x-upsert": "true" },
+    body: fichier,
+  });
+  if (!r.ok) throw new Error(await messageStockage(r));
+  return {
+    chemin,
+    nom: fichier.name,
+    taille: fichier.size,
+    type: fichier.type || "",
+    deposeLe: versInputDate(new Date()),
+  };
+}
+
+async function ouvrirFichierPiece(piece) {
+  exigerCoffre();
+  const r = await appelNuage("/storage/v1/object/dossiers/" + cheminEncode(piece.fichier.chemin),
+    { method: "GET" });
+  if (!r.ok) throw new Error(await messageStockage(r));
+  const url = URL.createObjectURL(await r.blob());
+  const onglet = window.open(url, "_blank");
+  if (!onglet) {                       // nouvel onglet bloqué : on télécharge
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = piece.fichier.nom || "document";
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+async function retirerFichierCoffre(chemin) {
+  exigerCoffre();
+  const r = await appelNuage("/storage/v1/object/dossiers/" + cheminEncode(chemin),
+    { method: "DELETE" });
+  if (!r.ok && r.status !== 404) throw new Error(await messageStockage(r));
+}
+
+// Suppression définitive d'un salarié : ses fichiers n'ont plus de fiche pour
+// les retrouver, on les retire du coffre sans bloquer l'interface.
+function nettoyerFichiersSalarie(emp) {
+  const chemins = piecesSalarie(emp).filter(p => p.fichier && p.fichier.chemin)
+    .map(p => p.fichier.chemin);
+  if (!chemins.length || enDoubleClic() || !session || !session.uid) return;
+  for (const c of chemins) retirerFichierCoffre(c).catch(() => { /* orphelin sans gravité */ });
+}
+
+/* ---------- Affichage du dossier ---------- */
+
+let dossierEmpId = "";
+let pieceEnAttenteFichier = null;   // { empId, pieceId } pendant le choix du fichier
+
+function salarieDuDossier() {
+  if (!donnees.employes.length) return null;
+  return donnees.employes.find(e => e.id === dossierEmpId) ||
+    employesActifs()[0] || donnees.employes[0];
+}
+
+function messageDossier(texte, type = "") {
+  const zone = document.getElementById("dossier-etat");
+  if (!zone) return;
+  zone.textContent = texte || "";
+  zone.className = "note-onglet" + (type ? " " + type : "");
+  zone.style.color = type === "erreur" ? "var(--alerte-fg)" : "";
+}
+
+function rendreDossiers(zone) {
+  document.getElementById("libelle-periode").textContent = "Dossiers du personnel";
+  if (!donnees.employes.length) {
+    zone.innerHTML = `<div class="vide">Aucun salarié pour le moment.<br>
+      Ajoutez vos salariés dans <strong>👥 En poste</strong> : chacun aura ici son dossier
+      (rémunération, congés et arrêts, pièces justificatives et leurs échéances).</div>`;
+    return;
+  }
+  const emp = salarieDuDossier();
+  dossierEmpId = emp.id;
+
+  const option = (e) => `<option value="${e.id}"${e.id === emp.id ? " selected" : ""}>` +
+    `${echapper(e.nom)}</option>`;
+  const actifs = employesActifs(), anciens = employesArchives();
+  const options =
+    (actifs.length ? `<optgroup label="En poste">${actifs.map(option).join("")}</optgroup>` : "") +
+    (anciens.length ? `<optgroup label="Anciens salariés">${anciens.map(option).join("")}</optgroup>` : "");
+
+  zone.innerHTML = `
+    <div class="ajout-vehicule no-print">
+      <span class="texte" style="align-self:center">Dossier de</span>
+      <select id="dossier-emp" style="flex:1; min-width:200px">${options}</select>
+    </div>
+    ${enteteDossier(emp)}
+    <div id="dossier-etat" class="note-onglet"></div>
+    <div class="titre-section-accueil">💶 Rémunération</div>
+    ${carteRemunerations(emp)}
+    <div class="titre-section-accueil">📎 Pièces justificatives et échéances</div>
+    ${cartesPieces(emp)}
+    <div class="titre-section-accueil">🌴 Congés et arrêts</div>
+    ${carteAbsencesDossier(emp)}
+    <div class="note-onglet">Les <strong>fichiers</strong> sont rangés dans votre coffre en ligne,
+      dans un espace privé que seul votre compte peut lire : il faut donc être
+      <strong>connecté</strong> (bouton ☁) pour en déposer ou en ouvrir un. Le reste du dossier
+      (dates, numéros, montants) fonctionne hors ligne comme tout le logiciel.<br>
+      Pièces d'identité, titres de séjour et avis d'aptitude sont des
+      <strong>données personnelles sensibles</strong> : n'y déposez que ce dont vous avez
+      réellement besoin, informez vos salariés que vous les conservez, et effacez-les quand
+      l'obligation légale de conservation est éteinte.</div>`;
+}
+
+function enteteDossier(emp) {
+  const auj = new Date();
+  auj.setHours(0, 0, 0, 0);
+  const ech = echeancesSalarie(emp, auj);
+  const remu = remunerationActuelle(emp);
+  const anc = ancienneteTexte(emp);
+  const charges = donnees.parametres.tauxChargesPatronales || 0;
+  const ligne = (libelle, valeur) => valeur
+    ? `<div class="ligne-item"><span class="texte" style="flex:0 0 150px">${libelle}</span>
+         <span style="flex:1">${valeur}</span></div>` : "";
+
+  const badges = ech.slice(0, 3).map(e => {
+    const classe = e.jours < 0 ? "alerte" : "attention";
+    const quand = e.jours < 0 ? `dépassée de ${-e.jours} j` : `dans ${e.jours} j`;
+    return `<span class="badge ${classe}">${e.rub.icone} ${e.rub.labelFin.toLowerCase()} ${quand}</span>`;
+  }).join(" ");
+
+  return `
+  <div class="carte-vehicule" style="margin-bottom:14px">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap">
+      <span style="display:inline-block; width:14px; height:14px; border-radius:4px;
+        background:${emp.couleur || "#9ca3af"}${estArchive(emp) ? "; opacity:.55" : ""}"></span>
+      <h3 style="flex:1">${echapper(emp.nom)}${emp.role ? ` — ${echapper(emp.role)}` : ""}</h3>
+      ${estArchive(emp)
+        ? `<span class="badge">parti le ${dateFr(emp.archiveLe) || "?"}</span>`
+        : `<span class="badge ok">en poste</span>`}
+      ${badges}
+    </div>
+    <div class="section-vehicule">
+      ${ligne("Entré(e) le", dateFr(emp.dateEntree))}
+      ${ligne("Ancienneté", anc)}
+      ${ligne("Contrat", echapper(emp.typeContrat || "") +
+         (emp.heuresContratSemaine > 0 ? ` — ${emp.heuresContratSemaine} h / semaine` : ""))}
+      ${ligne("Rémunération", remu
+         ? `<strong>${formatEuros(remu.taux)} / h</strong> brut depuis le ${dateFr(remu.date)}` +
+           (charges > 0 ? ` — soit environ ${formatEuros(remu.taux * (1 + charges / 100))} / h chargé`
+                        : "")
+         : `<span style="color:var(--texte-2)">non renseignée — voir ci-dessous</span>`)}
+      ${ligne("Coût horaire des marges", emp.coutHoraire > 0
+         ? `${formatEuros(emp.coutHoraire)} / h chargé` : `<span style="color:var(--texte-2)">non renseigné</span>`)}
+      ${ligne("📞 Téléphone", echapper(emp.tel || ""))}
+      ${ligne("✉️ Email", echapper(emp.email || ""))}
+    </div>
+  </div>`;
+}
+
+function carteRemunerations(emp) {
+  const liste = remunerationsSalarie(emp).slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const charges = donnees.parametres.tauxChargesPatronales || 0;
+
+  const lignes = liste.map((r, i) => {
+    const precedent = liste[i + 1];   // liste décroissante : le suivant est l'antérieur
+    let evolution = `<span style="color:var(--texte-2)">—</span>`;
+    if (precedent && precedent.taux > 0 && r.taux > 0) {
+      const pct = (r.taux - precedent.taux) / precedent.taux * 100;
+      const signe = pct > 0 ? "+" : "";
+      evolution = `<span class="${pct >= 0 ? "marge-positive" : "marge-negative"}">` +
+        `${signe}${pct.toFixed(1).replace(".", ",")} %</span>`;
+    }
+    return `<tr>
+      <td style="width:120px">${dateFr(r.date) || "—"}</td>
+      <td class="num" style="width:110px">${r.taux > 0 ? formatEuros(r.taux) + " /h" : "—"}</td>
+      <td class="num" style="width:90px">${evolution}</td>
+      <td class="num" style="width:120px">${r.taux > 0 && charges > 0
+        ? `<span style="color:var(--texte-2)">${formatEuros(r.taux * (1 + charges / 100))} /h</span>` : ""}</td>
+      <td><input type="text" data-dchange="remu-motif" data-rid="${r.id}"
+        value="${echapperAttr(r.motif || "")}" placeholder="Motif"></td>
+      <td class="no-print" style="width:38px; text-align:center">
+        <button data-daction="suppr-remu" data-rid="${r.id}" title="Supprimer cette ligne">✕</button></td>
+    </tr>`;
+  }).join("");
+
+  const remu = remunerationActuelle(emp);
+  const suggere = remu && charges > 0 ? Math.round(remu.taux * (1 + charges / 100) * 100) / 100 : 0;
+
+  return `
+  <div class="carte-vehicule">
+    ${liste.length ? `<table class="tableau-gestion">
+      <thead><tr>
+        <th>Date d'effet</th><th class="num">Taux brut</th><th class="num">Évolution</th>
+        <th class="num">Chargé (${charges} %)</th><th>Motif</th><th class="no-print"></th>
+      </tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>` : `<div class="stat-vehicule" style="color:var(--texte-2)">
+      Aucune rémunération enregistrée. Saisissez d'abord le taux d'embauche : chaque
+      augmentation viendra ensuite s'ajouter à la liste, avec son écart en pourcentage.</div>`}
+
+    <div class="mini-form no-print">
+      <input type="date" id="remu-date" value="${versInputDate(new Date())}" style="flex:0 0 150px">
+      <input type="text" inputmode="decimal" id="remu-taux" placeholder="€ / h brut" style="flex:0 0 120px">
+      <input type="text" id="remu-motif" placeholder="Motif (ex. : augmentation annuelle, passage au SMIC…)">
+      <button class="primaire" data-daction="ajouter-remu">+ Enregistrer</button>
+    </div>
+    ${suggere > 0 && Math.abs(suggere - (emp.coutHoraire || 0)) >= 0.01 ? `
+    <div class="ligne-item no-print" style="margin-top:6px">
+      <span class="texte">Le coût horaire chargé utilisé pour les marges est
+        ${emp.coutHoraire > 0 ? `de <strong>${formatEuros(emp.coutHoraire)}</strong>` : "<strong>vide</strong>"},
+        alors que ${formatEuros(remu.taux)} brut + ${charges} % de charges donnent
+        <strong>${formatEuros(suggere)}</strong>.</span>
+      <button data-daction="reporter-cout">Reporter ${formatEuros(suggere)} / h</button>
+    </div>` : ""}
+    <div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">
+      Cet historique est une mémoire : il ne recalcule rien tout seul. Le
+      <strong>coût horaire chargé</strong> de l'onglet 👥 En poste reste la valeur qui alimente
+      les marges et la masse salariale — c'est volontaire, pour que corriger une vieille ligne
+      ne modifie pas des mois déjà clôturés.</div>
+  </div>`;
+}
+
+function cartesPieces(emp) {
+  const auj = new Date();
+  auj.setHours(0, 0, 0, 0);
+
+  const cartes = RUBRIQUES_PIECE.map(rub => {
+    const pieces = piecesSalarie(emp).filter(p => p.rubrique === rub.code)
+      .slice().sort((a, b) => (b.fin || b.debut || "").localeCompare(a.fin || a.debut || ""));
+
+    let badge = "";
+    if (rub.alerte > 0) {
+      const datees = pieces.filter(p => estDateIso(p.fin));
+      // « manquant » n'a de sens que pour ce qui est obligatoire et périodique
+      // (la visite médicale) : personne n'a de titre de séjour à fournir par défaut.
+      if (!pieces.length) badge = rub.periodeMois ? `<span class="badge attention">manquant</span>` : "";
+      else if (datees.length) {
+        const jours = Math.max(...datees.map(p => joursAvant(p.fin, auj)));
+        if (jours < 0) badge = `<span class="badge alerte">dépassé de ${-jours} j ⚠️</span>`;
+        else if (jours <= rub.alerte) badge = `<span class="badge attention">dans ${jours} j</span>`;
+        else badge = `<span class="badge ok">à jour</span>`;
+      }
+    }
+
+    const corps = pieces.map(p => lignePiece(emp, p, rub, auj)).join("") ||
+      `<div class="stat-vehicule" style="color:var(--texte-2)">Aucun document.</div>`;
+
+    return `
+    <div class="carte-vehicule">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px">
+        <h3 style="flex:1">${rub.icone} ${rub.libelle}</h3>${badge}
+      </div>
+      ${corps}
+      <div class="ligne-item no-print" style="margin-top:6px">
+        <button data-daction="ajouter-piece" data-rub="${rub.code}">+ Ajouter un document</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  return `<div class="cartes-vehicules">${cartes}</div>`;
+}
+
+function lignePiece(emp, p, rub, auj) {
+  let etatEcheance = "";
+  if (estDateIso(p.fin)) {
+    const jours = joursAvant(p.fin, auj);
+    if (rub.alerte > 0 && jours < 0) {
+      etatEcheance = `<span class="badge alerte">dépassée de ${-jours} j</span>`;
+    } else if (rub.alerte > 0 && jours <= rub.alerte) {
+      etatEcheance = `<span class="badge attention">dans ${jours} j</span>`;
+    }
+  }
+  const f = p.fichier;
+  return `
+  <div class="section-vehicule">
+    <div class="ligne-item">
+      <input type="text" data-dchange="piece-libelle" data-pid="${p.id}" style="flex:1; min-width:0"
+        value="${echapperAttr(p.libelle || "")}" placeholder="Intitulé (ex. : ${echapperAttr(rub.libelle)})">
+      ${etatEcheance}
+      <button class="no-print" data-daction="suppr-piece" data-pid="${p.id}"
+        title="Supprimer ce document">✕</button>
+    </div>
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 120px">${rub.labelDebut}</span>
+      <input type="date" data-dchange="piece-debut" data-pid="${p.id}"
+        value="${echapperAttr(p.debut || "")}" style="flex:1; min-width:0">
+    </div>
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 120px">${rub.labelFin}</span>
+      <input type="date" data-dchange="piece-fin" data-pid="${p.id}"
+        value="${echapperAttr(p.fin || "")}" style="flex:1; min-width:0">
+    </div>
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 120px">N° / référence</span>
+      <input type="text" data-dchange="piece-numero" data-pid="${p.id}"
+        value="${echapperAttr(p.numero || "")}" placeholder="facultatif" style="flex:1; min-width:0">
+    </div>
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 120px">Note</span>
+      <input type="text" data-dchange="piece-note" data-pid="${p.id}"
+        value="${echapperAttr(p.note || "")}" placeholder="facultatif" style="flex:1; min-width:0">
+    </div>
+    <div class="ligne-item">
+      <span class="texte" style="flex:0 0 120px">Fichier</span>
+      ${f && f.chemin ? `
+        <button data-daction="ouvrir-fichier" data-pid="${p.id}" style="flex:1; text-align:left"
+          title="Ouvrir le document">📄 ${echapper(f.nom || "document")}
+          <span style="color:var(--texte-2)">${formatTaille(f.taille)}</span></button>
+        <button class="no-print" data-daction="joindre" data-pid="${p.id}"
+          title="Remplacer le fichier">↻</button>
+        <button class="no-print" data-daction="retirer-fichier" data-pid="${p.id}"
+          title="Retirer le fichier du coffre">🗑️</button>`
+      : `<button class="no-print" data-daction="joindre" data-pid="${p.id}"
+           style="flex:1; text-align:left">📎 Joindre un fichier (photo ou PDF, 10 Mo max)</button>`}
+    </div>
+  </div>`;
+}
+
+function carteAbsencesDossier(emp) {
+  const liste = donnees.absences.filter(a => a.empId === emp.id)
+    .slice().sort((a, b) => (b.debut || "").localeCompare(a.debut || ""));
+  if (!liste.length) {
+    return `<div class="carte-vehicule">
+      <div class="stat-vehicule" style="color:var(--texte-2)">Aucun congé ni arrêt enregistré.</div>
+      <div class="ligne-item no-print" style="margin-top:6px">
+        <button data-daction="aller-conges">→ Enregistrer un congé ou un arrêt</button>
+      </div>
+    </div>`;
+  }
+  const lignes = liste.map(a => {
+    const t = typeAbsence(a.type);
+    const statut = a.statut === "valide" ? `<span class="badge ok">accordé</span>`
+      : a.statut === "refuse" ? `<span class="badge alerte">refusé</span>`
+      : `<span class="badge attention">en attente</span>`;
+    return `<tr>
+      <td style="width:150px"><span class="badge" style="background:${t.couleur}; color:#fff">${t.court}</span></td>
+      <td style="width:190px">du ${dateFr(a.debut)} au ${dateFr(a.fin)}</td>
+      <td class="num" style="width:90px">${joursAbsence(a)} j</td>
+      <td style="width:110px">${statut}</td>
+      <td>${echapper(a.motif || "")}</td>
+    </tr>`;
+  }).join("");
+
+  const parType = {};
+  for (const a of liste) {
+    if (a.statut !== "valide") continue;
+    parType[a.type] = (parType[a.type] || 0) + joursAbsence(a);
+  }
+  const resume = Object.keys(parType).map(code =>
+    `${typeAbsence(code).libelle} : <strong>${parType[code]} j</strong>`).join(" · ");
+
+  return `<div class="carte-vehicule">
+    <table class="tableau-gestion">
+      <thead><tr><th>Type</th><th>Période</th><th class="num">Jours</th><th>Statut</th><th>Motif</th></tr></thead>
+      <tbody>${lignes}</tbody>
+    </table>
+    ${resume ? `<div class="stat-vehicule" style="margin-top:8px">Total accordé — ${resume}</div>` : ""}
+    <div class="ligne-item no-print" style="margin-top:6px">
+      <button data-daction="aller-conges">→ Enregistrer un congé ou un arrêt</button>
+    </div>
+    <div class="stat-vehicule" style="color:#6b7280; font-size:0.78rem">
+      Ce tableau est le reflet de l'onglet 🌴 Congés : congés, RTT, arrêts maladie et accidents
+      du travail s'y saisissent une seule fois, et se retrouvent ici, dans le calendrier et dans
+      les soldes. L'arrêt papier, lui, se dépose plus haut dans
+      <strong>🩹 Arrêt de travail, arrêt maladie</strong>.</div>
+  </div>`;
+}
+
+/* ---------- Actions du dossier ---------- */
+
+function pieceParId(emp, id) {
+  return piecesSalarie(emp).find(p => p.id === id);
+}
+
+document.getElementById("zone-planning").addEventListener("change", (e) => {
+  const sel = e.target.closest("#dossier-emp");
+  if (sel) {
+    dossierEmpId = sel.value;
+    rendre();
+    return;
+  }
+  const el = e.target.closest("[data-dchange]");
+  if (!el || !VUES_PERSONNEL.includes(vue)) return;
+  const emp = salarieDuDossier();
+  if (!emp) return;
+  const valeur = el.value.trim();
+
+  if (el.dataset.dchange === "remu-motif") {
+    const r = remunerationsSalarie(emp).find(x => x.id === el.dataset.rid);
+    if (!r) return;
+    if (valeur) r.motif = valeur; else delete r.motif;
+  } else {
+    const p = pieceParId(emp, el.dataset.pid);
+    if (!p) return;
+    const prop = el.dataset.dchange.replace("piece-", "");
+    if (!["libelle", "debut", "fin", "numero", "note"].includes(prop)) return;
+    if (valeur) p[prop] = valeur; else delete p[prop];
+    // Visite médicale : la date de la prochaine se déduit de la périodicité,
+    // on la propose dès que la visite est saisie et que la suite est vide.
+    const rub = rubriquePiece(p.rubrique);
+    if (prop === "debut" && rub.periodeMois && !p.fin) {
+      const suite = dateDecaleeMois(valeur, rub.periodeMois);
+      if (suite) p.fin = suite;
+    }
+  }
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("zone-planning").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-daction]");
+  if (!btn) return;
+  const emp = salarieDuDossier();
+  if (!emp) return;
+  const action = btn.dataset.daction;
+
+  switch (action) {
+    case "ajouter-remu": {
+      const date = document.getElementById("remu-date").value;
+      const taux = lireNombre(document.getElementById("remu-taux").value);
+      if (!estDateIso(date) || !(taux > 0)) {
+        messageDossier("Indiquez une date d'effet et un taux horaire brut.", "erreur");
+        return;
+      }
+      if (!Array.isArray(emp.remunerations)) emp.remunerations = [];
+      const motif = document.getElementById("remu-motif").value.trim();
+      const ligne = { id: nouvelId("remu"), date, taux };
+      if (motif) ligne.motif = motif;
+      emp.remunerations.push(ligne);
+      break;
+    }
+    case "suppr-remu": {
+      if (!Array.isArray(emp.remunerations)) return;
+      const i = emp.remunerations.findIndex(r => r.id === btn.dataset.rid);
+      if (i === -1) return;
+      if (!confirm("Supprimer cette ligne de rémunération ?")) return;
+      emp.remunerations.splice(i, 1);
+      break;
+    }
+    case "reporter-cout": {
+      const remu = remunerationActuelle(emp);
+      const charges = donnees.parametres.tauxChargesPatronales || 0;
+      if (!remu || !(charges > 0)) return;
+      const valeur = Math.round(remu.taux * (1 + charges / 100) * 100) / 100;
+      if (!confirm(`Porter le coût horaire chargé de ${emp.nom} à ${formatEuros(valeur)} / h ?\n\n` +
+        `Attention : ce coût sert aux marges par client et à la masse salariale, y compris ` +
+        `pour les mois déjà passés — leurs chiffres changeront.`)) return;
+      emp.coutHoraire = valeur;
+      break;
+    }
+    case "ajouter-piece": {
+      if (!Array.isArray(emp.pieces)) emp.pieces = [];
+      emp.pieces.push({ id: nouvelId("piece"), rubrique: btn.dataset.rub });
+      break;
+    }
+    case "suppr-piece": {
+      const p = pieceParId(emp, btn.dataset.pid);
+      if (!p) return;
+      const aFichier = !!(p.fichier && p.fichier.chemin);
+      if (!confirm(`Supprimer « ${p.libelle || rubriquePiece(p.rubrique).libelle} » ?` +
+        (aFichier ? `\n\nLe fichier joint sera retiré du coffre en ligne.` : ""))) return;
+      if (aFichier) {
+        retirerFichierCoffre(p.fichier.chemin).catch(() => { /* orphelin sans gravité */ });
+      }
+      emp.pieces.splice(emp.pieces.indexOf(p), 1);
+      break;
+    }
+    case "joindre": {
+      const p = pieceParId(emp, btn.dataset.pid);
+      if (!p) return;
+      try { exigerCoffre(); } catch (err) { messageDossier(err.message, "erreur"); return; }
+      pieceEnAttenteFichier = { empId: emp.id, pieceId: p.id };
+      const champ = document.getElementById("piece-fichier");
+      champ.value = "";          // pour que choisir deux fois le même fichier déclenche bien l'envoi
+      champ.click();
+      return;                    // pas de sauvegarde : rien n'a changé
+    }
+    case "ouvrir-fichier": {
+      const p = pieceParId(emp, btn.dataset.pid);
+      if (!p || !p.fichier) return;
+      messageDossier("Ouverture de " + p.fichier.nom + "…");
+      try {
+        await ouvrirFichierPiece(p);
+        messageDossier("");
+      } catch (err) {
+        messageDossier(err.injoignable ? "Coffre injoignable : vérifiez la connexion." : err.message, "erreur");
+      }
+      return;
+    }
+    case "retirer-fichier": {
+      const p = pieceParId(emp, btn.dataset.pid);
+      if (!p || !p.fichier) return;
+      if (!confirm(`Retirer le fichier « ${p.fichier.nom} » du coffre ?\n\n` +
+        `La fiche (dates, numéro) reste, seul le document est effacé.`)) return;
+      messageDossier("Retrait du fichier…");
+      try {
+        await retirerFichierCoffre(p.fichier.chemin);
+      } catch (err) {
+        messageDossier(err.injoignable ? "Coffre injoignable : vérifiez la connexion." : err.message, "erreur");
+        return;
+      }
+      delete p.fichier;
+      sauvegarder();
+      rendre();
+      messageDossier("Fichier retiré.");
+      return;
+    }
+    case "aller-conges":
+      changerVue("cp-demandes");
+      return;
+    default:
+      return;
+  }
+  sauvegarder();
+  rendre();
+});
+
+document.getElementById("piece-fichier").addEventListener("change", async (e) => {
+  const fichier = e.target.files && e.target.files[0];
+  const attente = pieceEnAttenteFichier;
+  pieceEnAttenteFichier = null;
+  e.target.value = "";
+  if (!fichier || !attente) return;
+
+  const emp = donnees.employes.find(x => x.id === attente.empId);
+  const p = emp && pieceParId(emp, attente.pieceId);
+  if (!p) return;
+
+  messageDossier(`Envoi de « ${fichier.name} » (${formatTaille(fichier.size)})…`);
+  let fiche;
+  try {
+    fiche = await deposerFichierPiece(emp, p, fichier);
+  } catch (err) {
+    messageDossier(err.injoignable
+      ? "Coffre injoignable : le fichier n'a pas été envoyé, réessayez une fois la connexion revenue."
+      : err.message, "erreur");
+    return;
+  }
+  // Le salarié ou la pièce ont pu disparaître pendant l'envoi : on ne
+  // ressuscite rien, on retire le fichier devenu orphelin.
+  const encore = donnees.employes.includes(emp) ? pieceParId(emp, attente.pieceId) : null;
+  if (!encore) {
+    retirerFichierCoffre(fiche.chemin).catch(() => { /* orphelin sans gravité */ });
+    messageDossier("Le document a été supprimé pendant l'envoi : fichier abandonné.", "erreur");
+    return;
+  }
+  const ancien = encore.fichier && encore.fichier.chemin;
+  encore.fichier = fiche;
+  if (!encore.libelle) encore.libelle = fichier.name.replace(/\.[^.]+$/, "");
+  if (ancien && ancien !== fiche.chemin) {
+    retirerFichierCoffre(ancien).catch(() => { /* orphelin sans gravité */ });
+  }
+  sauvegarder();
+  rendre();
+  messageDossier(`« ${fichier.name} » déposé dans le coffre.`);
 });
 
 /* ================= Onglet véhicules ================= */
@@ -8778,6 +9486,23 @@ function calculerAlertes() {
       cible: "personnel" });
   }
 
+  // Pièces du personnel : visites médicales, titres de séjour, permis…
+  for (const emp of employesActifs()) {
+    for (const e of echeancesSalarie(emp, auj)) {
+      const quoi = `${e.rub.icone} ${e.rub.libelle} de ${emp.nom}`;
+      if (e.jours < 0) {
+        alertes.push({ texte: `${quoi} : échéance dépassée depuis ${-e.jours} j`, cible: "dossiers", grave: true });
+      } else {
+        alertes.push({ texte: `${quoi} : ${e.rub.labelFin.toLowerCase()} dans ${e.jours} j`, cible: "dossiers" });
+      }
+    }
+  }
+  const sansVisite = employesActifs().filter(e => !piecesSalarie(e).some(p => p.rubrique === "medicale"));
+  if (sansVisite.length && employesActifs().length) {
+    alertes.push({ texte: `🩺 Visite médicale non renseignée pour ${sansVisite.slice(0, 3).map(e => e.nom).join(", ")}${sansVisite.length > 3 ? "…" : ""}`,
+      cible: "dossiers" });
+  }
+
   // Demandes de congés en attente
   const enAttente = donnees.absences.filter(a => a.statut === "demande");
   if (enAttente.length) {
@@ -9912,6 +10637,7 @@ document.getElementById("btn-vue-rapports").addEventListener("click", () => chan
 document.getElementById("btn-vue-conges").addEventListener("click", () => changerVue(sousVueConges));
 document.getElementById("btn-vue-finances").addEventListener("click", () => changerVue(sousVueFinances));
 document.getElementById("btn-vue-perso-actifs").addEventListener("click", () => changerVue("personnel"));
+document.getElementById("btn-vue-perso-dossiers").addEventListener("click", () => changerVue("dossiers"));
 document.getElementById("btn-vue-perso-anciens").addEventListener("click", () => changerVue("anciens"));
 for (const v of VUES_FINANCES) {
   document.getElementById("btn-vue-" + v).addEventListener("click", () => changerVue(v));

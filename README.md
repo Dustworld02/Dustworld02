@@ -36,7 +36,7 @@ Une fiche par client :
 - deux impressions : **🖨️ Fiche** (récapitulatif interne) et **🖨️ Check-list** — la feuille d'intervention vierge que l'équipe emporte (cases à cocher, consommables à emporter, observations, signatures).
 
 ### 👥 Personnel
-Deux sous-onglets : **En poste** et **📦 Anciens salariés**.
+Trois sous-onglets : **En poste**, **📁 Dossiers** et **📦 Anciens salariés**.
 
 **En poste** — une fiche par salarié : poste, couleur du planning, véhicule attribué, coordonnées, type de contrat, date d'entrée, **heures de contrat (h/semaine)**, **trajets (h/semaine)** et **coût horaire chargé**. La fiche affiche les heures mensualisées (× 52/12, ex. 35 h/semaine = 151h40/mois) et le **coût mensuel** du salarié. Le champ **🚗 Trajets** (saisi « 5h50 », « 5:50 » ou « 5,5 ») apparaît dans le bandeau de total du planning individuel imprimé, sans être détaillé jour par jour — il est aussi modifiable au moment de l'impression. Les heures de contrat et le coût horaire alimentent la **masse salariale** (indicateur de l'Accueil, bandeau des Marges avec la part affectée aux clients, et écart contrat/réalisé dans les feuilles de temps).
 
@@ -49,6 +49,20 @@ Il disparaît alors du planning à venir, de la masse salariale, des congés, du
 Deux boutons : **Réintégrer** (s'il revient) et **Supprimer définitivement** (qui efface aussi tout l'historique — le logiciel vous en dissuade tant que des journées sont enregistrées).
 
 Un ancien salarié reste proposé, signalé « (ancien) », dans les deux écrans rétrospectifs : les **feuilles de temps** et l'impression du **planning individuel**.
+
+**📁 Dossiers — un dossier par salarié**, en poste comme ancien (bouton 📁 sur sa fiche, ou sélecteur en haut de l'onglet). Trois parties :
+
+- **💶 Rémunération** — l'historique des taux horaires bruts avec leur date d'effet, le motif (embauche, augmentation annuelle, revalorisation du SMIC…) et l'**écart en pourcentage** d'une ligne à l'autre. Le coût chargé correspondant est affiché à titre indicatif (taux brut + le pourcentage de charges patronales des paramètres). Cet historique est une **mémoire** : il ne recalcule rien tout seul. Le *coût horaire chargé* de l'onglet En poste reste la valeur qui alimente les marges et la masse salariale — volontairement, pour que corriger une vieille ligne ne change pas des mois déjà clôturés. Un bouton propose de reporter le coût suggéré, après vous avoir averti de l'effet sur les chiffres passés.
+
+- **📎 Pièces justificatives et échéances** — huit rubriques : carte d'identité / passeport, titre de séjour ou autorisation de travail, permis de conduire, **visite médicale**, arrêt de travail / arrêt maladie, contrat et avenants, diplômes et habilitations (CACES, SST…), autres documents. Chaque pièce porte un intitulé, deux dates (dont le libellé s'adapte à la rubrique : *Délivrée le / Expire le*, *Visite du / Prochaine visite*, *Du / Au*), un numéro, une note, et **un fichier joint** (photo ou PDF, 10 Mo maximum). Pour une visite médicale, saisir la date de la visite propose automatiquement la **prochaine à 24 mois**.
+
+- **🌴 Congés et arrêts** — le reflet de l'onglet Congés pour ce salarié : chaque absence avec son type, sa période, son décompte en jours, son statut et son motif, plus le total accordé par type. La saisie reste dans l'onglet 🌴 Congés, pour qu'une absence n'existe qu'à un seul endroit.
+
+**⏰ Les alarmes** remontent toutes seules dans les alertes de l'Accueil, et le clic ouvre le dossier concerné : visite médicale à refaire (45 jours avant, puis en rouge une fois dépassée), titre de séjour, carte d'identité, permis ou habilitation qui expirent (60 jours avant), fin de validité d'un contrat (30 jours), et la liste des salariés dont la visite médicale n'est pas renseignée.
+
+**Où vont les fichiers.** Pas dans les données de l'application : une seule carte d'identité scannée pèse plus que tout le reste du logiciel et saturerait le navigateur. Ils partent dans un **espace privé du coffre en ligne**, rangés par compte et par salarié, que **seul votre compte peut lire**. Conséquence : il faut être **connecté** (bouton ☁) pour déposer ou ouvrir un document, alors que le reste du dossier — dates, numéros, montants — fonctionne hors ligne comme tout le logiciel. Supprimer définitivement un salarié, ou retirer une pièce, efface aussi le fichier du coffre.
+
+⚠️ Pièces d'identité, titres de séjour et avis d'aptitude sont des **données personnelles sensibles**. N'y déposez que ce dont vous avez réellement besoin, informez vos salariés par écrit que vous les conservez, et effacez-les quand l'obligation légale de conservation est éteinte.
 ### 🌴 Congés
 Gestion complète des congés et absences, en **jours ouvrables** (lundi → samedi, hors jours fériés — calcul automatique de Pâques, Ascension et Pentecôte) :
 - **Soldes** : par salarié, jours acquis à ce jour (2,5 j/mois travaillé, plafond 30 j sur la période de référence 1er juin → 31 mai), report de la période précédente (modifiable), corrections manuelles, jours pris, demandes en attente et **solde restant** ; période navigable, impression du récapitulatif.
@@ -127,13 +141,17 @@ Base PostgreSQL **hébergée à Paris** (Supabase), une ligne par compte, proté
 
 ⚠️ Le projet est sur l'offre gratuite : **il se met en veille après une semaine sans activité**. Au réveil, la synchronisation échoue tant qu'il n'est pas relancé depuis le tableau de bord Supabase. L'indicateur affiche alors *Pas de réseau*, et rien n'est perdu — tout repart ensuite.
 
-⚠️ Vos données contiennent des informations personnelles de vos salariés, dont des **arrêts maladie** (donnée de santé). Dès lors qu'elles sont hébergées, informez vos salariés par écrit et tenez le registre de traitement prévu par le RGPD.
+Les **documents des dossiers salariés** (onglet 👥 Personnel → 📁 Dossiers) sont rangés à part, dans un espace de fichiers privé du même hébergement, sous `votre-compte/salarié/` : eux non plus ne sont lisibles que par votre compte, et ils ne transitent jamais par la ligne de données ni par les sauvegardes JSON.
+
+⚠️ Vos données contiennent des informations personnelles de vos salariés, dont des **arrêts maladie**, des **avis d'aptitude** et, si vous les déposez, des **pièces d'identité** (données de santé et données sensibles). Dès lors qu'elles sont hébergées, informez vos salariés par écrit et tenez le registre de traitement prévu par le RGPD.
 
 ## 💾 Sauvegarde
 
 Les données sont enregistrées automatiquement dans le navigateur (localStorage). Le bouton **💾 Sauvegarde** permet :
 - **d'exporter** toutes les données dans un fichier `nettoyage-sauvegarde-AAAA-MM-JJ.json` (à conserver précieusement — c'est votre sauvegarde) ;
 - **d'importer** un fichier de sauvegarde (remplace les données actuelles, après confirmation).
+
+La sauvegarde contient les **fiches** des dossiers salariés (rubriques, dates, numéros, historique des rémunérations), mais pas les **fichiers** eux-mêmes, qui restent dans le coffre en ligne.
 
 > 💡 Exportez régulièrement, et avant tout changement d'ordinateur ou de navigateur.
 
