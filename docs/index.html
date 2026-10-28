@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="no-js">
 <head>
 <meta charset="utf-8">
+<script>document.documentElement.className='js';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nettoyage salle blanche &amp; industriel en Haute-Savoie | B&amp;F</title>
 <meta name="description" content="Entreprise de nettoyage industriel spécialisée salle blanche, zone propre et zone à atmosphère contrôlée en Haute-Savoie. Depuis 2004 à Saint-Jeoire-en-Faucigny (74). Devis gratuit.">
@@ -70,6 +71,7 @@
 
 <main id="contenu">
 <section class="hero" aria-labelledby="titre-principal">
+  <canvas class="hero-flux" aria-hidden="true"></canvas>
   <div class="wrap">
     <div>
       <span class="hero-badge">Depuis 2004 · Plus de 20 ans d'expérience</span>
@@ -101,9 +103,9 @@
 <div class="trust" aria-label="Chiffres clés">
   <div class="wrap">
     <ul>
-      <li><strong>2004</strong><span>Année de création, à Saint-Jeoire-en-Faucigny</span></li>
-      <li><strong>20 ans +</strong><span>d'expérience en nettoyage industriel et spécialisé</span></li>
-      <li><strong>ISO 14644</strong><span>Protocoles salle blanche par classe de propreté</span></li>
+      <li><strong><span data-count="2004" data-from="1984">2004</span></strong><span>Année de création, à Saint-Jeoire-en-Faucigny</span></li>
+      <li><strong><span data-count="20">20</span> ans +</strong><span>d'expérience en nettoyage industriel et spécialisé</span></li>
+      <li><strong>ISO <span data-count="14644" data-from="14000">14644</span></strong><span>Protocoles salle blanche par classe de propreté</span></li>
       <li><strong>74 &amp; Genève</strong><span>Haute-Savoie, vallée de l'Arve, Genevois, Annecy, Chablais</span></li>
     </ul>
   </div>
@@ -136,7 +138,7 @@
         <g fill="#C9A84C"><rect x="80" y="48" width="40" height="10" rx="2"/><rect x="140" y="48" width="40" height="10" rx="2"/><rect x="200" y="48" width="40" height="10" rx="2"/><rect x="260" y="48" width="40" height="10" rx="2"/><rect x="320" y="48" width="40" height="10" rx="2"/><rect x="380" y="48" width="40" height="10" rx="2"/><rect x="440" y="48" width="40" height="10" rx="2"/></g>
         <!-- flux laminaire -->
         <rect x="60" y="66" width="480" height="290" fill="url(#g2)"/>
-        <g stroke="#C9A84C" stroke-width="2" stroke-linecap="round" opacity=".7">
+        <g class="flux" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" opacity=".7">
           <path d="M100 90v120m0 0-6-8m6 8 6-8"/><path d="M180 90v160m0 0-6-8m6 8 6-8"/><path d="M260 90v130m0 0-6-8m6 8 6-8"/><path d="M340 90v170m0 0-6-8m6 8 6-8"/><path d="M420 90v120m0 0-6-8m6 8 6-8"/><path d="M500 90v150m0 0-6-8m6 8 6-8"/>
         </g>
         <!-- parois -->
@@ -341,5 +343,6 @@
     <p class="footer-areas">Saint-Jeoire-en-Faucigny · Bonneville · Cluses · Scionzier · Marnaz · Marignier · Sallanches · La Roche-sur-Foron · Annemasse · Saint-Julien-en-Genevois · Annecy · Thonon-les-Bains · Genève</p>
   </div>
 </footer>
+<script src="/assets/site.js" defer></script>
 </body>
 </html>
