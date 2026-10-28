@@ -53,6 +53,27 @@ Pour la page 404 et les URL « propres » (`/contact/`), tout hébergeur qui ser
 | `/contact/` | devis, coordonnées, plan |
 | `/mentions-legales/` | mentions légales (champs « À COMPLÉTER » à renseigner) |
 
+## Charte graphique
+
+Le site applique la charte de la « Trame Berto & Fils » :
+
+| Élément | Valeur | Usage |
+|---|---|---|
+| Bleu marine | `#1A1A2E` | textes, titres, en-têtes de tableau, fonds sombres |
+| Or | `#C9A84C` | filets, accents, boutons d'appel — avec parcimonie |
+| Blanc cassé | `#FDF8F0` | fonds de sections et d'encadrés |
+| Titres | Playfair Display | |
+| Texte et étiquettes | Montserrat | étiquettes en gras, majuscules, or |
+
+L'or pur est trop clair pour du texte sur fond blanc (contraste insuffisant pour l'accessibilité) :
+les étiquettes sur fond clair utilisent `#7A6221`, l'or pur reste réservé aux filets, aux boutons et aux fonds sombres.
+
+Les polices sont hébergées sur le site (`site/assets/fonts/`, licence SIL OFL), sans appel à Google Fonts :
+plus rapide, et aucune adresse IP de visiteur transmise à Google.
+
+Le monogramme « B&F » est provisoire : dès qu'un logo officiel existe, remplacer `site/assets/logo.svg`,
+`site/assets/favicon.svg` et le SVG de `.brand-mark` dans `site/layout.html`.
+
 ## Image de partage et icônes
 
 `site/assets/og-image.html` est la maquette de l'image de partage (réseaux sociaux, WhatsApp, LinkedIn).

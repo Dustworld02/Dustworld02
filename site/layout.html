@@ -25,11 +25,13 @@
 <meta name="twitter:title" content="{{title}}">
 <meta name="twitter:description" content="{{description}}">
 <meta name="twitter:image" content="{{og_image}}">
-<meta name="theme-color" content="#0B1D3A">
+<meta name="theme-color" content="#1A1A2E">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<link rel="preload" href="/assets/fonts/montserrat-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/style.css">
 {{jsonld}}
 </head>
@@ -39,12 +41,10 @@
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="/" aria-label="{{site_name}} — accueil">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 40 40" width="40" height="40" role="img"><rect width="40" height="40" rx="9" fill="#0B1D3A"/><path d="M11 10h9.5c4 0 6.5 2 6.5 5.2 0 2.2-1.2 3.7-3 4.3 2.4.6 4 2.4 4 5 0 3.6-2.8 5.5-7 5.5H11V10zm4.2 3.4v4.8h4.6c1.8 0 2.8-.9 2.8-2.4s-1-2.4-2.8-2.4h-4.6zm0 8.1v5.1h5.3c2 0 3.1-1 3.1-2.6s-1.1-2.5-3.1-2.5h-5.3z" fill="#fff"/><circle cx="31" cy="30" r="4" fill="#18B4C8"/></svg>
-      </span>
+      <span class="brand-mark"><svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true"><rect width="44" height="44" rx="3" fill="#1A1A2E"/><text x="22" y="27" text-anchor="middle" font-family="Playfair Display, Georgia, serif" font-weight="700" font-size="16" fill="#FFFFFF">B&amp;F</text><rect x="12" y="32" width="20" height="2" fill="#C9A84C"/></svg></span>
       <span class="brand-text">
-        <strong>B&amp;F Berto &amp; Fils</strong>
-        <small>Salle blanche &amp; nettoyage industriel · Haute-Savoie</small>
+        <strong>Berto &amp; Fils</strong>
+        <small>Salle blanche · Nettoyage industriel · 74</small>
       </span>
     </a>
 
@@ -90,7 +90,7 @@
 <footer class="site-footer">
   <div class="wrap footer-grid">
     <div class="footer-col footer-brand">
-      <p class="footer-name">B&amp;F Berto &amp; Fils</p>
+      <p class="footer-name">Berto &amp; Fils</p>
       <p>Entreprise de nettoyage industriel et de salles blanches en Haute-Savoie depuis 2004. Nettoyage industriel &amp; spécialisé, zones propres, zones à atmosphère contrôlée, vitrerie, désinfection.</p>
       <address>
         <a href="https://www.google.com/maps/search/?api=1&amp;query={{street}}+{{postal}}+{{city}}" rel="noopener" target="_blank">{{street}}<br>{{postal}} {{city}}</a><br>

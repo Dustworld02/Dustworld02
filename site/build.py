@@ -293,7 +293,7 @@ def build() -> None:
         "User-agent: *\nAllow: /\n\n" f"Sitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8")
     (OUT / "site.webmanifest").write_text(json.dumps({
         "name": SITE_NAME, "short_name": "B&F", "start_url": "/", "display": "browser",
-        "background_color": "#F5F8FC", "theme_color": "#0B1D3A",
+        "background_color": "#FDF8F0", "theme_color": "#1A1A2E",
         "icons": [{"src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png"},
                   {"src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png"}],
     }, ensure_ascii=False, indent=2), encoding="utf-8")

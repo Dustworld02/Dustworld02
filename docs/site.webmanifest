@@ -3,8 +3,8 @@
   "short_name": "B&F",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#F5F8FC",
-  "theme_color": "#0B1D3A",
+  "background_color": "#FDF8F0",
+  "theme_color": "#1A1A2E",
   "icons": [
     {
       "src": "/assets/icon-192.png",
