@@ -240,6 +240,9 @@ def render(meta: dict, body: str) -> str:
         "{{phone_ch_display}}": c["phone_ch_display"],
         "{{areas}}": " · ".join(AREAS),
     }
+    # Espaces insécables dans les numéros affichés : jamais coupés en fin de ligne.
+    for k in ("{{phone_tech_display}}", "{{phone_com_display}}", "{{phone_ch_display}}"):
+        repl[k] = repl[k].replace(" ", "\u00a0")
     for k, v in repl.items():
         html = html.replace(k, v)
     # Les tokens société peuvent aussi apparaître dans le contenu des pages.
