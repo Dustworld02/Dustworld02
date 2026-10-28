@@ -2,73 +2,79 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/nettoyage-salle-blanche/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
+    <loc>https://haute-savoie-propre-site.lovable.app/bionettoyage-haute-savoie/</loc>
+    <lastmod>2026-10-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://haute-savoie-propre-site.lovable.app/contact/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/nettoyage-industriel/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/zones-intervention/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/nettoyage-specialise/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/services/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/batiments-communaux/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/vitrerie/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/conseil-nouveaux-batiments/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/faq/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://haute-savoie-propre-site.lovable.app/mentions-legales/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>

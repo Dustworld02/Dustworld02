@@ -136,7 +136,7 @@ def local_business_ld() -> str:
         ],
         "knowsAbout": [
             "Nettoyage de salle blanche", "Nettoyage de zone propre", "Zone à atmosphère contrôlée",
-            "Bionettoyage", "ISO 14644", "Nettoyage industriel", "Nettoyage d'usine", "Vitrerie",
+            "Bionettoyage", "Désinfection des surfaces", "Normes EN 1276 et EN 14476", "BPF annexe 1", "ISO 14644", "Nettoyage industriel", "Nettoyage d'usine", "Vitrerie",
             "Désinfection professionnelle", "Nettoyage après décès", "Syndrome de Diogène",
             "Rénovation du marbre", "Nettoyage de bâtiments communaux",
         ],
@@ -147,6 +147,7 @@ def local_business_ld() -> str:
                 {"@type": "Offer", "itemOffered": {"@type": "Service", "name": n, "url": SITE_URL + u}}
                 for n, u in [
                     ("Nettoyage de salle blanche et zone à atmosphère contrôlée", "/nettoyage-salle-blanche/"),
+                    ("Bionettoyage", "/bionettoyage-haute-savoie/"),
                     ("Nettoyage industriel", "/nettoyage-industriel/"),
                     ("Vitrerie", "/vitrerie/"),
                     ("Nettoyage spécialisé et désinfection", "/nettoyage-specialise/"),
