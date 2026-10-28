@@ -13,6 +13,28 @@
     majHeader();
   }
 
+  /* Salle blanche en coupe : repères ↔ légende, pause du flux d'air */
+  var coupe = document.querySelector('.anatomie-figure');
+  if (coupe) {
+    var allumer = function (n, oui) {
+      document.querySelectorAll('[data-n="' + n + '"]').forEach(function (el) { el.classList.toggle('actif', oui); });
+    };
+    document.querySelectorAll('.cs-pt, .cs-legende li').forEach(function (el) {
+      var n = el.getAttribute('data-n');
+      el.addEventListener('mouseenter', function () { allumer(n, true); });
+      el.addEventListener('mouseleave', function () { allumer(n, false); });
+      el.addEventListener('focus', function () { allumer(n, true); });
+      el.addEventListener('blur', function () { allumer(n, false); });
+    });
+    var bouton = coupe.querySelector('.anim-toggle');
+    if (reduit) { coupe.classList.add('coupe-pause'); if (bouton) bouton.hidden = true; }
+    if (bouton) bouton.addEventListener('click', function () {
+      var enPause = coupe.classList.toggle('coupe-pause');
+      bouton.setAttribute('aria-pressed', enPause ? 'true' : 'false');
+      bouton.textContent = enPause ? 'Relancer le flux d\'air' : 'Mettre en pause le flux d\'air';
+    });
+  }
+
   if (reduit || !('IntersectionObserver' in window)) {
     document.documentElement.classList.add('sans-anim');
     return;

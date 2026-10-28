@@ -16,12 +16,50 @@ changefreq: monthly
   <p><a class="btn btn-primary" href="tel:{{phone_com}}">Devis salle blanche · {{phone_com_display}}</a> <a class="btn btn-secondary" href="/contact/">Décrire mon site</a></p>
 </div>
 
+
+<section class="anatomie" id="anatomie" aria-labelledby="titre-anatomie">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Vue en coupe · flux d'air</span>
+      <h2 id="titre-anatomie">Anatomie d'une salle blanche</h2>
+      <p>Comprendre la salle, c'est comprendre où va la contamination. L'air filtré entre par le plafond, balaie la salle du haut vers le bas, ressort par les grilles basses, et la surpression pousse toujours l'air vers le moins propre. Nos gestes de nettoyage suivent exactement ce trajet.</p>
+    </div>
+    <figure class="anatomie-figure">
+      <div class="anatomie-scroll">
+        {{coupe_salle_blanche}}
+      </div>
+      <figcaption>
+        <button type="button" class="anim-toggle" aria-pressed="false">Mettre en pause le flux d'air</button>
+        <span class="anatomie-astuce">Survolez ou touchez un numéro pour voir sa légende. Sur téléphone, faites glisser le schéma.</span>
+      </figcaption>
+    </figure>
+    <ol class="cs-legende">
+      <li id="cs-1" data-n="1"><strong>Centrale de traitement d'air (CTA)</strong> Elle filtre l'air, le chauffe ou le refroidit, règle son humidité puis le pulse vers la salle. Elle mélange l'air recyclé et une part d'air neuf.</li>
+      <li id="cs-2" data-n="2"><strong>Gaine de soufflage et plénum</strong> Ils répartissent l'air traité au-dessus du plafond, à pression homogène.</li>
+      <li id="cs-3" data-n="3"><strong>Filtres HEPA terminaux</strong> Le dernier rempart : un filtre H14 retient au moins 99,995 % des particules les plus pénétrantes (EN 1822). <em>Notre intervention : on ne touche jamais le média filtrant, seuls les cadres et grilles de diffusion sont essuyés.</em></li>
+      <li id="cs-4" data-n="4"><strong>Zone à flux unidirectionnel (ISO 5)</strong> L'air descend en lames parallèles, à environ 0,45 m/s, et chasse les particules vers le bas. <em>Notre intervention : toujours dans le sens du flux, de haut en bas, sans jamais passer entre le flux et le produit.</em></li>
+      <li id="cs-5" data-n="5"><strong>Poste de travail critique</strong> Là où le produit est exposé. <em>Notre intervention : surface nettoyée et désinfectée à chaque changement de lot ou d'équipe.</em></li>
+      <li id="cs-6" data-n="6"><strong>Zone à flux non unidirectionnel (ISO 7 / ISO 8)</strong> L'air filtré dilue la contamination. C'est le nombre de renouvellements d'air par heure qui fait la classe.</li>
+      <li id="cs-7" data-n="7"><strong>Grilles de reprise basses</strong> L'air chargé est aspiré au ras du sol. <em>Notre intervention : ces grilles accumulent la poussière, elles sont nettoyées à la fréquence prévue au protocole.</em></li>
+      <li id="cs-8" data-n="8"><strong>Gaine de reprise</strong> L'air repris remonte dans la paroi vers la CTA pour y être filtré à nouveau.</li>
+      <li id="cs-9" data-n="9"><strong>Sas personnel</strong> Habillage, banc de franchissement et tapis collant. Les portes sont asservies : une seule s'ouvre à la fois.</li>
+      <li id="cs-10" data-n="10"><strong>Cascade de pression</strong> Salle +30 Pa, sas +15 Pa, couloir 0 Pa : l'air s'échappe toujours vers le moins propre et la contamination ne remonte pas. Valeurs indicatives.</li>
+      <li id="cs-11" data-n="11"><strong>Manomètre différentiel</strong> Il affiche l'écart de pression entre deux locaux. On le vérifie avant d'entrer.</li>
+      <li id="cs-12" data-n="12"><strong>Compteur de particules</strong> Il mesure la concentration de particules dans l'air pour vérifier la classe ISO 14644-1.</li>
+      <li id="cs-13" data-n="13"><strong>Plafond, parois et luminaires affleurants</strong> Surfaces lisses, étanches et sans recoin, compatibles avec les désinfectants. <em>Notre intervention : essuyage humide du haut vers le bas, lingettes non pelucheuses.</em></li>
+      <li id="cs-14" data-n="14"><strong>Sol continu en gorge arrondie</strong> Le revêtement remonte en plinthe arrondie : aucun angle où la poussière peut s'accumuler.</li>
+      <li id="cs-15" data-n="15"><strong>Opérateur en tenue</strong> Première source de particules en salle blanche. Combinaison, cagoule, masque, gants et surbottes limitent l'émission. <em>Nos agents sont formés à l'habillage et au comportement en zone.</em></li>
+    </ol>
+  </div>
+</section>
+
 <section class="alt" style="padding-top:48px">
   <div class="wrap">
     <div class="article">
       <nav class="toc" aria-label="Sommaire">
         <strong>Sommaire</strong>
         <ol>
+          <li><a href="#anatomie">Anatomie d'une salle blanche (vue en coupe)</a></li>
           <li><a href="#definitions">Salle blanche, salle propre, zone propre, ZAC : de quoi parle-t-on ?</a></li>
           <li><a href="#classes-iso">Classes ISO 14644-1 et fréquences de nettoyage</a></li>
           <li><a href="#protocole">Notre protocole de nettoyage en environnement contrôlé</a></li>

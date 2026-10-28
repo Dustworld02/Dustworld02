@@ -1,0 +1,168 @@
+<svg class="coupe" viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cs-titre cs-desc">
+  <title id="cs-titre">Salle blanche en coupe : circulation de l'air et équipements</title>
+  <desc id="cs-desc">Vue en coupe d'une salle blanche. La centrale de traitement d'air souffle l'air vers un plénum, puis à travers des filtres HEPA au plafond. Sous le poste de travail, l'air descend en flux unidirectionnel (zone ISO 5) ; ailleurs, il balaie la salle (ISO 7), est repris par des grilles basses et remonte dans la paroi vers la centrale. Le sas et le couloir sont en pression décroissante : +30 Pa dans la salle, +15 Pa dans le sas, 0 Pa dans le couloir.</desc>
+  <defs>
+    <pattern id="cs-plis" width="6" height="16" patternUnits="userSpaceOnUse"><rect width="6" height="16" fill="#FFFFFF"/><path d="M3 0V16" stroke="#C9A84C" stroke-width="1"/></pattern>
+    <pattern id="cs-grille" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#FFFFFF"/><path d="M0 3H6" stroke="#1A1A2E" stroke-width="1.2"/></pattern>
+    <marker id="cs-fl-or" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#C9A84C"/></marker>
+    <marker id="cs-fl-gris" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8A87A0"/></marker>
+    <marker id="cs-fl-marine" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1A1A2E"/></marker>
+  </defs>
+
+  <!-- Fond et structure du bâtiment -->
+  <rect width="1200" height="700" fill="#FDF8F0"/>
+  <rect x="20" y="28" width="1140" height="132" fill="#F3ECDD"/>
+  <rect x="110" y="160" width="160" height="90" fill="#F3ECDD"/>
+  <rect x="940" y="160" width="220" height="440" fill="#F7F1E5"/>
+  <rect x="20" y="20" width="1140" height="8" fill="#1A1A2E"/>
+  <text x="34" y="52" class="cs-lbl">COMBLES TECHNIQUES</text>
+
+  <!-- Centrale de traitement d'air -->
+  <rect x="960" y="40" width="190" height="92" rx="4" fill="#1A1A2E"/>
+  <rect x="980" y="52" width="6" height="68" fill="#C9A84C"/><rect x="994" y="52" width="6" height="68" fill="#C9A84C" opacity=".7"/><rect x="1008" y="52" width="6" height="68" fill="#C9A84C" opacity=".45"/>
+  <circle cx="1098" cy="80" r="24" fill="none" stroke="#FFFFFF" stroke-width="2"/><g transform="translate(1098 80)"><g class="cs-ventilo"><circle r="20" fill="none" stroke="none"/><path d="M0 0L0 -18M0 0L15.6 9M0 0L-15.6 9" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/><circle r="4" fill="#C9A84C"/></g></g>
+  <text x="1046" y="126" class="cs-lbl cs-lbl-clair" text-anchor="middle">CTA</text>
+
+  <!-- Gaines et plénums -->
+  <rect x="170" y="58" width="790" height="26" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="575" y="83" width="30" height="38" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="175" y="83" width="26" height="168" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="290" y="120" width="600" height="40" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="110" y="250" width="160" height="22" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.5"/>
+
+  <!-- Parois -->
+  <rect x="100" y="272" width="10" height="158" fill="#D9D2C2"/>
+  <rect x="270" y="160" width="20" height="270" fill="#D9D2C2"/>
+  <rect x="890" y="120" width="50" height="480" fill="#D9D2C2"/>
+  <rect x="903" y="100" width="24" height="492" fill="#EFE8D8" stroke="#1A1A2E" stroke-width="1.2"/>
+  <rect x="903" y="100" width="57" height="24" fill="#EFE8D8" stroke="#1A1A2E" stroke-width="1.2"/>
+  <rect x="884" y="548" width="6" height="44" fill="url(#cs-grille)" stroke="#1A1A2E" stroke-width="1"/>
+
+  <!-- Volumes intérieurs -->
+  <rect x="290" y="176" width="600" height="424" fill="#FFFFFF"/>
+  <rect x="110" y="284" width="160" height="316" fill="#FFFFFF"/>
+  <rect x="20" y="272" width="80" height="328" fill="#F7F1E5"/>
+
+  <!-- Plafond, filtres HEPA, luminaires -->
+  <rect x="290" y="160" width="600" height="16" fill="#E8E1D2"/>
+  <rect x="470" y="160" width="240" height="16" fill="url(#cs-plis)" stroke="#1A1A2E" stroke-width="1.5"/>
+  <path d="M530 160V176M590 160V176M650 160V176" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="305" y="160" width="50" height="16" fill="url(#cs-plis)" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="395" y="160" width="50" height="16" fill="url(#cs-plis)" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="735" y="160" width="50" height="16" fill="url(#cs-plis)" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="825" y="160" width="50" height="16" fill="url(#cs-plis)" stroke="#1A1A2E" stroke-width="1.5"/>
+  <rect x="362" y="166" width="26" height="8" rx="2" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.2"/>
+  <rect x="792" y="166" width="26" height="8" rx="2" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.2"/>
+  <rect x="110" y="272" width="160" height="12" fill="#E8E1D2"/>
+  <rect x="160" y="272" width="60" height="12" fill="url(#cs-plis)" stroke="#1A1A2E" stroke-width="1.2"/>
+
+  <!-- Portes asservies (jeu sous porte = fuite contrôlée) -->
+  <rect x="101" y="430" width="8" height="166" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.2"/>
+  <rect x="271" y="430" width="18" height="166" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.2"/>
+  <circle cx="284" cy="512" r="2.5" fill="#1A1A2E"/><circle cx="106" cy="512" r="2" fill="#1A1A2E"/>
+
+  <!-- Sas : banc de franchissement, tapis collant -->
+  <rect x="140" y="560" width="70" height="8" fill="#1A1A2E"/><rect x="146" y="568" width="5" height="32" fill="#1A1A2E"/><rect x="199" y="568" width="5" height="32" fill="#1A1A2E"/>
+  <rect x="114" y="595" width="22" height="5" fill="#8A87A0"/><rect x="230" y="595" width="36" height="5" fill="#8A87A0"/>
+
+  <!-- Manomètre différentiel -->
+  <circle cx="280" cy="380" r="8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.5"/><path d="M280 380L284 375" stroke="#C9A84C" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- Poste de travail sous flux -->
+  <rect x="495" y="466" width="190" height="10" fill="#1A1A2E"/>
+  <rect x="503" y="476" width="6" height="124" fill="#1A1A2E"/><rect x="671" y="476" width="6" height="124" fill="#1A1A2E"/>
+  <rect x="560" y="450" width="26" height="16" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.2"/><rect x="600" y="456" width="40" height="10" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.2"/>
+
+  <!-- Opérateur en tenue -->
+  <g>
+    <path d="M412 598V408Q412 382 430 382Q448 382 448 408V598Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="2"/>
+    <path d="M430 598V500" stroke="#1A1A2E" stroke-width="1.2"/>
+    <circle cx="430" cy="362" r="17" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="2"/>
+    <rect x="420" y="356" width="20" height="8" rx="3" fill="#1A1A2E"/>
+    <rect x="422" y="367" width="16" height="7" rx="2" fill="#C9A84C"/>
+    <path d="M446 420L494 458" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>
+    <rect x="410" y="590" width="40" height="10" rx="2" fill="#E8E1D2" stroke="#1A1A2E" stroke-width="1.2"/>
+  </g>
+
+  <!-- Compteur de particules -->
+  <path d="M822 520V494" stroke="#1A1A2E" stroke-width="2"/><path d="M814 494H830L826 486H818Z" fill="#1A1A2E"/>
+  <rect x="800" y="520" width="44" height="58" rx="3" fill="#1A1A2E"/><rect x="806" y="527" width="32" height="14" fill="#C9A84C" opacity=".85"/>
+  <circle cx="808" cy="590" r="7" fill="#1A1A2E"/><circle cx="836" cy="590" r="7" fill="#1A1A2E"/>
+
+  <!-- Sol continu, remontées en gorge -->
+  <rect x="20" y="600" width="1140" height="22" fill="#24243D"/>
+  <path d="M290 584Q290 600 306 600H290Z M890 584Q890 600 874 600H890Z M110 588Q110 600 122 600H110Z M270 588Q270 600 258 600H270Z" fill="#24243D"/>
+
+  <!-- FLUX D'AIR -->
+  <g class="air air-pur" fill="none" stroke-width="2.2">
+    <path d="M955 71H590V138"/>
+    <path d="M590 71H188V260"/>
+    <path d="M590 140H300"/><path d="M590 140H880"/>
+  </g>
+  <g class="air air-pur air-lam" fill="none" stroke-width="2" marker-end="url(#cs-fl-or)">
+    <path d="M480 180V458"/><path d="M510 180V458"/><path d="M540 180V440"/><path d="M570 180V440"/><path d="M600 180V446"/><path d="M630 180V446"/><path d="M660 180V458"/><path d="M690 180V458"/>
+  </g>
+  <g class="air air-pur air-turb" fill="none" stroke-width="1.8" marker-end="url(#cs-fl-or)">
+    <path d="M330 180C318 300 352 430 322 520S560 590 878 576"/>
+    <path d="M420 180C438 270 398 330 398 410S470 585 878 582"/>
+    <path d="M760 180C772 300 742 420 800 500S860 556 880 562"/>
+    <path d="M850 180C862 320 842 450 880 554"/>
+    <path d="M472 470C452 520 470 570 560 590"/>
+    <path d="M708 470C730 520 790 566 878 570"/>
+    <path d="M180 288C172 380 205 470 186 586"/>
+    <path d="M212 288C222 390 192 480 236 586"/>
+  </g>
+  <g class="air air-repris" fill="none" stroke-width="2.4" marker-end="url(#cs-fl-gris)">
+    <path d="M884 570H915V112H956"/>
+    <path d="M1150 116H1192"/>
+  </g>
+  <g class="air air-neuf" fill="none" stroke-width="2.4" marker-end="url(#cs-fl-marine)">
+    <path d="M1194 60H1154"/>
+  </g>
+  <g class="air air-fuite" fill="none" stroke-width="2.4" marker-end="url(#cs-fl-or)">
+    <path d="M296 597H256"/><path d="M114 597H72"/>
+  </g>
+  <text x="1192" y="38" class="cs-lbl" text-anchor="end">AIR NEUF</text>
+  <text x="1192" y="148" class="cs-lbl" text-anchor="end">REJET</text>
+
+  <!-- Légende des flux -->
+  <g transform="translate(962 196)">
+    <rect width="190" height="150" rx="4" fill="#FFFFFF" stroke="#E8E1D2"/>
+    <text x="16" y="28" class="cs-lbl">FLUX D'AIR</text>
+    <path d="M16 52H54" stroke="#C9A84C" stroke-width="2.4" stroke-dasharray="6 10"/><text x="64" y="56" class="cs-txt">Air filtré HEPA</text>
+    <path d="M16 80H54" stroke="#8A87A0" stroke-width="2.4" stroke-dasharray="6 10"/><text x="64" y="84" class="cs-txt">Air repris</text>
+    <path d="M16 108H54" stroke="#1A1A2E" stroke-width="2.4" stroke-dasharray="6 10"/><text x="64" y="112" class="cs-txt">Air neuf</text>
+    <path d="M16 134H40" stroke="#C9A84C" stroke-width="2.4" marker-end="url(#cs-fl-or)"/><text x="64" y="138" class="cs-txt">Surpression</text>
+  </g>
+
+  <!-- Locaux et pressions -->
+  <text x="60" y="648" class="cs-lbl" text-anchor="middle">COULOIR</text>
+  <text x="190" y="648" class="cs-lbl" text-anchor="middle">SAS</text>
+  <path d="M470 634V640H710V634" fill="none" stroke="#C9A84C" stroke-width="2"/>
+  <text x="590" y="656" class="cs-lbl" text-anchor="middle">ZONE ISO 5 · FLUX UNIDIRECTIONNEL</text>
+  <text x="590" y="684" class="cs-lbl" text-anchor="middle">SALLE PROPRE ISO 7</text>
+  <g class="cs-pression">
+    <rect x="34" y="660" width="52" height="24" rx="12" fill="#FFFFFF" stroke="#1A1A2E"/><text x="60" y="677" text-anchor="middle">0 Pa</text>
+    <rect x="160" y="660" width="60" height="24" rx="12" fill="#F6EEDB" stroke="#C9A84C"/><text x="190" y="677" text-anchor="middle">+15 Pa</text>
+    <rect x="770" y="662" width="64" height="24" rx="12" fill="#C9A84C" stroke="#C9A84C"/><text x="802" y="679" text-anchor="middle">+30 Pa</text>
+  </g>
+
+  <!-- Repères numérotés -->
+  <g class="cs-points">
+    <a href="#cs-1" class="cs-pt" data-n="1"><circle cx="1055" cy="150" r="13"/><text x="1055" y="154.5">1</text></a>
+    <a href="#cs-2" class="cs-pt" data-n="2"><circle cx="430" cy="71" r="13"/><text x="430" y="75.5">2</text></a>
+    <a href="#cs-3" class="cs-pt" data-n="3"><circle cx="298" cy="206" r="13"/><text x="298" y="210.5">3</text></a>
+    <a href="#cs-4" class="cs-pt" data-n="4"><circle cx="585" cy="320" r="13"/><text x="585" y="324.5">4</text></a>
+    <a href="#cs-5" class="cs-pt" data-n="5"><circle cx="590" cy="505" r="13"/><text x="590" y="509.5">5</text></a>
+    <a href="#cs-6" class="cs-pt" data-n="6"><circle cx="365" cy="300" r="13"/><text x="365" y="304.5">6</text></a>
+    <a href="#cs-7" class="cs-pt" data-n="7"><circle cx="866" cy="611" r="13"/><text x="866" y="615.5">7</text></a>
+    <a href="#cs-8" class="cs-pt" data-n="8"><circle cx="915" cy="340" r="13"/><text x="915" y="344.5">8</text></a>
+    <a href="#cs-9" class="cs-pt" data-n="9"><circle cx="140" cy="400" r="13"/><text x="140" y="404.5">9</text></a>
+    <a href="#cs-10" class="cs-pt" data-n="10"><circle cx="864" cy="674" r="13"/><text x="864" y="678.5">10</text></a>
+    <a href="#cs-11" class="cs-pt" data-n="11"><circle cx="250" cy="352" r="13"/><text x="250" y="356.5">11</text></a>
+    <a href="#cs-12" class="cs-pt" data-n="12"><circle cx="822" cy="557" r="13"/><text x="822" y="561.5">12</text></a>
+    <a href="#cs-13" class="cs-pt" data-n="13"><circle cx="375" cy="200" r="13"/><text x="375" y="204.5">13</text></a>
+    <a href="#cs-14" class="cs-pt" data-n="14"><circle cx="312" cy="611" r="13"/><text x="312" y="615.5">14</text></a>
+    <a href="#cs-15" class="cs-pt" data-n="15"><circle cx="458" cy="334" r="13"/><text x="458" y="338.5">15</text></a>
+  </g>
+</svg>

@@ -369,3 +369,50 @@ tr:last-child td { border-bottom: 0; }
   .js .reveal { opacity: 1; transform: none; }
   .hero-flux { display: none; }
 }
+
+/* ---------- Salle blanche en coupe ---------- */
+.coupe { display: block; width: 100%; height: auto; }
+.coupe .cs-lbl { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .14em; fill: #7A6221; }
+.coupe .cs-lbl-clair { fill: #FFFFFF; }
+.coupe .cs-txt { font-family: var(--sans); font-size: 12.5px; font-weight: 500; fill: #1A1A2E; }
+.coupe .cs-pression text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: #1A1A2E; }
+.cs-pt circle { fill: var(--marine); stroke: var(--or); stroke-width: 2; transition: fill .2s ease, r .2s ease; }
+.cs-pt text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+.cs-pt:hover circle, .cs-pt:focus circle, .cs-pt.actif circle { fill: var(--or); r: 16; }
+.cs-pt:hover text, .cs-pt:focus text, .cs-pt.actif text { fill: var(--marine); }
+.cs-pt:focus { outline: none; }
+
+.air path { stroke-linecap: round; }
+.air-pur path { stroke: #C9A84C; stroke-dasharray: 6 10; animation: cs-air 1.1s linear infinite; }
+.air-lam path { stroke-dasharray: 10 6; animation-duration: .8s; }
+.air-turb path { animation-duration: 1.5s; }
+.air-repris path { stroke: #8A87A0; stroke-dasharray: 6 10; animation: cs-air 1.8s linear infinite; }
+.air-neuf path { stroke: #1A1A2E; stroke-dasharray: 6 10; animation: cs-air 1.4s linear infinite; }
+.air-fuite path { stroke: #C9A84C; stroke-dasharray: 6 10; animation: cs-air .9s linear infinite; }
+@keyframes cs-air { to { stroke-dashoffset: -32; } }
+.cs-ventilo { animation: cs-tourne 2.4s linear infinite; transform-origin: 0 0; }
+@keyframes cs-tourne { to { transform: rotate(360deg); } }
+.coupe-pause .air path, .coupe-pause .cs-ventilo { animation-play-state: paused; }
+
+.anatomie { background: #fff; border-bottom: 1px solid var(--bord); }
+.anatomie-figure { margin: 0; border: 1px solid var(--bord); border-top: 3px solid var(--or); border-radius: var(--radius); background: var(--creme); overflow: hidden; }
+.anatomie-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.anatomie-scroll .coupe { min-width: 760px; }
+.anatomie-figure figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 16px; border-top: 1px solid var(--bord); background: #fff; font-size: .82rem; color: var(--texte-2); }
+.anim-toggle { font: inherit; font-weight: 700; font-size: .8rem; color: var(--marine); background: var(--creme); border: 1px solid var(--marine); border-radius: var(--radius); padding: 7px 12px; cursor: pointer; }
+.anim-toggle:hover { background: var(--marine); color: #fff; }
+.cs-legende { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; counter-reset: none; }
+@media (max-width: 960px) { .cs-legende { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .cs-legende { grid-template-columns: 1fr; } }
+.cs-legende li { position: relative; padding: 14px 16px 14px 54px; background: #fff; border: 1px solid var(--bord); border-left: 3px solid var(--bord); border-radius: var(--radius); font-size: .88rem; color: var(--texte-2); line-height: 1.6; scroll-margin-top: 110px; transition: border-color .2s ease, background .2s ease; }
+.cs-legende li::before { content: attr(data-n); position: absolute; left: 14px; top: 13px; width: 28px; height: 28px; border-radius: 50%; background: var(--marine); color: #fff; border: 2px solid var(--or); font-weight: 700; font-size: .78rem; display: flex; align-items: center; justify-content: center; }
+.cs-legende li strong { display: block; color: var(--marine); margin-bottom: 2px; }
+.cs-legende li em { display: block; font-style: normal; color: var(--or-texte); font-weight: 600; margin-top: 6px; }
+.cs-legende li.actif, .cs-legende li:target { border-left-color: var(--or); background: var(--or-voile); }
+.cs-legende li.actif::before, .cs-legende li:target::before { background: var(--or); color: var(--marine); }
+
+/* Version accueil : sans repères numérotés, la coupe illustre */
+.figure-coupe { margin: 0; }
+.figure-coupe .cs-points { display: none; }
+.figure-coupe figcaption { padding: 12px 16px; background: #fff; border-top: 1px solid var(--bord); font-size: .85rem; font-weight: 700; }
+.figure-coupe figcaption a { text-decoration: none; }

@@ -243,6 +243,9 @@ def render(meta: dict, body: str) -> str:
     # Espaces insécables dans les numéros affichés : jamais coupés en fin de ligne.
     for k in ("{{phone_tech_display}}", "{{phone_com_display}}", "{{phone_ch_display}}"):
         repl[k] = repl[k].replace(" ", "\u00a0")
+    # Fragments réutilisables (site/partials/*.svg|html) : {{nom_du_fichier}}
+    for part in sorted((ROOT / "partials").glob("*.*")):
+        repl["{{" + part.stem + "}}"] = part.read_text(encoding="utf-8")
     for k, v in repl.items():
         html = html.replace(k, v)
     # Les tokens société peuvent aussi apparaître dans le contenu des pages.
