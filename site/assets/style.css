@@ -416,3 +416,5 @@ tr:last-child td { border-bottom: 0; }
 .figure-coupe .cs-points { display: none; }
 .figure-coupe figcaption { padding: 12px 16px; background: #fff; border-top: 1px solid var(--bord); font-size: .85rem; font-weight: 700; }
 .figure-coupe figcaption a { text-decoration: none; }
+/* Avec l'animation des filets, la trame du bandeau ne garde que ses lignes horizontales */
+.js .hero::before { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px); }

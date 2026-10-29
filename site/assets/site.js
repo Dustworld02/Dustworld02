@@ -78,45 +78,81 @@
   }, { threshold: 0.6 });
   compteurs.forEach(function (c) { vuesCompteurs.observe(c); });
 
-  /* 4. Flux laminaire : particules qui descendent dans le bandeau d'accueil */
+  /* 4. Flux laminaire : filets d'air parallèles, à vitesse égale, qui contournent la souris
+        (comme l'air autour d'un opérateur sous un plafond filtrant) */
   var canvas = document.querySelector('.hero-flux');
   if (canvas && canvas.getContext) {
-    var ctx = canvas.getContext('2d'), hero = canvas.parentElement, w = 0, h = 0, dpr = 1, parts = [], actif = true, raf = 0;
+    var ctx = canvas.getContext('2d'), hero = canvas.parentElement;
+    var w = 0, h = 0, dpr = 1, colonnes = [], actif = true, raf = 0;
+    var ECART = 56, PAS = 8, VITESSE = 1.5, LONG = 150;
+    var souris = { x: -9999, y: -9999, force: 0, cible: 0 };
+
     var dimensionner = function () {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = hero.clientWidth; h = hero.clientHeight;
       canvas.width = w * dpr; canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var n = Math.round(Math.min(90, w * h / 14000));
-      parts = [];
-      for (var i = 0; i < n; i++) parts.push(nouvelle(true));
+      colonnes = [];
+      for (var x = ECART / 2; x < w; x += ECART) {
+        var impulsions = [];
+        var n = 1 + (Math.random() < 0.45 ? 1 : 0);
+        for (var k = 0; k < n; k++) impulsions.push(Math.random() * (h + LONG * 2) - LONG);
+        colonnes.push({ x: x, imp: impulsions });
+      }
     };
-    var nouvelle = function (partout) {
-      return {
-        x: Math.random() * w,
-        y: partout ? Math.random() * h : -10,
-        v: 0.25 + Math.random() * 0.55,
-        r: 0.6 + Math.random() * 1.4,
-        a: 0.15 + Math.random() * 0.45,
-        l: 6 + Math.random() * 22
-      };
+
+    // Déviation horizontale d'un point du filet autour de la souris
+    var deviation = function (x, y) {
+      if (souris.force < 0.01) return 0;
+      var dx = x - souris.x, dy = y - souris.y, r = 110;
+      var e = Math.exp(-(dx * dx + dy * dy) / (2 * r * r));
+      return (dx >= 0 ? 1 : -1) * 46 * e * souris.force;
     };
+
+    var trace = function (x, y0, y1) {
+      ctx.beginPath();
+      for (var y = Math.max(0, y0); y <= Math.min(h, y1); y += PAS) {
+        var px = x + deviation(x, y);
+        if (y === Math.max(0, y0)) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+      }
+    };
+
     var dessiner = function () {
       ctx.clearRect(0, 0, w, h);
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
-        p.y += p.v;
-        if (p.y - p.l > h) parts[i] = p = nouvelle(false);
-        var g = ctx.createLinearGradient(p.x, p.y - p.l, p.x, p.y);
-        g.addColorStop(0, 'rgba(201,168,76,0)');
-        g.addColorStop(1, 'rgba(201,168,76,' + p.a + ')');
-        ctx.strokeStyle = g; ctx.lineWidth = p.r;
-        ctx.beginPath(); ctx.moveTo(p.x, p.y - p.l); ctx.lineTo(p.x, p.y); ctx.stroke();
+      souris.force += (souris.cible - souris.force) * 0.08;
+      for (var i = 0; i < colonnes.length; i++) {
+        var c = colonnes[i];
+        var poids = 0.35 + 0.65 * (c.x / w);       // plus discret derrière le texte, à gauche
+        // filet de fond
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(201,168,76,' + (0.13 * poids) + ')';
+        trace(c.x, 0, h); ctx.stroke();
+        // impulsions : toutes à la même vitesse = flux unidirectionnel
+        for (var k = 0; k < c.imp.length; k++) {
+          c.imp[k] += VITESSE;
+          if (c.imp[k] - LONG > h) c.imp[k] = -Math.random() * h * 0.6;
+          var bas = c.imp[k], haut = bas - LONG;
+          var g = ctx.createLinearGradient(0, haut, 0, bas);
+          g.addColorStop(0, 'rgba(201,168,76,0)');
+          g.addColorStop(0.85, 'rgba(201,168,76,' + (0.55 * poids) + ')');
+          g.addColorStop(1, 'rgba(226,203,138,' + (0.9 * poids) + ')');
+          ctx.strokeStyle = g; ctx.lineWidth = 1.6;
+          trace(c.x, haut, bas); ctx.stroke();
+        }
       }
       raf = actif ? requestAnimationFrame(dessiner) : 0;
     };
+
+    hero.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return;
+      var r = hero.getBoundingClientRect();
+      souris.x = e.clientX - r.left; souris.y = e.clientY - r.top; souris.cible = 1;
+    });
+    hero.addEventListener('pointerleave', function () { souris.cible = 0; });
+
     dimensionner();
-    window.addEventListener('resize', function () { dimensionner(); }, { passive: true });
+    var minuteur = 0;
+    window.addEventListener('resize', function () { clearTimeout(minuteur); minuteur = setTimeout(dimensionner, 150); }, { passive: true });
     new IntersectionObserver(function (e) {
       actif = e[0].isIntersecting && !document.hidden;
       if (actif && !raf) raf = requestAnimationFrame(dessiner);
