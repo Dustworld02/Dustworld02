@@ -42,9 +42,9 @@
 
   /* 2. Apparition des blocs au défilement, en cascade */
   var cibles = document.querySelectorAll(
-    'main .section-head, main .card, main .steps > li, main .zone, main .sectors > li, main .split > *, ' +
-    'main .faq details, .trust li, main .zone-article, main .contact-card, main .table-wrap, main .callout, ' +
-    'main .toc, main .form, .cta-inner > *, main .page-head > *'
+    'main .section-head, main .card, main .tuile, main .steps > li, main .zone, main .sectors > li, main .split > *, ' +
+    'main .faq details, .h-chiffres li, main .zone-article, main .contact-card, main .table-wrap, main .callout, ' +
+    'main .toc, main .form, .cta-inner > *, main .page-head > *, .h-manifeste .wrap > *, .recit-visu, main .cs-legende li, main .anatomie-figure'
   );
   var vues = new IntersectionObserver(function (entrees) {
     entrees.forEach(function (e) {
@@ -59,6 +59,32 @@
     el.classList.add('reveal');
     vues.observe(el);
   });
+
+  // Filet de sécurité : un saut rapide (touche Fin, ancre) ne doit laisser aucun bloc invisible
+  var rattrapage = 0;
+  window.addEventListener('scroll', function () {
+    if (rattrapage) return;
+    rattrapage = setTimeout(function () {
+      rattrapage = 0;
+      document.querySelectorAll('.reveal:not(.is-visible)').forEach(function (el) {
+        if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('is-visible');
+      });
+    }, 150);
+  }, { passive: true });
+
+  /* 2 bis. Récit du flux d'air : l'étape visible éclaire la partie correspondante du schéma */
+  var recit = document.querySelector('.recit');
+  if (recit) {
+    var etapes = recit.querySelectorAll('.recit-etape');
+    var vuesEtapes = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        etapes.forEach(function (x) { x.classList.toggle('actif', x === e.target); });
+        recit.setAttribute('data-etape', e.target.getAttribute('data-etape'));
+      });
+    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+    etapes.forEach(function (x) { vuesEtapes.observe(x); });
+  }
 
   /* 3. Compteurs animés (la valeur finale est déjà dans le HTML) */
   var compteurs = document.querySelectorAll('[data-count]');
@@ -122,7 +148,7 @@
       souris.force += (souris.cible - souris.force) * 0.08;
       for (var i = 0; i < colonnes.length; i++) {
         var c = colonnes[i];
-        var poids = 0.35 + 0.65 * (c.x / w);       // plus discret derrière le texte, à gauche
+        var poids = 1 - 0.5 * Math.abs(c.x / w - 0.5);  // un peu plus discret sur les bords
         // filet de fond
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(201,168,76,' + (0.13 * poids) + ')';

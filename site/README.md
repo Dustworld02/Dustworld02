@@ -55,15 +55,15 @@ Pour la page 404 et les URL « propres » (`/contact/`), tout hébergeur qui ser
 
 ## Charte graphique
 
-Le site applique la charte de la « Trame Berto & Fils » :
+Le site applique les couleurs de la charte « Trame Berto & Fils », dans une mise en page inspirée d'apple.com
+(grands titres centrés, sections claires et sombres en alternance, tuiles arrondies, récit du flux d'air au défilement) :
 
 | Élément | Valeur | Usage |
 |---|---|---|
 | Bleu marine | `#1A1A2E` | textes, titres, en-têtes de tableau, fonds sombres |
 | Or | `#C9A84C` | filets, accents, boutons d'appel — avec parcimonie |
 | Blanc cassé | `#FDF8F0` | fonds de sections et d'encadrés |
-| Titres | Playfair Display | |
-| Texte et étiquettes | Montserrat | étiquettes en gras, majuscules, or |
+| Typographie | Montserrat | titres et texte ; le Playfair Display de la trame n'est pas utilisé sur le site |
 
 L'or pur est trop clair pour du texte sur fond blanc (contraste insuffisant pour l'accessibilité) :
 les étiquettes sur fond clair utilisent `#7A6221`, l'or pur reste réservé aux filets, aux boutons et aux fonds sombres.
