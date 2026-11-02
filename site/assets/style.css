@@ -491,20 +491,3 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 440px) { .procede-4 { grid-template-columns: 1fr; } }
 .niveaux-svg a, .niveaux-svg a:hover, .coupe a, .coupe a:hover { text-decoration: none; }
 
-/* ---------- Paragraphes justifiés (avec césure française pour éviter les « rivières ») ---------- */
-.article p, .article li, .tuile p, .card p, .cs-legende li, .zone-article p, .faq details p,
-.recit-etape p, .niveaux-legende p, .contact-card p, .callout p, .steps p, .sectors span,
-.zone-article li, .table-wrap td {
-  text-align: justify;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-  hyphenate-limit-chars: 7 3 3;
-  text-wrap: pretty;
-}
-.table-wrap td { text-align: left; }
-@media (max-width: 480px) {
-  .article p, .article li, .tuile p, .card p, .cs-legende li, .zone-article p, .faq details p,
-  .recit-etape p, .niveaux-legende p, .contact-card p, .callout p, .steps p, .sectors span, .zone-article li {
-    text-align: left;
-  }
-}
