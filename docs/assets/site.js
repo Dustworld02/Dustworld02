@@ -35,6 +35,18 @@
     });
   }
 
+  /* Services : niveaux du schéma ↔ légende */
+  document.querySelectorAll('.niveaux [data-niv]').forEach(function (el) {
+    var n = el.getAttribute('data-niv');
+    var basculer = function (oui) {
+      document.querySelectorAll('.niveaux [data-niv="' + n + '"]').forEach(function (x) { x.classList.toggle('actif', oui); });
+    };
+    el.addEventListener('mouseenter', function () { basculer(true); });
+    el.addEventListener('mouseleave', function () { basculer(false); });
+    el.addEventListener('focusin', function () { basculer(true); });
+    el.addEventListener('focusout', function () { basculer(false); });
+  });
+
   if (reduit || !('IntersectionObserver' in window)) {
     document.documentElement.classList.add('sans-anim');
     return;
