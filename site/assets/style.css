@@ -491,3 +491,8 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 440px) { .procede-4 { grid-template-columns: 1fr; } }
 .niveaux-svg a, .niveaux-svg a:hover, .coupe a, .coupe a:hover { text-decoration: none; }
 
+
+/* ---------- Justification sélective ----------
+   site.js essaie de justifier chaque paragraphe de colonne large, mesure l'espace entre les mots
+   ligne par ligne, et ne garde la justification que si aucune ligne ne s'étire au-delà du seuil. */
+.justifie { text-align: justify; -webkit-hyphens: auto; hyphens: auto; hyphenate-limit-chars: 8 4 4; }

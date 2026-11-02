@@ -47,6 +47,48 @@
     el.addEventListener('focusout', function () { basculer(false); });
   });
 
+  /* Justification sélective : uniquement là où elle ne crée pas de trous entre les mots */
+  var SEUIL = 1.4;  // espace maximal toléré, en multiple de l'espace normal
+  var SELECTEUR = '.article > p, .article > ul:not(.sectors) > li, .article > .callout > p, .article > .zone-article > p, .faq details p';
+  var espaces = function (el) {
+    var lignes = {}, walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, rg = document.createRange();
+    while ((n = walker.nextNode())) {
+      var t = n.textContent;
+      for (var i = 0; i < t.length; i++) {
+        if (t.charCodeAt(i) !== 32) continue;
+        rg.setStart(n, i); rg.setEnd(n, i + 1);
+        var r = rg.getBoundingClientRect();
+        if (!r.width) continue;
+        var y = Math.round(r.top);
+        (lignes[y] = lignes[y] || []).push(r.width);
+      }
+    }
+    return lignes;
+  };
+  var justifier = function () {
+    document.querySelectorAll(SELECTEUR).forEach(function (el) {
+      el.classList.remove('justifie');
+      if (window.innerWidth < 900 || el.offsetParent === null) return;
+      // espace normal : médiane des espaces en alignement à gauche
+      var base = [], l0 = espaces(el);
+      Object.keys(l0).forEach(function (y) { base = base.concat(l0[y]); });
+      if (base.length < 8) return;
+      base.sort(function (a, b) { return a - b; });
+      var normal = base[Math.floor(base.length / 2)];
+      el.classList.add('justifie');
+      var l1 = espaces(el), ys = Object.keys(l1).map(Number).sort(function (a, b) { return a - b; });
+      ys.pop(); // la dernière ligne n'est jamais étirée
+      for (var k = 0; k < ys.length; k++) {
+        if (Math.max.apply(null, l1[ys[k]]) > normal * SEUIL) { el.classList.remove('justifie'); return; }
+      }
+    });
+  };
+  var lancerJustif = function () { (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(justifier); };
+  lancerJustif();
+  var minuteurJ = 0;
+  window.addEventListener('resize', function () { clearTimeout(minuteurJ); minuteurJ = setTimeout(justifier, 250); }, { passive: true });
+  document.querySelectorAll('.faq details').forEach(function (d) { d.addEventListener('toggle', function () { if (d.open) justifier(); }); });
+
   if (reduit || !('IntersectionObserver' in window)) {
     document.documentElement.classList.add('sans-anim');
     return;
