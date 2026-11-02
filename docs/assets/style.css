@@ -404,3 +404,40 @@ tr:last-child td { border-bottom: 0; }
 @media print {
   .site-header, .cta-band, .nav-toggle, .skip { display: none; }
 }
+
+/* ---------- Nettoyage industriel : coupe, procédé, plan ---------- */
+.cs-legende li::before { content: attr(data-num); }
+.coupe-indus .ci-autolaveuse { animation: ci-roule 10s cubic-bezier(.45,.05,.55,.95) infinite; }
+.coupe-indus .ci-trace { transform-box: fill-box; transform-origin: left center; animation: ci-trace 10s cubic-bezier(.45,.05,.55,.95) infinite; }
+@keyframes ci-roule { 0% { transform: translateX(0); opacity: 0; } 5% { opacity: 1; } 80% { transform: translateX(410px); opacity: 1; } 90%, 100% { transform: translateX(410px); opacity: 0; } }
+@keyframes ci-trace { 0% { transform: scaleX(0); opacity: 1; } 80% { transform: scaleX(1); opacity: 1; } 92% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+.coupe-indus .ci-flux path { animation: cs-air 1s linear infinite; }
+.coupe-indus .ci-colis { animation: ci-colis 6s linear infinite; }
+@keyframes ci-colis { from { transform: translateX(-10px); } to { transform: translateX(60px); } }
+.coupe-pause .ci-autolaveuse, .coupe-pause .ci-trace, .coupe-pause .ci-flux path, .coupe-pause .ci-colis { animation-play-state: paused; }
+
+.procede { list-style: none; padding: 0; margin: 28px 0 32px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; position: relative; counter-reset: procede; }
+.procede::before { content: ""; position: absolute; left: 10%; right: 10%; top: 52px; height: 2px; background: linear-gradient(90deg, var(--or), var(--marine)); opacity: .35; }
+.procede li { position: relative; background: #fff; border-radius: 18px; padding: 18px 14px 18px; text-align: center; counter-increment: procede; }
+.procede svg { width: 64px; height: 64px; display: block; margin: 4px auto 10px; position: relative; }
+.procede h3 { font-size: .95rem; margin: 0 0 .4em; }
+.procede h3::before { content: counter(procede) ". "; color: var(--or-texte); }
+.procede p { font-size: .82rem; color: var(--texte-2); margin: 0; line-height: 1.5; }
+@media (max-width: 760px) { .procede { grid-template-columns: 1fr 1fr; } .procede::before { display: none; } }
+@media (max-width: 440px) { .procede { grid-template-columns: 1fr; } }
+
+.plan-zones { margin: 28px 0 8px; background: #fff; border-radius: var(--rayon); padding: 16px; }
+.plan-zones svg { display: block; width: 100%; height: auto; }
+.pz-zone rect { stroke: #FFFFFF; stroke-width: 2; transition: opacity .2s ease; }
+.pz-zone .pz-nom { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
+.pz-zone .pz-freq { font-size: 12px; font-weight: 600; }
+.pz-quot rect { fill: #1A1A2E; } .pz-quot text { fill: #FFFFFF; } .pz-quot .pz-freq { fill: #E2CB8A; }
+.pz-hebdo > rect { fill: #EADBB0; } .pz-hebdo text { fill: #1A1A2E; } .pz-hebdo .pz-freq { fill: #5E4B17; }
+.pz-mens rect { fill: #F1EEE8; } .pz-mens text { fill: #1A1A2E; } .pz-mens .pz-freq { fill: #6E6E73; }
+.plan-zones svg:hover .pz-zone > rect { opacity: .55; }
+.plan-zones svg .pz-zone:hover > rect { opacity: 1; }
+.plan-zones figcaption { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; padding: 14px 4px 2px; font-size: .84rem; color: var(--texte-2); }
+.pz-cle { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--marine); }
+.pz-cle i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.pz-cle .pz-quot { background: #1A1A2E; } .pz-cle .pz-hebdo { background: #EADBB0; } .pz-cle .pz-mens { background: #F1EEE8; border: 1px solid var(--ligne); }
+.pz-note { flex-basis: 100%; font-size: .8rem; color: var(--texte-3); }
